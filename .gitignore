@@ -1,0 +1,46 @@
+# dependencies
+node_modules/
+.pnpm-store/
+
+# expo
+.expo/
+dist/
+web-build/
+expo-env.d.ts
+
+# native
+*.orig.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+
+# turbo
+.turbo/
+
+# testing
+coverage/
+
+# env
+.env
+.env.local
+.env.*.local
+
+# supabase
+supabase/.branches
+supabase/.temp
+
+# os
+.DS_Store
+
+# editors
+.vscode/*
+!.vscode/extensions.json
+.idea/
+
+# logs
+*.log
+npm-debug.*
+yarn-debug.*
+yarn-error.*
