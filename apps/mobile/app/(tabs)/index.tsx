@@ -1,9 +1,11 @@
-import { ScrollView, View } from "react-native";
+import { Pressable, ScrollView, View } from "react-native";
 import { useRouter } from "expo-router";
 import { Button, Card, EmptyState, ErrorState, LoadingState, Mascot, Text } from "@/shared/ui";
 import { useActiveGoal, useRecommendation } from "@/shared/api";
 import { formatDaysLeft } from "@/shared/lib/daysUntil";
 import { WhyThisDisclosure } from "@/features/home/WhyThisDisclosure";
+import { REQUIRES_AUTH } from "@/shared/config/dataSource";
+import { signOut } from "@/shared/lib/auth";
 
 /**
  * Screen 09 — Home (TZ.md §8 row 09, §19 Phase 4). The main app entry point
@@ -59,10 +61,24 @@ export default function Home() {
   }
 
   return (
-    <ScrollView
-      contentContainerClassName="gap-lg bg-background px-lg py-xl dark:bg-background-dark"
-      className="flex-1 bg-background dark:bg-background-dark"
-    >
+    <View className="flex-1 bg-background dark:bg-background-dark">
+      {REQUIRES_AUTH ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Sign out"
+          onPress={() => void signOut()}
+          className="absolute right-lg top-xl z-10 min-h-[44px] min-w-[44px] items-center justify-center rounded-pill px-sm"
+        >
+          <Text variant="caption" className="text-text-muted dark:text-text-muted-dark">
+            Sign out
+          </Text>
+        </Pressable>
+      ) : null}
+
+      <ScrollView
+        contentContainerClassName="gap-lg bg-background px-lg py-xl dark:bg-background-dark"
+        className="flex-1 bg-background dark:bg-background-dark"
+      >
       {/* Hero — Mascot + Goal + Deadline + Readiness (MVP Spec "Home — Mascot"/"Home — Goal": large, central, not overloaded with technical indicators). */}
       <View className="items-center gap-md rounded-xl bg-primary-soft p-xl dark:bg-primary-soft-dark">
         <Mascot stage={1} mood="neutral" size="large" />
@@ -135,6 +151,7 @@ export default function Home() {
           />
         </Card>
       )}
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 }

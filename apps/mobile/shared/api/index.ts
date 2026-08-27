@@ -12,3 +12,6 @@ export { useSubmitAssessmentAnswer } from "./useSubmitAssessmentAnswer";
 export { useCompleteAssessment } from "./useCompleteAssessment";
 export { useAssessmentResult } from "./useAssessmentResult";
 export { useRecommendation } from "./useRecommendation";
+export { useMission } from "./useMission";
+export { useSubmitTask } from "./useSubmitTask";
+export { useMissionResult } from "./useMissionResult";

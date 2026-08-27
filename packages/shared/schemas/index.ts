@@ -6,3 +6,12 @@ export { SkillStateSchema, SkillSchema, SkillTrendSchema } from "./skillState";
 export { MascotStateSchema, MascotStageSchema, MascotMoodSchema } from "./mascotState";
 export { AssessmentQuestionSchema, AssessmentResultSchema } from "./assessment";
 export { RecommendationSchema } from "./recommendation";
+export {
+  TaskTypeSchema,
+  MultipleChoicePayloadSchema,
+  TextInputPayloadSchema,
+  MissionTaskSchema,
+  MissionSchema,
+  TaskResultSchema,
+  MissionResultSchema,
+} from "./mission";

@@ -6,3 +6,10 @@ export type { SkillState, Skill, SkillTrend } from "../schemas/skillState";
 export type { MascotState, MascotStage, MascotMood } from "../schemas/mascotState";
 export type { AssessmentQuestion, AssessmentResult } from "../schemas/assessment";
 export type { Recommendation } from "../schemas/recommendation";
+export type {
+  TaskType,
+  MissionTask,
+  Mission,
+  TaskResult,
+  MissionResult,
+} from "../schemas/mission";

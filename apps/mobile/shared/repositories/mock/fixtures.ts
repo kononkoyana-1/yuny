@@ -4,6 +4,7 @@ import type {
   Goal,
   GoalOutcome,
   LearningState,
+  Mission,
   Profile,
   Recommendation,
 } from "@yuny/shared";
@@ -204,7 +205,7 @@ export const mockAssessmentResult: AssessmentResult = {
  * plausible placeholder consistent with `mockGoal.daily_minutes` (25),
  * leaving room in the day for review, not a backend-computed figure.
  */
-const MOCK_MISSION_ID = "7c2e9a4d-1f6b-4c8a-9d3e-5b2f7a1c9e04";
+export const MOCK_MISSION_ID = "7c2e9a4d-1f6b-4c8a-9d3e-5b2f7a1c9e04";
 
 export const mockRecommendation: Recommendation = {
   id: "3a9d5c1e-8b4f-4e2a-9c6d-1f8b3a5e9c02",
@@ -215,4 +216,83 @@ export const mockRecommendation: Recommendation = {
   reason: "Your speaking is currently your biggest gap for your goal.",
   skills_affected: ["speaking"],
   created_at: NOW,
+};
+
+/**
+ * Phase 5 Mission fixture — same shape `mission-from-content` produces in
+ * Supabase mode from the real "Greetings" chapter (5 vocabulary words: read,
+ * repeat, write, say, listen), so manual testing looks the same in both
+ * data sources. `mission.title` matches `mockRecommendation.mission_title`
+ * above so Home's card and the Mission it opens agree with each other.
+ */
+export const mockMission: Mission = {
+  id: MOCK_MISSION_ID,
+  goal_id: MOCK_GOAL_ID,
+  title: "Practice interview answers",
+  purpose: 'Practise the vocabulary from "Greetings."',
+  why: "Confident greetings are the first thing an interviewer hears — this is where practice pays off fastest.",
+  estimated_minutes: 5,
+  status: "pending",
+  tasks: [
+    {
+      id: "8e1a2c4d-6f3b-4a9c-8d2e-1b6f4a8c2e01",
+      mission_id: MOCK_MISSION_ID,
+      type: "vocabulary_recall",
+      payload: { sentence_with_blank: "One of the words from this lesson's study list is: ___." },
+      position: 0,
+      status: "pending",
+    },
+    {
+      id: "8e1a2c4d-6f3b-4a9c-8d2e-1b6f4a8c2e02",
+      mission_id: MOCK_MISSION_ID,
+      type: "vocabulary_recall",
+      payload: { sentence_with_blank: "One of the words from this lesson's study list is: ___." },
+      position: 1,
+      status: "pending",
+    },
+    {
+      id: "8e1a2c4d-6f3b-4a9c-8d2e-1b6f4a8c2e03",
+      mission_id: MOCK_MISSION_ID,
+      type: "vocabulary_recall",
+      payload: { sentence_with_blank: "One of the words from this lesson's study list is: ___." },
+      position: 2,
+      status: "pending",
+    },
+    {
+      id: "8e1a2c4d-6f3b-4a9c-8d2e-1b6f4a8c2e04",
+      mission_id: MOCK_MISSION_ID,
+      type: "vocabulary_choice",
+      payload: {
+        prompt: "Which word was one of this lesson's study words?",
+        options: ["say", "mountain", "computer", "umbrella"],
+      },
+      position: 3,
+      status: "pending",
+    },
+    {
+      id: "8e1a2c4d-6f3b-4a9c-8d2e-1b6f4a8c2e05",
+      mission_id: MOCK_MISSION_ID,
+      type: "vocabulary_choice",
+      payload: {
+        prompt: "Which word was one of this lesson's study words?",
+        options: ["listen", "elephant", "mountain", "computer"],
+      },
+      position: 4,
+      status: "pending",
+    },
+  ],
+};
+
+/**
+ * The correct answer for each `mockMission` task, keyed by task id — kept
+ * separate from `mockMission` itself for the same reason the real backend
+ * keeps `activity_answer_keys` in its own table: a repository that returned
+ * this alongside the task would leak the answer to the client.
+ */
+export const MOCK_MISSION_ANSWER_KEY: Record<string, { accepted?: string; correctIndex?: number }> = {
+  "8e1a2c4d-6f3b-4a9c-8d2e-1b6f4a8c2e01": { accepted: "read" },
+  "8e1a2c4d-6f3b-4a9c-8d2e-1b6f4a8c2e02": { accepted: "repeat" },
+  "8e1a2c4d-6f3b-4a9c-8d2e-1b6f4a8c2e03": { accepted: "write" },
+  "8e1a2c4d-6f3b-4a9c-8d2e-1b6f4a8c2e04": { correctIndex: 0 },
+  "8e1a2c4d-6f3b-4a9c-8d2e-1b6f4a8c2e05": { correctIndex: 0 },
 };
