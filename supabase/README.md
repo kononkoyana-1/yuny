@@ -15,9 +15,10 @@ functions/    one folder per Edge Function from TZ.md §6
 ```
 
 `functions/_shared/` holds the CORS + error envelope + auth wrapper
-(`shared.ts`), the activity type registry (`activity.ts`), and the four
-generators (`goal.ts`, `assessment.ts`, `mission.ts`, `feedback.ts`).
-Functions import it as `../_shared/…`; each deploy bundles its own copy.
+(`shared.ts`), the activity type registry (`activity.ts`), the four
+learner-facing generators (`goal.ts`, `assessment.ts`, `mission.ts`,
+`feedback.ts`), and the content pipeline (`content.ts`). Functions import it
+as `../_shared/…`; each deploy bundles its own copy.
 
 ## The AI gateway
 
@@ -42,13 +43,48 @@ Functions on the service role. Two deliberate exceptions from TZ.md §5:
 `profiles` (SELECT + UPDATE own) and `assessment_answers` (INSERT own — raw
 answers carry no judgement).
 
-Four tables have RLS on and **zero policies on purpose** —
+Eight tables have RLS on and **zero policies on purpose** —
 `activity_answer_keys`, `activity_responses`, `events`,
-`assessment_questions`. The security advisor reports each as INFO
-`rls_enabled_no_policy`; that is the intended state, not a gap. Do not
-"fix" it by adding policies: `assessment_questions.correct_index` and
-`activity_answer_keys.key` are answer keys, and a client that can read them
-can cheat every exercise.
+`assessment_questions`, and the four content pipeline tables below. The
+security advisor reports each as INFO `rls_enabled_no_policy`; that is the
+intended state, not a gap. Do not "fix" it by adding policies:
+`assessment_questions.correct_index` and `activity_answer_keys.key` are
+answer keys, and a client that can read them can cheat every exercise; the
+content pipeline tables have no client-facing feature yet (no Library UI in
+this phase) to expose them through.
+
+## Content pipeline (open educational resources)
+
+`content-import` (`_shared/content.ts`) turns a CC-licensed OER source into
+draft exercises: `content_sources → content_units → knowledge_items →
+generated_exercises`, in that order, matching Source → Raw Content → Parsed
+Content → Structured Knowledge → Exercises. Deliberately not wired to
+`materials` (learner-uploaded Library items) or `activities` (per-learner
+Mission instances) — see the migration's comment for why.
+
+- **Adapters** (`getAdapter(parser)`) do the source-specific work — today
+  just `pressbooks`, which covers Open Oregon, BCcampus, and most CC-licensed
+  OER textbooks. A second Pressbooks book needs a new `content_sources` row,
+  not new code; a genuinely new platform needs one new adapter function.
+- **Parsing** is mechanical regex, not AI — headings/paragraphs are
+  unambiguous in Pressbooks' rendered HTML.
+- **Extraction and exercise generation** go through the same `aiJson()`
+  gateway as everything else, each with a deterministic fallback for when
+  `ANTHROPIC_API_KEY` is unset — same convention as the learner-facing
+  generators.
+- **Idempotent at every stage**: `content_units` upserts on
+  `(source_id, external_id)`, `knowledge_items` on
+  `(content_unit_id, kind, dedup_key)`, `generated_exercises` on
+  `(knowledge_item_id, type)`. Re-running an import updates in place; it
+  never duplicates.
+- **Provenance** is structural, not denormalized — every `knowledge_item`
+  points at its `content_unit`, every `generated_exercise` points at its
+  `knowledge_item`. One join answers "where did this come from" for
+  anything the pipeline produced.
+- **Validation split**: `origin` (`source_derived` | `ai_generated`) records
+  whether a knowledge item was pulled verbatim or inferred by the model;
+  `status` (`draft` | `validated`) on both knowledge items and exercises is
+  what a review step would flip before anything reaches a real Mission.
 
 ## Dashboard steps that code cannot do
 
