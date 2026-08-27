@@ -1,12 +1,17 @@
-import { useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Image, View } from "react-native";
 import Animated, {
+  cancelAnimation,
   Easing,
+  Extrapolation,
+  interpolate,
+  runOnJS,
   useAnimatedStyle,
   useSharedValue,
   withRepeat,
   withSequence,
   withTiming,
+  type SharedValue,
 } from "react-native-reanimated";
 import { Text } from "./Text";
 import { useReducedMotion } from "@/shared/lib/useReducedMotion";
@@ -27,6 +32,60 @@ const SIZE_PX: Record<MascotSize, number> = {
   medium: 128,
   large: 220,
 };
+
+// Five particles fanned evenly around the mascot (72° apart, starting
+// pointing up) for the "celebrating" sparkle burst.
+const SPARKLE_ANGLES_DEG = [-90, -18, 54, 126, 198] as const;
+
+interface SparkleProps {
+  progress: SharedValue<number>;
+  angle: number;
+  distance: number;
+}
+
+/**
+ * A single sparkle particle. Its own component (not a `.map()`-inlined
+ * `useAnimatedStyle`) so each instance owns exactly one hook call — calling
+ * `useAnimatedStyle` from inside a `.map()` in `Mascot` would violate the
+ * rules of hooks.
+ */
+function Sparkle({ progress, angle, distance }: SparkleProps) {
+  const rad = (angle * Math.PI) / 180;
+  const dx = Math.cos(rad) * distance;
+  const dy = Math.sin(rad) * distance;
+
+  const style = useAnimatedStyle(() => {
+    const p = progress.value;
+    return {
+      transform: [
+        { translateX: dx * p },
+        { translateY: dy * p },
+        {
+          scale: interpolate(
+            p,
+            [0, 0.3, 1],
+            [0, 1, 0.3],
+            Extrapolation.CLAMP,
+          ),
+        },
+      ],
+      opacity: interpolate(
+        p,
+        [0, 0.15, 0.7, 1],
+        [0, 1, 1, 0],
+        Extrapolation.CLAMP,
+      ),
+    };
+  });
+
+  return (
+    <Animated.View
+      pointerEvents="none"
+      className="absolute h-2 w-2 rounded-pill bg-accent"
+      style={[{ top: "50%", left: "50%", marginTop: -4, marginLeft: -4 }, style]}
+    />
+  );
+}
 
 export interface MascotProps {
   stage: MascotStage;
@@ -50,6 +109,12 @@ export function Mascot({
   const floatY = useSharedValue(0);
   const scale = useSharedValue(1);
   const opacity = useSharedValue(1);
+  // Idle "breathing" pulse — layered on top of `scale` (which handles the
+  // stage-change pop) via multiplication, so the two never fight.
+  const breathe = useSharedValue(1);
+  const burstProgress = useSharedValue(0);
+  const [burstActive, setBurstActive] = useState(false);
+  const previousMood = useRef(mood);
 
   useEffect(() => {
     if (reducedMotion) {
@@ -65,6 +130,26 @@ export function Mascot({
       true,
     );
   }, [reducedMotion, floatY]);
+
+  useEffect(() => {
+    if (reducedMotion) {
+      breathe.value = 1;
+      return;
+    }
+    // Same duration family as the float above, so the two read as one
+    // "alive" idle motion rather than two competing loops.
+    breathe.value = withRepeat(
+      withSequence(
+        withTiming(1.015, {
+          duration: 1500,
+          easing: Easing.inOut(Easing.ease),
+        }),
+        withTiming(1, { duration: 1500, easing: Easing.inOut(Easing.ease) }),
+      ),
+      -1,
+      true,
+    );
+  }, [reducedMotion, breathe]);
 
   useEffect(() => {
     if (reducedMotion) {
@@ -84,8 +169,55 @@ export function Mascot({
     );
   }, [stage, reducedMotion, scale]);
 
+  // Sparkle burst — fires only on the transition *into* "celebrating", not
+  // on mount and not on other mood changes. `isBursting` is a plain ref
+  // (not React state) tracking whether a burst is currently in flight, so
+  // this single effect can both start and stop the burst without ever
+  // depending on the `burstActive` state it also sets (an effect that reads
+  // and writes the same state is exactly the cascading-render footgun the
+  // set-state-in-effect lint rule flags).
+  const isBursting = useRef(false);
+
+  useEffect(() => {
+    const becameCelebrating =
+      mood === "celebrating" && previousMood.current !== "celebrating";
+    const leftCelebrating =
+      previousMood.current === "celebrating" && mood !== "celebrating";
+    previousMood.current = mood;
+
+    if (becameCelebrating && !reducedMotion) {
+      isBursting.current = true;
+      setBurstActive(true);
+      burstProgress.value = 0;
+      burstProgress.value = withTiming(
+        1,
+        { duration: 700, easing: Easing.out(Easing.cubic) },
+        (finished) => {
+          if (finished) {
+            isBursting.current = false;
+            runOnJS(setBurstActive)(false);
+          }
+        },
+      );
+      return;
+    }
+
+    // Stop-gate: cancel an in-flight burst immediately if `mood` leaves
+    // "celebrating" early (e.g. a completion toast dismisses quickly) or
+    // reduced-motion turns on mid-burst — don't let it play out silently.
+    if (isBursting.current && (leftCelebrating || reducedMotion)) {
+      isBursting.current = false;
+      cancelAnimation(burstProgress);
+      burstProgress.value = 0;
+      setBurstActive(false);
+    }
+  }, [mood, reducedMotion, burstProgress]);
+
   const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: floatY.value }, { scale: scale.value }],
+    transform: [
+      { translateY: floatY.value },
+      { scale: scale.value * breathe.value },
+    ],
     opacity: opacity.value,
   }));
 
@@ -95,12 +227,22 @@ export function Mascot({
       accessibilityLabel={`Mascot, ${mood}, stage ${stage}`}
       className={`items-center ${className}`}
     >
-      <Animated.View style={animatedStyle}>
+      <Animated.View style={animatedStyle} className="relative">
         <Image
           source={SPRITES[mood]}
           style={{ width: dimension, height: dimension }}
           resizeMode="contain"
         />
+        {burstActive
+          ? SPARKLE_ANGLES_DEG.map((angle) => (
+              <Sparkle
+                key={angle}
+                progress={burstProgress}
+                angle={angle}
+                distance={dimension * 0.55}
+              />
+            ))
+          : null}
       </Animated.View>
 
       <View className="mt-xs flex-row items-center gap-xs">

@@ -1,7 +1,9 @@
 import type { ComponentProps } from "react";
 import { Pressable } from "react-native";
 import { TabList, TabSlot, Tabs, TabTrigger } from "expo-router/ui";
-import { Text } from "@/shared/ui";
+import { Redirect } from "expo-router";
+import { ErrorState, LoadingState, Text } from "@/shared/ui";
+import { useActiveGoal } from "@/shared/api";
 import type { Href } from "expo-router";
 
 /**
@@ -62,7 +64,33 @@ function TabBarButton({ label, isFocused, ...pressableProps }: TabBarButtonProps
   );
 }
 
+/**
+ * Gate (TZ.md §7 "во время onboarding основная навигация скрыта"): a user
+ * with no active Goal has never finished onboarding, so the tab bar must
+ * never mount for them at all — not even briefly. `useActiveGoal()` shares
+ * the `["goal","active"]` query key with `useConfirmGoal`'s invalidation,
+ * so the moment onboarding confirms a goal this flips without a manual
+ * refresh. This early-return happens before `<Tabs>` renders, so it carries
+ * no risk to the TabSlot/TabList structure documented above — no children
+ * of `Tabs` are touched by this change.
+ */
 export default function TabsLayout() {
+  const { data: goal, isPending, isError, refetch } = useActiveGoal();
+
+  if (isPending) {
+    return <LoadingState message="Loading your goal…" className="flex-1 justify-center" />;
+  }
+
+  if (isError) {
+    return (
+      <ErrorState onRetry={() => refetch()} className="flex-1 justify-center" />
+    );
+  }
+
+  if (!goal) {
+    return <Redirect href="/welcome" />;
+  }
+
   return (
     // Mobile/narrow web: TabSlot on top, bar below (row order). Wide web
     // (md:): row-reverse puts the bar on the left as a sidebar, content on

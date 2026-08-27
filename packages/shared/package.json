@@ -2,12 +2,13 @@
   "name": "@yuny/shared",
   "version": "0.1.0",
   "private": true,
-  "description": "Zod schemas + inferred TypeScript types shared between the Expo client and Supabase Edge Functions. No Expo or Deno imports allowed (TZ.md §4).",
+  "description": "Zod schemas + inferred TypeScript types shared between the Expo client and Supabase Edge Functions. No Expo or Deno imports allowed (TZ.md \u00a74).",
   "main": "./index.ts",
   "types": "./index.ts",
   "sideEffects": false,
   "scripts": {
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "gen:types": "supabase gen types typescript --project-id ixtfifglohppaimvyvui > database.types.ts"
   },
   "dependencies": {
     "zod": "4.4.3"

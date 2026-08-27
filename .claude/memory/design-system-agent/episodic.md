@@ -33,3 +33,91 @@ Deliberately did not add `react-native-svg` for a circular growth-progress
 ring around the mascot — used a row of five dot indicators (stage) plus a
 plain percentage `Text` (growthProgress) instead, to avoid a new native
 dependency before there was a second real need for SVG rendering.
+
+## Phase 1 — mascot animation richness pass (2026-08-27)
+
+Extended `Mascot.tsx`'s existing Reanimated animation (idle float, mood
+cross-fade, stage-change pop) with three more layers, per direct user request
+("make the character's animation richer"), while keeping the component's
+public props (`stage`, `mood`, `size`, `growthProgress`) completely
+unchanged — no consuming screen needed edits.
+
+Added a subtle idle "breathing" scale pulse (1.0→1.015→1.0, same 1500ms/ease
+family as the existing float) composed onto the animated style by
+*multiplying* it with the existing stage-pop `scale` shared value
+(`scale.value * breathe.value`) rather than adding a second competing
+transform — the two never fight because they're the same transform property
+combined arithmetically before being handed to the worklet.
+
+Added a 5-particle sparkle burst that fires only on the mood transition
+*into* `"celebrating"` (tracked via a `useRef` holding the previous mood,
+compared each effect run — not on mount, not on other transitions). Built
+each particle as its own small `Sparkle` subcomponent rather than calling
+`useAnimatedStyle` inside a `.map()` — the latter would violate the rules of
+hooks (variable-looking hook-call site inside a loop) even though the
+particle count is a fixed constant; eslint's `react-hooks` rule can't
+statically verify that stability, so it would have failed `pnpm lint`. Used
+`accent` (`#FFD764`) for the particle color — confirmed via `tokens.ts` and
+`tailwind.config.js` that `accent` has no `-dark` variant because the value
+is identical in both color schemes, so a plain `bg-accent` class (no
+`dark:` variant) is correct, not an oversight.
+
+Investigated blinking (the hardest of the three asks) by actually reading
+all four sprite PNGs with the Read tool first, per this agent's own
+Phase 0 standard of visual verification over assumption. The character's
+face/eyes occupy most of the vertical frame in every mood, and the whole
+sprite is a single flat layer (no separate eye layer) rendered at a small
+`SIZE_PX` (64–220px). A scaleY-squash "blink" trick — the standard cheap
+technique for flat sprites — would visibly squash the *entire* body (ears,
+cheeks, paws, hoodie, book) into a thin horizontal sliver, reading as "the
+character got squashed," not "the character blinked." Decided not to ship
+it: a correctly-scoped "not now, here's why" beats a broken-looking
+animation. Real blinking needs either a separate eyes-closed sprite variant
+per mood (an asset-pipeline task, this agent's actual domain) or a future
+Rive/Lottie state machine (explicitly deferred per `TZ.md §11` and Phase 0's
+decision memory) — not a transform trick on the existing flat PNGs.
+
+Could not visually confirm the animations actually play correctly at
+runtime — no simulator/browser access in this environment. Verified only via
+`pnpm typecheck`, `pnpm lint`, and `expo export --platform web` (which
+bundled every route that renders `Mascot`, including `assessment-result`,
+`goal-analysis`, and `welcome`, without error). A human visual check on a
+real device/simulator remains the outstanding verification step — flagged
+explicitly in the handoff rather than implied as done.
+
+Ran the `code-review` skill against the diff (medium effort) as its own
+background agent, per this agent's own Validation §4 step. It took ~11
+minutes and found one real bug after verification (not a false positive):
+the sparkle-burst effect had a start-gate but no stop-gate — if `mood` left
+`"celebrating"` before the 700ms burst finished, or if reduced-motion turned
+on mid-burst, the animation kept running instead of stopping, unlike every
+other animation in the file (float/breathe/opacity/scale), which all
+freshly check `reducedMotion`. Fixed by merging the start and stop logic
+into one effect, using a `useRef` (`isBursting`) instead of the `burstActive`
+React state to decide whether to cancel — deliberately, because a first
+attempt at a *separate* stop-effect (depending on `[mood, reducedMotion,
+burstActive, burstProgress]` and calling `setBurstActive` inside) tripped
+two new-to-this-repo ESLint rules from `eslint-plugin-react-hooks`
+(`react-hooks/immutability`, `react-hooks/set-state-in-effect`) that the
+original single start-effect — doing the visually-similar
+`burstProgress.value = 0` mutation and a synchronous `setBurstActive(true)`
+— did not trip. The distinguishing factor: the flagged effect depended on
+`burstActive` (the very state it set) — an effect reading and writing the
+same state is the specific cascading-render footgun these rules target.
+Solution was to keep the effect's dependency array free of any state it
+also writes, and use a plain ref for internal "is this still running"
+bookkeeping instead. Lesson for future Reanimated + React-state-flag
+patterns in this file: never put the flag's own state variable in the
+triggering effect's dependency array if that effect also sets it — use a
+ref for the read side instead.
+
+Also observed a transient, unrelated `pnpm typecheck` failure in
+`app/(tabs)/index.tsx` (`"/mission/[id]"` not assignable to the generated
+route-type union) partway through this task, while `frontend-builder` was
+concurrently editing that file and adding `app/mission/[id].tsx` in
+parallel. Did not touch it — out of this agent's boundaries (screens/routing
+is `frontend-builder`'s domain) — and it was gone on the next typecheck run
+(Expo Router's generated route types apparently caught up, plausibly
+prompted by an intervening `expo export`). Noting here only so a future
+agent doesn't mistake a concurrent-edit artifact for something `Mascot.tsx`
+caused.

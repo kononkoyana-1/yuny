@@ -1,4 +1,12 @@
-import type { Goal, GoalOutcome, Profile } from "@yuny/shared";
+import type {
+  AssessmentQuestion,
+  AssessmentResult,
+  Goal,
+  GoalOutcome,
+  LearningState,
+  Profile,
+  Recommendation,
+} from "@yuny/shared";
 
 /**
  * Realistic mock data (TZ.md §6 "Mock-first" — "без Lorem Ipsum"). One
@@ -63,3 +71,148 @@ export const mockGoalOutcomes: GoalOutcome[] = [
     created_at: NOW,
   },
 ];
+
+/**
+ * Screen 06 (Initial Assessment) fixtures — text-only multiple choice
+ * (vocabulary/grammar/reading). No listening/speaking items: those Activity
+ * renderers don't exist until Phase 5 (TZ.md §19), and MVP Spec §9 lists
+ * assessment activity types as possibilities, not a per-skill requirement.
+ */
+const MOCK_LEARNING_STATE_ID = "1c9a7c3b-1a52-4b7e-9b0a-2e6a2a9c6b41";
+
+export const mockAssessmentQuestions: AssessmentQuestion[] = [
+  {
+    id: "a2f6d9c1-4b3a-4e7a-9c1a-6d2f8b1e3a01",
+    skill: "vocabulary",
+    prompt:
+      "\"I'm excited about this ___ because it matches my experience.\" Which word fits best?",
+    options: ["opportunity", "weather", "bicycle", "spoon"],
+  },
+  {
+    id: "a2f6d9c1-4b3a-4e7a-9c1a-6d2f8b1e3a02",
+    skill: "vocabulary",
+    prompt: "Which word means the same as \"accomplished\" in \"I accomplished several projects\"?",
+    options: ["completed", "forgot", "avoided", "postponed"],
+  },
+  {
+    id: "a2f6d9c1-4b3a-4e7a-9c1a-6d2f8b1e3a03",
+    skill: "grammar",
+    prompt: "Which sentence is correct?",
+    options: [
+      "I have worked here for three years.",
+      "I have worked here since three years.",
+      "I working here for three years.",
+      "I work here since three years.",
+    ],
+  },
+  {
+    id: "a2f6d9c1-4b3a-4e7a-9c1a-6d2f8b1e3a04",
+    skill: "reading",
+    prompt:
+      "\"Tell me about a time you handled a difficult situation at work.\" What is the interviewer most likely asking for?",
+    options: [
+      "A specific example with a concrete outcome",
+      "Your opinion on office difficulty in general",
+      "A list of every job you've had",
+      "Whether you enjoy difficult work",
+    ],
+  },
+];
+
+/**
+ * Initial `learning_states` + `skill_states` (TZ.md §5) an `assessment-complete`
+ * job would produce for the mock goal — realistic spread, not evenly zeroed
+ * out, matching TZ.md §6 "Mock-first — реалистичные данные".
+ */
+export const mockLearningState: LearningState = {
+  id: MOCK_LEARNING_STATE_ID,
+  goal_id: MOCK_GOAL_ID,
+  updated_at: NOW,
+  skill_states: [
+    {
+      id: "d4e1a9f2-6c3b-4a8d-9e1f-2b6c8a4d0e01",
+      learning_state_id: MOCK_LEARNING_STATE_ID,
+      skill: "listening",
+      level: 0.72,
+      confidence: 0.6,
+      trend: "stable",
+    },
+    {
+      id: "d4e1a9f2-6c3b-4a8d-9e1f-2b6c8a4d0e02",
+      learning_state_id: MOCK_LEARNING_STATE_ID,
+      skill: "speaking",
+      level: 0.35,
+      confidence: 0.55,
+      trend: "stable",
+    },
+    {
+      id: "d4e1a9f2-6c3b-4a8d-9e1f-2b6c8a4d0e03",
+      learning_state_id: MOCK_LEARNING_STATE_ID,
+      skill: "vocabulary",
+      level: 0.55,
+      confidence: 0.65,
+      trend: "stable",
+    },
+    {
+      id: "d4e1a9f2-6c3b-4a8d-9e1f-2b6c8a4d0e04",
+      learning_state_id: MOCK_LEARNING_STATE_ID,
+      skill: "grammar",
+      level: 0.5,
+      confidence: 0.6,
+      trend: "stable",
+    },
+    {
+      id: "d4e1a9f2-6c3b-4a8d-9e1f-2b6c8a4d0e05",
+      learning_state_id: MOCK_LEARNING_STATE_ID,
+      skill: "reading",
+      level: 0.6,
+      confidence: 0.6,
+      trend: "stable",
+    },
+  ],
+};
+
+/**
+ * Screen 07 (Assessment Result) — copy matches `docs/MVP Product
+ * Specification.md` §10's exact worked example verbatim, and screen 08's
+ * `focus_areas` matches its §11 example, since both are given as concrete
+ * spec text rather than left to invention (frontend-builder boundary: does
+ * not invent screen content).
+ */
+export const mockAssessmentResult: AssessmentResult = {
+  id: "6f2c8d4a-3b1e-4c9a-8d2f-1a6c4b8e2f01",
+  goal_id: MOCK_GOAL_ID,
+  learning_state: mockLearningState,
+  stronger_skill: "listening",
+  needs_work_skill: "speaking",
+  priority_label: "Interview vocabulary",
+  focus_areas: [
+    "Build interview vocabulary",
+    "Practice answering questions",
+    "Improve listening comprehension",
+    "Simulate interviews",
+  ],
+  created_at: NOW,
+};
+
+/**
+ * Screen 09 (Home) "Today's Mission" fixture — mission title and reason are
+ * verbatim `docs/MVP Product Specification.md` §12/§16 worked examples
+ * ("Practice interview answers" / "Your speaking is currently your biggest
+ * gap"), not invented copy (frontend-builder boundary: does not invent
+ * screen content). `estimated_minutes` has no spec value to copy — 12 is a
+ * plausible placeholder consistent with `mockGoal.daily_minutes` (25),
+ * leaving room in the day for review, not a backend-computed figure.
+ */
+const MOCK_MISSION_ID = "7c2e9a4d-1f6b-4c8a-9d3e-5b2f7a1c9e04";
+
+export const mockRecommendation: Recommendation = {
+  id: "3a9d5c1e-8b4f-4e2a-9c6d-1f8b3a5e9c02",
+  goal_id: MOCK_GOAL_ID,
+  mission_id: MOCK_MISSION_ID,
+  mission_title: "Practice interview answers",
+  estimated_minutes: 12,
+  reason: "Your speaking is currently your biggest gap for your goal.",
+  skills_affected: ["speaking"],
+  created_at: NOW,
+};

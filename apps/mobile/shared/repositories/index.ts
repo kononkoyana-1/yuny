@@ -1,21 +1,37 @@
+import { mockAssessmentRepository } from "./mock/assessment.repository.mock";
 import { mockGoalRepository } from "./mock/goal.repository.mock";
+import { mockRecommendationRepository } from "./mock/recommendation.repository.mock";
 import { mockUserRepository } from "./mock/user.repository.mock";
+import { supabaseAssessmentRepository } from "./supabase/assessment.repository.supabase";
 import { supabaseGoalRepository } from "./supabase/goal.repository.supabase";
+import { supabaseRecommendationRepository } from "./supabase/recommendation.repository.supabase";
 import { supabaseUserRepository } from "./supabase/user.repository.supabase";
+import type { AssessmentRepository } from "./assessment.repository";
 import type { GoalRepository } from "./goal.repository";
+import type { RecommendationRepository } from "./recommendation.repository";
 import type { UserRepository } from "./user.repository";
+import { DATA_SOURCE } from "@/shared/config/dataSource";
 
 /**
- * Mock-first repository selection (TZ.md §6). Only the `mock` branch is
- * expected to work today — `supabase` throws until Phase 6.
+ * Mock-first repository selection (TZ.md §6). Both branches are live: `mock`
+ * needs no network, `supabase` talks to the real backend. Screens import the
+ * exported instances and never learn which one they got — that is what makes
+ * the switch a no-op for UI code (TZ.md §19 Phase 6 "Проверка").
  */
-const dataSource = process.env.EXPO_PUBLIC_DATA_SOURCE === "supabase" ? "supabase" : "mock";
 
 export const goalRepository: GoalRepository =
-  dataSource === "supabase" ? supabaseGoalRepository : mockGoalRepository;
+  DATA_SOURCE === "supabase" ? supabaseGoalRepository : mockGoalRepository;
 
 export const userRepository: UserRepository =
-  dataSource === "supabase" ? supabaseUserRepository : mockUserRepository;
+  DATA_SOURCE === "supabase" ? supabaseUserRepository : mockUserRepository;
 
-export type { GoalDraft, GoalDraftInput, GoalRepository, JobRef } from "./goal.repository";
+export const assessmentRepository: AssessmentRepository =
+  DATA_SOURCE === "supabase" ? supabaseAssessmentRepository : mockAssessmentRepository;
+
+export const recommendationRepository: RecommendationRepository =
+  DATA_SOURCE === "supabase" ? supabaseRecommendationRepository : mockRecommendationRepository;
+
+export type { GoalAnalysis, GoalDraft, GoalDraftInput, GoalRepository, JobRef } from "./goal.repository";
 export type { ProfileUpdateInput, UserRepository } from "./user.repository";
+export type { AssessmentAnswerInput, AssessmentRepository } from "./assessment.repository";
+export type { RecommendationRepository } from "./recommendation.repository";

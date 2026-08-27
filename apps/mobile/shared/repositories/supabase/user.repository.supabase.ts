@@ -1,18 +1,38 @@
-import type { UserRepository } from "../user.repository";
-
-const NOT_IMPLEMENTED =
-  "SupabaseUserRepository is not implemented yet — Supabase wiring lands in TZ.md Phase 6.";
+import { ProfileSchema } from "@yuny/shared";
+import { BackendError } from "@/shared/lib/backendError";
+import { requireUserId } from "@/shared/lib/auth";
+import { getSupabase } from "@/shared/lib/supabase";
+import type { ProfileUpdateInput, UserRepository } from "../user.repository";
 
 /**
- * Real implementation lands in Phase 6 (TZ.md §19): SELECT/UPDATE on the
- * caller's own `profiles` row via RLS. Selected instead of the mock
- * repository via `EXPO_PUBLIC_DATA_SOURCE=supabase`.
+ * `profiles` is the one table the client may write to directly (TZ.md §5 —
+ * SELECT + UPDATE of its own row); RLS scopes both to `auth.uid()`. The row
+ * itself is created by a signup trigger, so it always exists by the time the
+ * first screen asks for it.
  */
 export const supabaseUserRepository: UserRepository = {
   async getProfile() {
-    throw new Error(NOT_IMPLEMENTED);
+    const userId = await requireUserId();
+    const { data, error } = await getSupabase()
+      .from("profiles")
+      .select("id, native_language, ui_language, display_name, created_at")
+      .eq("id", userId)
+      .single();
+
+    if (error || !data) throw new BackendError("profile_not_found");
+    return ProfileSchema.parse(data);
   },
-  async updateProfile() {
-    throw new Error(NOT_IMPLEMENTED);
+
+  async updateProfile(patch: ProfileUpdateInput) {
+    const userId = await requireUserId();
+    const { data, error } = await getSupabase()
+      .from("profiles")
+      .update(patch)
+      .eq("id", userId)
+      .select("id, native_language, ui_language, display_name, created_at")
+      .single();
+
+    if (error || !data) throw new BackendError("profile_update_failed");
+    return ProfileSchema.parse(data);
   },
 };
