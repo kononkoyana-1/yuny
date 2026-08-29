@@ -23,12 +23,29 @@ as `../_shared/…`; each deploy bundles its own copy.
 ## The AI gateway
 
 Everything educational goes through `aiJson()` in `_shared/shared.ts`: one
-`claude-opus-5` call shaped as a strict tool whose parameters *are* the
-response schema, forced with `tool_choice`. Strict mode guarantees the
-arguments validate, so callers get a structure rather than prose to parse.
+Gemini `generateContent` call whose `responseSchema` *is* the caller's schema,
+so callers get a structure rather than prose to parse. Plain `fetch`, no SDK.
+The provider lives in that one function — the eight call sites never name it.
+
+Two secrets: `GEMINI_API_KEY` (issued at <https://aistudio.google.com/apikey>)
+and `GEMINI_MODEL`. Check a key before it goes anywhere near production:
+
+```bash
+GEMINI_API_KEY=… node scripts/gemini-check.mjs
+```
+
+It lists the models that key can actually reach and proves the chosen one
+honours `responseSchema` — the model id on a pricing page and the id the API
+accepts are not reliably the same string. `GEMINI_MODEL` defaults to the exact
+id `gemini-3.5-flash` rather than the `gemini-flash-latest` alias: the alias
+never 404s, but it moves on Google's schedule, and a generator feeding learning
+material should fail loudly rather than quietly become a different model.
+
+Full setup from zero — issuing the key, choosing the model, secrets, deploy,
+verification: `docs/GEMINI_SETUP.md`.
 
 **Every generator also has a deterministic implementation**, used when
-`ANTHROPIC_API_KEY` is not set. That branch is not a stub: onboarding →
+`GEMINI_API_KEY` is not set. That branch is not a stub: onboarding →
 assessment → mission → activity → feedback is fully walkable without a key.
 Set the secret (Dashboard → Edge Functions → Secrets) to switch the whole
 backend to real generation — no code change, no redeploy.
@@ -70,7 +87,7 @@ Mission instances) — see the migration's comment for why.
   unambiguous in Pressbooks' rendered HTML.
 - **Extraction and exercise generation** go through the same `aiJson()`
   gateway as everything else, each with a deterministic fallback for when
-  `ANTHROPIC_API_KEY` is unset — same convention as the learner-facing
+  `GEMINI_API_KEY` is unset — same convention as the learner-facing
   generators.
 - **Idempotent at every stage**: `content_units` upserts on
   `(source_id, external_id)`, `knowledge_items` on
@@ -109,8 +126,9 @@ provider is on, signups are open, and email confirmation is required.
 5. **Leaked password protection** — Authentication → password settings.
    Off today; the advisor flags it as WARN and it matters now that email +
    password is a supported way in.
-6. **`ANTHROPIC_API_KEY`** — Edge Functions → Secrets, to switch off the
-   deterministic branch.
+6. **`GEMINI_API_KEY`** and **`GEMINI_MODEL`** — Edge Functions → Secrets,
+   to switch off the deterministic branch. Verify the pair with
+   `scripts/gemini-check.mjs` first.
 
 ## Routine tasks
 

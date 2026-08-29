@@ -36,12 +36,25 @@ const GoalAnalysisSchema = z.object({
  * (TZ.md §3 Rule 1, §5 "Права клиента": `goals` is SELECT-only for clients).
  */
 export const supabaseGoalRepository: GoalRepository = {
+  /**
+   * The column list must stay in step with `GoalSchema`. `declared_cefr` and
+   * `required_cefr` were added to the schema when the CEFR work landed but not
+   * to this select, and because Zod's `.nullable()` still requires the key to
+   * be present, every call threw — Home and the tab layout both read this, so
+   * finishing onboarding dropped the learner onto a broken screen.
+   *
+   * Worth being precise about why it stayed hidden: an omitted column and a
+   * NULL column look identical once the row is a plain object, so this is not
+   * the kind of mistake a passing typecheck or a walk through onboarding will
+   * surface. Only a real row reaching a real parse shows it.
+   */
   async getActive() {
     await requireUserId();
     const { data, error } = await getSupabase()
       .from("goals")
       .select(
-        "id, user_id, raw_input, title, target_language, deadline, daily_minutes, status, readiness_label, readiness_reason, created_at",
+        "id, user_id, raw_input, title, target_language, deadline, daily_minutes, status, " +
+          "readiness_label, readiness_reason, declared_cefr, required_cefr, created_at",
       )
       .eq("status", "active")
       .maybeSingle();

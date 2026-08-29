@@ -74,7 +74,11 @@ Deno.serve(
 
     const answered = new Set<string>();
     const ladderAnswers: LadderAnswer[] = [];
-    for (const row of (answerRows ?? []) as {
+    // `as unknown as` rather than a direct cast: supabase-js types an embedded
+    // relation as an array, while a to-one embed returns a single row, so the
+    // two shapes do not overlap and TypeScript refuses the narrower cast. Same
+    // reason and same form as `assessment-complete`.
+    for (const row of (answerRows ?? []) as unknown as {
       question_id: string;
       selected_index: number;
       assessment_questions: { cefr_level: string | null; correct_index: number } | null;

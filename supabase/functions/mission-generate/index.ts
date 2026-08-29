@@ -59,7 +59,32 @@ Deno.serve(
 
       const focusSkill = [...SKILLS].sort((a, b) => levels[a] - levels[b])[0];
 
-      const fromContent = await missionFromContent(admin, goalId, focusSkill);
+      /**
+       * The open module is where the learner is on the map (§6: exactly one is
+       * `in_progress`), so it is what this mission is for. It shapes the
+       * mission before it labels it — the content path is narrowed to the
+       * module's topic and the authoring path is told the theme — because a
+       * `roadmap_module_id` on an off-theme mission would make the map a
+       * caption rather than a description.
+       *
+       * Missions predate the roadmap and still work without one: no module
+       * means no narrowing and a null column, exactly as before.
+       */
+      const { data: openModule } = await admin
+        .from("roadmap_modules")
+        .select("id, topic_id, title, target_cefr")
+        .eq("goal_id", goalId)
+        .eq("status", "in_progress")
+        .order("position", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+
+      const fromContent = await missionFromContent(
+        admin,
+        goalId,
+        focusSkill,
+        (openModule?.topic_id as string | null) ?? null,
+      );
       const draft: MissionDraft = fromContent
         ? fromContent.draft
         : await generateMission({
@@ -69,6 +94,12 @@ Deno.serve(
             levels,
             focusSkill,
             dailyMinutes: goal.daily_minutes as number,
+            module: openModule
+              ? {
+                  title: openModule.title as string,
+                  targetCefr: openModule.target_cefr as string,
+                }
+              : null,
           });
 
       const { data: mission, error: missionError } = await admin
@@ -77,6 +108,7 @@ Deno.serve(
           user_id: userId,
           goal_id: goalId,
           content_unit_id: fromContent?.contentUnitId ?? null,
+          roadmap_module_id: (openModule?.id as string | undefined) ?? null,
           title: draft.title,
           purpose: draft.purpose,
           why: draft.why,

@@ -106,6 +106,14 @@ export async function generateMission(options: {
   levels: Record<Skill, number>;
   focusSkill: Skill;
   dailyMinutes: number;
+  /**
+   * The roadmap module the learner is currently inside, when there is one.
+   * A mission stamped with `roadmap_module_id` had better be *about* that
+   * module: the map tells the learner "you are working through Travel", and a
+   * mission about supermarket vocabulary filed under it makes the map a label
+   * rather than a description of what is happening.
+   */
+  module?: { title: string; targetCefr: string } | null;
 }): Promise<MissionDraft> {
   if (!aiAvailable()) {
     return deterministicMission(options.goalTitle, options.focusSkill, options.dailyMinutes);
@@ -171,6 +179,10 @@ export async function generateMission(options: {
       `Outcomes:\n${options.outcomes.map((o) => `- ${o.label}: ${o.description}`).join("\n")}\n` +
       `Current levels (0-1):\n${SKILLS.map((s) => `- ${s}: ${options.levels[s].toFixed(2)}`).join("\n")}\n` +
       `Skill to focus on: ${options.focusSkill}\n` +
+      (options.module
+        ? `Current module: ${options.module.title} (aim at CEFR ${options.module.targetCefr})\n` +
+          `Everything in this mission must belong to that module's theme and level.\n`
+        : "") +
       `Time budget: ${options.dailyMinutes} minutes`,
     maxTokens: 12000,
   });
@@ -292,8 +304,28 @@ export async function missionFromContent(
   admin: SupabaseClient,
   goalId: string,
   focusSkill: Skill,
+  /**
+   * The open roadmap module's topic, when the learner is inside one. Narrowing
+   * to it is what makes the mission's `roadmap_module_id` mean something: a
+   * chapter drawn from any topic at all, then filed under "Travel", would turn
+   * the map into decoration. Returning null when this topic has nothing ready
+   * is the correct outcome — the caller then authors on-theme instead.
+   */
+  topicId?: string | null,
 ): Promise<{ draft: MissionDraft; contentUnitId: string } | null> {
   if (focusSkill !== "vocabulary") return null;
+
+  let topicUnitIds: string[] | null = null;
+  if (topicId) {
+    const { data: topicUnits } = await admin
+      .from("content_unit_topics")
+      .select("content_unit_id")
+      .eq("topic_id", topicId);
+    topicUnitIds = ((topicUnits ?? []) as { content_unit_id: string }[]).map(
+      (row) => row.content_unit_id,
+    );
+    if (topicUnitIds.length === 0) return null;
+  }
 
   const { data: usedRows } = await admin
     .from("missions")
@@ -313,7 +345,9 @@ export async function missionFromContent(
     .eq("status", "validated");
   const eligibleUnitIds = [
     ...new Set(((eligibleRows ?? []) as { content_unit_id: string }[]).map((r) => r.content_unit_id)),
-  ].filter((id) => !usedUnitIds.includes(id));
+  ]
+    .filter((id) => !usedUnitIds.includes(id))
+    .filter((id) => topicUnitIds === null || topicUnitIds.includes(id));
   if (eligibleUnitIds.length === 0) return null;
 
   const { data: units } = await admin

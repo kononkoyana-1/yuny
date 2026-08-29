@@ -74,7 +74,6 @@ export async function summarizeAssessment(
     prompt:
       `Goal: ${goalTitle}\nSkills that matter for this goal: ${relevant.join(", ")}\n` +
       `Measured levels (0-1):\n${SKILLS.map((s) => `- ${s}: ${levels[s].toFixed(2)}`).join("\n")}`,
-    effort: "low",
     maxTokens: 1500,
   });
 

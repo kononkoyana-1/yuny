@@ -5,9 +5,9 @@
  * into a Library row with usable text.
  */
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-import Anthropic from "npm:@anthropic-ai/sdk@0.121.0";
 import {
   aiAvailable,
+  aiJson,
   createJob,
   handler,
   HandlerError,
@@ -32,63 +32,43 @@ function toBase64(bytes: Uint8Array): string {
   return btoa(binary);
 }
 
-const EXTRACT_TOOL = {
-  name: "record_material",
-  description: "Record the title and readable text of a learner's uploaded material.",
-  strict: true,
-  input_schema: objectSchema(
-    {
-      title: { type: "string", description: "Short descriptive title, max 80 chars." },
-      extracted_text: {
-        type: "string",
-        description: "The readable text content, cleaned of layout artefacts.",
-      },
-    },
-    ["title", "extracted_text"],
-  ),
-} as unknown as Anthropic.Tool;
-
+/**
+ * PDFs and images both ride in as `inlineData`: Gemini takes the raw bytes
+ * with a mime type and no separate document/image distinction, so `kind`
+ * only has to survive as far as choosing that mime type.
+ */
 async function extractFromFile(
   bytes: Uint8Array,
   mediaType: string,
   kind: MaterialKind,
 ): Promise<{ title: string; extracted_text: string }> {
-  const client = new Anthropic({ apiKey: Deno.env.get("ANTHROPIC_API_KEY")! });
-  const data = toBase64(bytes);
-
-  const block: Anthropic.ContentBlockParam =
-    kind === "pdf"
-      ? { type: "document", source: { type: "base64", media_type: "application/pdf", data } }
-      : {
-          type: "image",
-          source: {
-            type: "base64",
-            media_type: mediaType as "image/png" | "image/jpeg" | "image/webp",
-            data,
-          },
-        };
-
-  const response = await client.messages.create({
-    model: "claude-opus-5",
-    max_tokens: 16000,
-    thinking: { type: "disabled" },
-    output_config: { effort: "low" },
+  return await aiJson<{ title: string; extracted_text: string }>({
+    name: "record_material",
+    description: "Record the title and readable text of a learner's uploaded material.",
+    schema: objectSchema(
+      {
+        title: { type: "string", description: "Short descriptive title, max 80 chars." },
+        extracted_text: {
+          type: "string",
+          description: "The readable text content, cleaned of layout artefacts.",
+        },
+      },
+      ["title", "extracted_text"],
+    ),
     system:
       "You prepare learner-uploaded material for a language-learning library. " +
       "Extract the readable text faithfully; do not summarise or translate it.",
-    messages: [
-      { role: "user", content: [block, { type: "text", text: "Extract this material." }] },
+    prompt: [
+      {
+        inlineData: {
+          mimeType: kind === "pdf" ? "application/pdf" : mediaType,
+          data: toBase64(bytes),
+        },
+      },
+      { text: "Extract this material." },
     ],
-    tools: [EXTRACT_TOOL],
-    tool_choice: { type: "tool", name: "record_material" },
+    maxTokens: 16000,
   });
-
-  for (const content of response.content) {
-    if (content.type === "tool_use" && content.name === "record_material") {
-      return content.input as { title: string; extracted_text: string };
-    }
-  }
-  throw new HandlerError("material_unreadable", 422);
 }
 
 /** Deliberately dependency-free: strip markup, keep the words. */

@@ -11,6 +11,7 @@ import {
   handler,
   json,
   logEvent,
+  optionalString,
   requireInt,
   requireString,
   runJobInBackground,
@@ -23,6 +24,10 @@ Deno.serve(
       target_language: requireString(body, "target_language"),
       deadline: requireString(body, "deadline"),
       daily_minutes: requireInt(body, "daily_minutes"),
+      // Screen 03 offers "I'm not sure" as a first-class answer (§4.1), so an
+      // absent or unrecognised value is the same thing as that choice — not
+      // an invalid request.
+      declared_level: optionalString(body, "declared_level") ?? "unknown",
     };
 
     const jobId = await createJob(admin, userId, "goal_analyze", input);
@@ -30,7 +35,15 @@ Deno.serve(
       target_language: input.target_language,
     });
 
-    runJobInBackground(admin, jobId, () => analyzeGoal(input));
+    runJobInBackground(admin, jobId, async () => {
+      // The taxonomy is read here rather than inside the generator: `_shared`
+      // stays free of I/O, and the model receives a closed list of real slugs
+      // instead of licence to name a topic the content pipeline has never
+      // heard of.
+      const { data: topics } = await admin.from("topics").select("slug").order("slug");
+      const slugs = ((topics ?? []) as { slug: string }[]).map((topic) => topic.slug);
+      return await analyzeGoal(input, slugs);
+    });
 
     return json({ job_id: jobId, kind: "goal_analyze" });
   }),

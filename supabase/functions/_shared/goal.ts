@@ -2,13 +2,15 @@
  * Goal generators (TZ.md §6 `goal-analyze`, `goal-confirm`).
  *
  * Each has an AI implementation and a deterministic one. The deterministic
- * branch is not a stub: it keeps onboarding walkable when `ANTHROPIC_API_KEY`
+ * branch is not a stub: it keeps onboarding walkable when `GEMINI_API_KEY`
  * is not configured, so `EXPO_PUBLIC_DATA_SOURCE=supabase` behaves like the
  * mock source (TZ.md §19 Phase 6 "Проверка").
  */
+import { CEFR_ORDER, type CefrLevel } from "./cefr.ts";
 import { aiAvailable, aiJson, isSkill, objectSchema, SKILLS, type Skill } from "./shared.ts";
 
 const SKILL_ENUM = { type: "string", enum: [...SKILLS] };
+const CEFR_ENUM = { type: "string", enum: [...CEFR_ORDER] };
 
 export interface OutcomeDraft {
   label: string;
@@ -21,6 +23,18 @@ export interface GoalAnalysis {
   target_situations: string[];
   required_skills: Skill[];
   outcomes: OutcomeDraft[];
+  /**
+   * The band this goal actually demands. Screen 04 shows it, `goals` stores
+   * it, and the roadmap exists to close the gap between it and the learner's
+   * measured band (docs/onboarding-v2.md §6, rule 3).
+   */
+  required_cefr: CefrLevel;
+  /**
+   * Canonical topic slugs the goal implies — chosen from the taxonomy the
+   * caller passes in, never invented. Screen 04 renders them, and the roadmap
+   * treats them as relevance input that content coverage then filters.
+   */
+  topics: string[];
 }
 
 export interface GoalInput {
@@ -28,6 +42,30 @@ export interface GoalInput {
   target_language: string;
   deadline: string;
   daily_minutes: number;
+  /** A CEFR band, or "unknown" when the learner picked "I'm not sure" (§4.1). */
+  declared_level: string;
+}
+
+/**
+ * Without AI there is nothing to judge a goal's language demand against, so
+ * the fallback states a mid-scale band rather than pretending to a reading it
+ * did not take. B1 is the honest neutral: high enough that the roadmap still
+ * has a gap to close for a beginner, low enough that it does not fabricate an
+ * advanced target for someone whose goal is ordinary.
+ */
+const FALLBACK_REQUIRED_CEFR: CefrLevel = "B1";
+
+/**
+ * Slug-word matching against the learner's own words. Crude on purpose: it
+ * only ever returns real slugs from the canonical list, so the worst case is
+ * an empty list — which screen 04 already renders as "no chips", not as an
+ * error.
+ */
+function deterministicTopics(rawInput: string, topicSlugs: string[]): string[] {
+  const words = new Set(rawInput.toLowerCase().match(/[a-z]+/g) ?? []);
+  return topicSlugs
+    .filter((slug) => slug.split("-").some((part) => part.length > 3 && words.has(part)))
+    .slice(0, 5);
 }
 
 function titleFrom(rawInput: string): string {
@@ -37,9 +75,20 @@ function titleFrom(rawInput: string): string {
   return capitalized.length > 80 ? `${capitalized.slice(0, 77)}...` : capitalized;
 }
 
-export async function analyzeGoal(input: GoalInput): Promise<GoalAnalysis> {
+/**
+ * `topicSlugs` is the canonical taxonomy, read by the caller and passed in:
+ * this module stays free of I/O so both branches are testable, and the model
+ * gets a closed list to choose from rather than licence to invent a topic the
+ * content pipeline has never heard of.
+ */
+export async function analyzeGoal(
+  input: GoalInput,
+  topicSlugs: string[],
+): Promise<GoalAnalysis> {
   if (!aiAvailable()) {
     return {
+      required_cefr: FALLBACK_REQUIRED_CEFR,
+      topics: deterministicTopics(input.raw_input, topicSlugs),
       title: titleFrom(input.raw_input),
       target_situations: [
         "Everyday conversations where you need the language without preparation",
@@ -100,21 +149,44 @@ export async function analyzeGoal(input: GoalInput): Promise<GoalAnalysis> {
             ["label", "description", "position"],
           ),
         },
+        required_cefr: {
+          ...CEFR_ENUM,
+          description:
+            "The CEFR band this goal genuinely demands — the level at which the learner " +
+            "could handle these situations, not an aspirational ceiling.",
+        },
+        topics: {
+          type: "array",
+          minItems: 1,
+          maxItems: 6,
+          items: { type: "string", enum: topicSlugs },
+          description: "Topic slugs this goal implies, most relevant first.",
+        },
       },
-      ["title", "target_situations", "required_skills", "outcomes"],
+      ["title", "target_situations", "required_skills", "outcomes", "required_cefr", "topics"],
     ),
     system:
       "You design language-learning plans. Turn a learner's own words into concrete, " +
       "observable outcomes. Write plainly in the learner's UI language (English). " +
-      "Never invent facts about the learner that they did not state.",
+      "Never invent facts about the learner that they did not state. " +
+      "Choose topics only from the list given to you.",
     prompt:
       `Learner's own words: "${input.raw_input}"\n` +
       `Target language: ${input.target_language}\n` +
+      `Learner's own estimate of their level: ${input.declared_level}\n` +
       `Deadline: ${input.deadline}\n` +
-      `Time available per day: ${input.daily_minutes} minutes`,
+      `Time available per day: ${input.daily_minutes} minutes\n` +
+      `Available topics: ${topicSlugs.join(", ")}`,
   });
 
+  // The enum constrains the model, but the taxonomy is the authority: a slug
+  // that is not in the canonical list cannot become a roadmap module, so it is
+  // dropped here rather than surfacing on screen 04 as a promise nothing backs.
+  const allowed = new Set(topicSlugs);
+
   return {
+    required_cefr: analysis.required_cefr,
+    topics: analysis.topics.filter((slug) => allowed.has(slug)),
     title: analysis.title.slice(0, 80),
     target_situations: analysis.target_situations,
     required_skills: analysis.required_skills.filter(isSkill),
@@ -197,7 +269,6 @@ export async function assessReadiness(
       `Goal: ${input.raw_input}\nTarget language: ${input.target_language}\n` +
       `Days left: ${days}\nMinutes per day: ${input.daily_minutes}\n` +
       `Outcomes to reach:\n${outcomes.map((o) => `- ${o.label}: ${o.description}`).join("\n")}`,
-    effort: "low",
     maxTokens: 1000,
   });
 }

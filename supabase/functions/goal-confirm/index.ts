@@ -5,15 +5,52 @@
  * (TZ.md §3 Rule 1).
  */
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+import type { SupabaseClient } from "npm:@supabase/supabase-js@2.112.4";
 import { assessReadiness, type OutcomeDraft } from "../_shared/goal.ts";
+import { isCefrLevel } from "../_shared/cefr.ts";
 import {
   handler,
   HandlerError,
   json,
   logEvent,
+  optionalString,
   requireInt,
   requireString,
 } from "../_shared/shared.ts";
+
+/**
+ * `required_cefr` is read back off the `goal_analyze` job rather than taken
+ * from the request body, and that is the point: it is an educational decision
+ * the backend already made (TZ.md §3 Rule 1). A client that could post its own
+ * value could declare any goal to be an A1 goal and get an easier route for
+ * it. `declared_cefr` travels the opposite way — it is the learner's own
+ * statement about themselves, so the body is exactly where it belongs.
+ *
+ * Matching is by the learner's own words: a learner who analysed twice gets
+ * the analysis they actually confirmed, not whichever finished last.
+ */
+async function requiredCefrFromAnalysis(
+  admin: SupabaseClient,
+  userId: string,
+  rawInput: string,
+): Promise<string | null> {
+  const { data: jobs } = await admin
+    .from("jobs")
+    .select("input, result")
+    .eq("user_id", userId)
+    .eq("kind", "goal_analyze")
+    .eq("status", "done")
+    .order("created_at", { ascending: false })
+    .limit(5);
+
+  for (const job of (jobs ?? []) as { input: unknown; result: unknown }[]) {
+    const input = job.input as { raw_input?: string } | null;
+    if (input?.raw_input !== rawInput) continue;
+    const level = (job.result as { required_cefr?: unknown } | null)?.required_cefr;
+    if (isCefrLevel(level)) return level;
+  }
+  return null;
+}
 
 function readOutcomes(body: Record<string, unknown>): OutcomeDraft[] {
   const raw = body.outcomes;
@@ -39,6 +76,13 @@ Deno.serve(
     const title = requireString(body, "title");
     const outcomes = readOutcomes(body);
 
+    // "I'm not sure" reaches here as "unknown" and is stored as null: the
+    // ladder reads a null declared level as "start at A2 and widen" (§4.1),
+    // and writing a band the learner never claimed would erase that.
+    const declaredLevel = optionalString(body, "declared_level");
+    const declaredCefr = isCefrLevel(declaredLevel) ? declaredLevel : null;
+    const requiredCefr = await requiredCefrFromAnalysis(admin, userId, input.raw_input);
+
     // One active goal per user (enforced by a partial unique index too).
     await admin
       .from("goals")
@@ -48,7 +92,14 @@ Deno.serve(
 
     const { data: goal, error: goalError } = await admin
       .from("goals")
-      .insert({ user_id: userId, ...input, title, status: "active" })
+      .insert({
+        user_id: userId,
+        ...input,
+        title,
+        status: "active",
+        declared_cefr: declaredCefr,
+        required_cefr: requiredCefr,
+      })
       .select("*")
       .single();
     if (goalError || !goal) throw new HandlerError("goal_create_failed", 500);
@@ -66,7 +117,13 @@ Deno.serve(
       .select("id")
       .single();
 
-    const readiness = await assessReadiness(input, outcomes);
+    // `input` is spread straight into the insert, so it holds column names and
+    // nothing else — the declared level is a `GoalInput` field but a differently
+    // named column, and it is added here rather than widening that object.
+    const readiness = await assessReadiness(
+      { ...input, declared_level: declaredLevel ?? "unknown" },
+      outcomes,
+    );
     const { data: updated, error: updateError } = await admin
       .from("goals")
       .update({ readiness_label: readiness.label, readiness_reason: readiness.reason })

@@ -10,6 +10,7 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { summarizeAssessment } from "../_shared/assessment.ts";
 import { declaredToBand, isCefrLevel } from "../_shared/cefr.ts";
 import { BUDGET_SECONDS, nextStep, type LadderAnswer } from "../_shared/ladder.ts";
+import { buildRoadmap } from "../_shared/roadmap.ts";
 import {
   clamp01,
   createJob,
@@ -45,9 +46,15 @@ Deno.serve(
   handler(async ({ userId, admin, body }) => {
     const goalId = requireUuid(body, "goal_id");
 
+    // `declared_cefr` and `required_cefr` were missing from this list while
+    // both were already being read below. `declaredToBand` treats an absent
+    // value as "not sure" and starts at A2, so the omission did not throw —
+    // it silently ran every learner's ladder from A2 regardless of what they
+    // declared, and reported `declared_cefr: null` to screen 07, which then
+    // had nothing to compare its verdict against.
     const { data: goal } = await admin
       .from("goals")
-      .select("id, title, target_language")
+      .select("id, title, target_language, declared_cefr, required_cefr")
       .eq("id", goalId)
       .eq("user_id", userId)
       .maybeSingle();
@@ -146,6 +153,53 @@ Deno.serve(
         levels,
         SKILLS.filter((skill) => tally[skill] !== undefined),
       );
+
+      /**
+       * The route is built here, inside the assessment job, because that is
+       * the only moment both halves of its input exist at once: the goal has
+       * been confirmed and the level has just been measured. Building it in a
+       * job of its own would mean a second waiting screen for the learner
+       * (docs/onboarding-v2.md §6).
+       *
+       * It cannot run without a measured band — a route to an unknown starting
+       * point is a guess, and the honest answer is no route yet. Screen 08
+       * renders that state rather than an error.
+       */
+      let roadmapSize = 0;
+      if (assessedCefr && isCefrLevel(goal.required_cefr)) {
+        const { data: outcomes } = await admin
+          .from("goal_outcomes")
+          .select("label, description")
+          .eq("goal_id", goalId)
+          .order("position", { ascending: true });
+
+        // A failed route must not take the verdict down with it. The learner
+        // has just answered fifteen questions; losing that to a provider
+        // timeout would be the worst trade in this function. The map can be
+        // rebuilt later — the assessment cannot be re-taken.
+        try {
+          roadmapSize = await buildRoadmap(admin, {
+            userId,
+            goalId,
+            goalTitle: goal.title as string,
+            situations: summary.focus_areas,
+            outcomes: ((outcomes ?? []) as { label: string; description: string }[]).map(
+              (outcome) => `${outcome.label}: ${outcome.description}`,
+            ),
+            assessed: assessedCefr,
+            required: goal.required_cefr,
+          });
+        } catch (error) {
+          console.error("roadmap_build_failed", goalId, error);
+        }
+      }
+
+      await logEvent(admin, userId, "roadmap_built", {
+        goal_id: goalId,
+        modules: roadmapSize,
+        assessed_cefr: assessedCefr,
+        required_cefr: goal.required_cefr ?? null,
+      });
 
       const { data: result } = await admin
         .from("assessment_results")

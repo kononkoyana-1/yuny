@@ -111,7 +111,6 @@ export async function evaluateResponse(options: {
       `Target language: ${options.targetLanguage}\n` +
       `Task shown to the learner: ${JSON.stringify(options.payload)}\n` +
       `Learner's answer: ${learnerText || "(empty)"}`,
-    effort: "low",
     maxTokens: 2000,
   });
 

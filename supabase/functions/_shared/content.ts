@@ -521,7 +521,6 @@ async function aiExercise(
         "You write beginner ESOL fill-in-the-blank exercises. One short, natural sentence. " +
         "The blank must have exactly one correct, unambiguous answer.",
       prompt: `Word: "${data.word}"\nDefinition: "${data.definition ?? ""}"`,
-      effort: "low",
       maxTokens: 500,
     });
     if (!sentence_with_blank.includes("___") || !answer) return null;
@@ -550,7 +549,6 @@ async function aiExercise(
       "You write beginner ESOL multiple-choice grammar exercises. Exactly one option correct, " +
       "the rest plausible mistakes a beginner would actually make.",
     prompt: `Grammar point: "${data.point}"\nExplanation: "${data.explanation ?? ""}"`,
-    effort: "low",
     maxTokens: 600,
   });
   if (options.length < 2 || correct_index < 0 || correct_index >= options.length) return null;

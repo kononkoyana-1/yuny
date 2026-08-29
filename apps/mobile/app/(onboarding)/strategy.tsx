@@ -1,8 +1,14 @@
 import { useState } from "react";
 import { Pressable, ScrollView, View } from "react-native";
 import { Redirect, useRouter } from "expo-router";
+import type { RoadmapModule } from "@yuny/shared";
 import { Button, ErrorState, LoadingState, Text } from "@/shared/ui";
-import { useAssessmentResult, useGenerateMission, useSetDailyMinutes } from "@/shared/api";
+import {
+  useAssessmentResult,
+  useGenerateMission,
+  useRoadmap,
+  useSetDailyMinutes,
+} from "@/shared/api";
 import { useOnboardingStore } from "@/features/onboarding/store";
 import {
   DAILY_MINUTES_OPTIONS,
@@ -12,10 +18,18 @@ import {
 
 /**
  * Screen 08 — Learning Strategy (TZ.md §8 row 08), the last onboarding screen.
- * Copy and the ordered `focus_areas` list match `docs/MVP Product
- * Specification.md` §11's worked example exactly. `focus_areas` comes from the
- * same `AssessmentResult` screen 07 already fetched (same query key — this
- * screen doesn't re-request anything).
+ *
+ * Shows the real route when the backend built one: `assessment-complete`
+ * constructs `roadmap_modules` inside the same job this screen is already
+ * waiting on (docs/onboarding-v2.md §6), so the map is there by the time the
+ * verdict is. Modules are rendered, never tapped — TZ.md §7 rejects a lesson
+ * catalogue, and a module that can be started from here is that catalogue
+ * (`MVP-3.01`). The one action on this screen stays "Start Learning".
+ *
+ * Falls back to the ordered `focus_areas` list from `docs/MVP Product
+ * Specification.md` §11 when there is no route yet — which is the honest state
+ * while the content pipeline has no reviewed material at the learner's bands,
+ * not an error.
  *
  * The daily-time question lives here rather than on screen 03, where it used
  * to sit: asked before the assessment it is a guess, asked here it is a
@@ -26,6 +40,44 @@ import {
  * the learner through — landing on Home with neither would show a plan the
  * system cannot act on.
  */
+/**
+ * Status is shown as a position in a route, never as a percentage: MVP Spec
+ * §40.3 and TZ.md §20 both rule out a numerical score as the headline measure
+ * of where a learner stands.
+ */
+const MODULE_STATUS_LABEL: Record<RoadmapModule["status"], string> = {
+  in_progress: "You start here",
+  available: "Next",
+  locked: "Later",
+  completed: "Done",
+};
+
+function ModuleRow({ module }: { module: RoadmapModule }) {
+  const isCurrent = module.status === "in_progress";
+  return (
+    <View
+      className={`gap-xs rounded-md border p-md ${
+        isCurrent
+          ? "border-primary bg-primary-soft dark:border-primary-dark dark:bg-primary-soft-dark"
+          : "border-border bg-surface dark:border-border-dark dark:bg-surface-dark"
+      }`}
+    >
+      <View className="flex-row items-center justify-between gap-sm">
+        <Text variant="caption" tone={isCurrent ? "brand" : "muted"}>
+          {MODULE_STATUS_LABEL[module.status]}
+        </Text>
+        <Text variant="caption" tone="muted">
+          {module.target_cefr}
+        </Text>
+      </View>
+      <Text variant="heading">{module.title}</Text>
+      <Text variant="body" tone="muted">
+        {module.why}
+      </Text>
+    </View>
+  );
+}
+
 export default function LearningStrategy() {
   const router = useRouter();
   const jobId = useOnboardingStore((state) => state.assessmentJobId);
@@ -35,6 +87,9 @@ export default function LearningStrategy() {
   const [minutes, setMinutes] = useState<DailyMinutes | null>(null);
 
   const { data, isPending, isError, refetch } = useAssessmentResult(jobId ?? undefined);
+  // Resolving to null is the normal early state, so this never gates the
+  // screen on its own — the route is shown if it exists and skipped if not.
+  const { data: roadmap } = useRoadmap(goalId ?? undefined);
   const setDailyMinutes = useSetDailyMinutes();
   const generateMission = useGenerateMission();
 
@@ -95,18 +150,26 @@ export default function LearningStrategy() {
     >
       <Text variant="title">Your learning path</Text>
 
-      <View className="gap-sm">
-        {data.focus_areas.map((area, index) => (
-          <View key={area} className="flex-row items-start gap-sm">
-            <Text variant="heading" tone="muted">
-              {index + 1}.
-            </Text>
-            <Text variant="body" className="flex-1">
-              {area}
-            </Text>
-          </View>
-        ))}
-      </View>
+      {roadmap && roadmap.modules.length > 0 ? (
+        <View className="gap-sm">
+          {roadmap.modules.map((module) => (
+            <ModuleRow key={module.id} module={module} />
+          ))}
+        </View>
+      ) : (
+        <View className="gap-sm">
+          {data.focus_areas.map((area, index) => (
+            <View key={area} className="flex-row items-start gap-sm">
+              <Text variant="heading" tone="muted">
+                {index + 1}.
+              </Text>
+              <Text variant="body" className="flex-1">
+                {area}
+              </Text>
+            </View>
+          ))}
+        </View>
+      )}
 
       <Text variant="body" tone="muted">
         This isn&apos;t a fixed course. Your plan will adapt as you learn.
