@@ -11,6 +11,12 @@ export interface EmptyStateProps {
   className?: string;
 }
 
+/**
+ * An invitation, not an apology: the message names the thing to do, and when
+ * a caller supplies an action it gets the primary button. The background is
+ * painted explicitly — leaving it transparent is what let React Navigation's
+ * own `#F2F2F2` show through as a stripe under the tab bar.
+ */
 export function EmptyState({
   message,
   actionLabel,
@@ -20,10 +26,12 @@ export function EmptyState({
 }: EmptyStateProps) {
   return (
     <View
-      className={`items-center justify-center gap-md p-lg ${className}`}
+      className={`items-center justify-center gap-md bg-background p-lg dark:bg-background-dark ${className}`}
     >
-      {showMascot ? <Mascot stage={1} mood="neutral" size="medium" /> : null}
-      <Text variant="body" tone="muted" className="text-center">
+      {showMascot ? (
+        <Mascot stage={1} mood="neutral" size="medium" showStage={false} />
+      ) : null}
+      <Text variant="heading" className="text-center">
         {message}
       </Text>
       {actionLabel && onAction ? (

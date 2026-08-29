@@ -18,7 +18,7 @@ import { useReducedMotion } from "@/shared/lib/useReducedMotion";
 
 export type MascotStage = 1 | 2 | 3 | 4 | 5;
 export type MascotMood = "neutral" | "thinking" | "celebrating" | "resting";
-export type MascotSize = "small" | "medium" | "large";
+export type MascotSize = "small" | "medium" | "large" | "hero";
 
 const SPRITES: Record<MascotMood, number> = {
   neutral: require("../../assets/mascot/neutral.png"),
@@ -31,6 +31,9 @@ const SIZE_PX: Record<MascotSize, number> = {
   small: 64,
   medium: 128,
   large: 220,
+  // Welcome only — the one screen where the mascot IS the content rather than
+  // a companion beside it.
+  hero: 288,
 };
 
 // Five particles fanned evenly around the mascot (72° apart, starting
@@ -78,12 +81,21 @@ function Sparkle({ progress, angle, distance }: SparkleProps) {
     };
   });
 
+  // Position and transform live in `style`; the visible dot is a plain child
+  // with the classes on it. NativeWind does not apply `className` to
+  // Reanimated's components — classes set directly on `Animated.View` are
+  // silently dropped, which here would take the size and colour with them and
+  // render nothing at all.
   return (
     <Animated.View
       pointerEvents="none"
-      className="absolute h-2 w-2 rounded-pill bg-accent"
-      style={[{ top: "50%", left: "50%", marginTop: -4, marginLeft: -4 }, style]}
-    />
+      style={[
+        { position: "absolute", top: "50%", left: "50%", marginTop: -4, marginLeft: -4 },
+        style,
+      ]}
+    >
+      <View className="h-2 w-2 rounded-pill bg-accent" />
+    </Animated.View>
   );
 }
 
@@ -93,6 +105,16 @@ export interface MascotProps {
   size: MascotSize;
   /** 0..1, progress within the current stage. Omit to hide the indicator. */
   growthProgress?: number;
+  /**
+   * The five stage pips beside the figure. On by default, because wherever
+   * progression is the subject the indicator is the point.
+   *
+   * Turn it off where the mascot is present as a companion rather than as a
+   * record of growth — a welcome screen, a spinner, an error. Five pips under
+   * a centred illustration read as carousel dots promising four more screens,
+   * and on those screens the stage means nothing anyway.
+   */
+  showStage?: boolean;
   className?: string;
 }
 
@@ -101,6 +123,7 @@ export function Mascot({
   mood,
   size,
   growthProgress,
+  showStage = true,
   className = "",
 }: MascotProps) {
   const reducedMotion = useReducedMotion();
@@ -245,18 +268,24 @@ export function Mascot({
           : null}
       </Animated.View>
 
-      <View className="mt-xs flex-row items-center gap-xs">
-        {Array.from({ length: 5 }, (_, i) => i + 1).map((s) => (
-          <View
-            key={s}
-            className={`h-1.5 w-1.5 rounded-pill ${
-              s <= stage
-                ? "bg-primary dark:bg-primary-dark"
-                : "bg-surface-alt dark:bg-surface-alt-dark"
-            }`}
-          />
-        ))}
-      </View>
+      {showStage ? (
+        <View
+          className="mt-xs flex-row items-center gap-xs"
+          accessibilityRole="progressbar"
+          accessibilityLabel={`Growth stage ${stage} of 5`}
+        >
+          {Array.from({ length: 5 }, (_, i) => i + 1).map((s) => (
+            <View
+              key={s}
+              className={`h-1.5 w-1.5 rounded-pill ${
+                s <= stage
+                  ? "bg-primary dark:bg-primary-dark"
+                  : "bg-surface-alt dark:bg-surface-alt-dark"
+              }`}
+            />
+          ))}
+        </View>
+      ) : null}
 
       {typeof growthProgress === "number" ? (
         <Text variant="caption" tone="muted" className="mt-xs">

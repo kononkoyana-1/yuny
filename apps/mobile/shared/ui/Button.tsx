@@ -1,9 +1,20 @@
-import { Pressable, ActivityIndicator, type PressableProps } from "react-native";
+import {
+  Pressable,
+  ActivityIndicator,
+  useColorScheme,
+  type PressableProps,
+  type StyleProp,
+  type ViewStyle,
+} from "react-native";
+import { gradients } from "@/shared/config/tokens";
+import { linearGradient } from "@/shared/platform/gradient";
 import { Text } from "./Text";
 
 export type ButtonVariant = "primary" | "secondary" | "ghost";
 
 const CONTAINER_CLASS: Record<ButtonVariant, string> = {
+  // `primary` paints itself with a gradient below; the solid class is the
+  // fallback that shows if the gradient style is ever dropped.
   primary: "bg-primary dark:bg-primary-dark",
   secondary:
     "bg-primary-soft dark:bg-primary-soft-dark border border-primary dark:border-primary-dark",
@@ -16,11 +27,18 @@ const LABEL_TONE_CLASS: Record<ButtonVariant, string> = {
   ghost: "text-primary dark:text-primary-dark",
 };
 
-export interface ButtonProps extends Omit<PressableProps, "children"> {
+export interface ButtonProps extends Omit<PressableProps, "children" | "style"> {
   label: string;
   variant?: ButtonVariant;
   loading?: boolean;
   className?: string;
+  /**
+   * Narrower than `Pressable`'s own `style`, which also accepts a function of
+   * press state. NativeWind's wrapper silently drops the function form, and
+   * with it the gradient underneath — so the type rules it out rather than
+   * letting it fail at runtime on one platform.
+   */
+  style?: StyleProp<ViewStyle>;
 }
 
 export function Button({
@@ -29,9 +47,22 @@ export function Button({
   loading = false,
   disabled,
   className = "",
+  style,
   ...props
 }: ButtonProps) {
   const isDisabled = disabled || loading;
+  const scheme = useColorScheme();
+
+  /**
+   * Both stops clear WCAG AA against the white label; see `gradients` in
+   * `shared/config/tokens.ts` for why they are darker than the reference's.
+   *
+   * The per-platform mechanics live in `shared/platform/gradient` — native
+   * and web need different style keys, and getting that wrong silently drops
+   * the gradient on one target (it did, on web, before this split existed).
+   */
+  const [from, to] = scheme === "dark" ? gradients.primaryDark : gradients.primary;
+  const gradientStyle = variant === "primary" ? linearGradient(from, to) : null;
 
   return (
     <Pressable
@@ -39,16 +70,14 @@ export function Button({
       accessibilityLabel={label}
       accessibilityState={{ disabled: isDisabled, busy: loading }}
       disabled={isDisabled}
-      className={`min-h-[44px] items-center justify-center rounded-pill px-lg py-md ${CONTAINER_CLASS[variant]} ${isDisabled ? "opacity-50" : ""} ${className}`}
+      className={`min-h-[56px] items-center justify-center rounded-pill px-lg py-md ${CONTAINER_CLASS[variant]} ${isDisabled ? "opacity-50" : ""} ${className}`}
+      style={[gradientStyle, style]}
       {...props}
     >
       {loading ? (
         <ActivityIndicator />
       ) : (
-        <Text
-          variant="heading"
-          className={LABEL_TONE_CLASS[variant]}
-        >
+        <Text variant="heading" className={LABEL_TONE_CLASS[variant]}>
           {label}
         </Text>
       )}

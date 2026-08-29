@@ -1,6 +1,12 @@
 export { Text } from "./Text";
 export type { TextProps, TextVariant, TextTone } from "./Text";
 
+export { AtmosphericBackground } from "./AtmosphericBackground";
+
+export { Icon } from "./Icon";
+export { Sparkles } from "./Sparkles";
+export type { IconProps, IconName } from "./Icon";
+
 export { Button } from "./Button";
 export type { ButtonProps, ButtonVariant } from "./Button";
 
