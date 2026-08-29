@@ -1,5 +1,12 @@
 export { ProfileSchema } from "./profile";
+export { CefrLevelSchema, CEFR_ORDER, stepCefr } from "./cefr";
 export { GoalSchema, GoalStatusSchema } from "./goal";
+export {
+  RoadmapSchema,
+  RoadmapModuleSchema,
+  RoadmapModuleKindSchema,
+  RoadmapModuleStatusSchema,
+} from "./roadmap";
 export { GoalOutcomeSchema } from "./goalOutcome";
 export { LearningStateSchema } from "./learningState";
 export { SkillStateSchema, SkillSchema, SkillTrendSchema } from "./skillState";

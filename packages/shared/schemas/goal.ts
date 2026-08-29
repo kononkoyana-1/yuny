@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { CefrLevelSchema } from "./cefr";
 
 /**
  * `goals` table (TZ.md §5). `readiness_label`/`readiness_reason` are
@@ -18,6 +19,14 @@ export const GoalSchema = z.object({
   status: GoalStatusSchema,
   readiness_label: z.string().min(1).nullable(),
   readiness_reason: z.string().min(1).nullable(),
+  /**
+   * What the learner said about themselves on screen 03, and what the goal
+   * actually demands. Two different claims, kept apart on purpose: only the
+   * first comes from the client, and `goal-analyze` decides the second
+   * (TZ.md §3, Rule 1). Null until each is established.
+   */
+  declared_cefr: CefrLevelSchema.nullable(),
+  required_cefr: CefrLevelSchema.nullable(),
   created_at: z.iso.datetime({ offset: true }),
 });
 

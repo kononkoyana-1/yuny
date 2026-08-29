@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { SkillStateSchema } from "./skillState";
+import { CefrLevelSchema } from "./cefr";
 
 /**
  * `learning_states` table (TZ.md §5). `skill_states` is the one-to-many
@@ -9,6 +10,14 @@ import { SkillStateSchema } from "./skillState";
 export const LearningStateSchema = z.object({
   id: z.uuid(),
   goal_id: z.uuid(),
+  /**
+   * The band the assessment concluded, and how much weight that conclusion
+   * carries. Confidence is not decoration: a verdict from four questions and
+   * one from fifteen are different claims, and the roadmap should be able to
+   * tell them apart. Null until the assessment completes.
+   */
+  assessed_cefr: CefrLevelSchema.nullable(),
+  cefr_confidence: z.number().min(0).max(1).nullable(),
   updated_at: z.iso.datetime({ offset: true }),
   skill_states: z.array(SkillStateSchema),
 });

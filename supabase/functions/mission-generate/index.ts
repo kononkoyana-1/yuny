@@ -1,10 +1,14 @@
 /**
  * `mission-generate` (TZ.md §6) — async (`mission_generate`, TZ.md §10
- * "Building your next mission…"). Writes the mission, its activities, and
- * the server-only answer keys, then resolves the job with the mission id.
+ * "Building your next mission…"). The single entry point for creating a
+ * mission: decides the focus skill from Goal + Learning State, then fills
+ * it from real processed content when available (`missionFromContent`) or
+ * AI/deterministic authoring (`generateMission`) otherwise. Writes the
+ * mission, its activities, and the server-only answer keys, then resolves
+ * the job with the mission id.
  */
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-import { generateMission } from "../_shared/mission.ts";
+import { generateMission, missionFromContent, type MissionDraft } from "../_shared/mission.ts";
 import {
   clamp01,
   createJob,
@@ -55,20 +59,24 @@ Deno.serve(
 
       const focusSkill = [...SKILLS].sort((a, b) => levels[a] - levels[b])[0];
 
-      const draft = await generateMission({
-        goalTitle: goal.title as string,
-        targetLanguage: goal.target_language as string,
-        outcomes: (outcomes ?? []) as { label: string; description: string }[],
-        levels,
-        focusSkill,
-        dailyMinutes: goal.daily_minutes as number,
-      });
+      const fromContent = await missionFromContent(admin, goalId, focusSkill);
+      const draft: MissionDraft = fromContent
+        ? fromContent.draft
+        : await generateMission({
+            goalTitle: goal.title as string,
+            targetLanguage: goal.target_language as string,
+            outcomes: (outcomes ?? []) as { label: string; description: string }[],
+            levels,
+            focusSkill,
+            dailyMinutes: goal.daily_minutes as number,
+          });
 
       const { data: mission, error: missionError } = await admin
         .from("missions")
         .insert({
           user_id: userId,
           goal_id: goalId,
+          content_unit_id: fromContent?.contentUnitId ?? null,
           title: draft.title,
           purpose: draft.purpose,
           why: draft.why,

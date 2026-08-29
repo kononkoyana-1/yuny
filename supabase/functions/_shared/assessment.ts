@@ -19,11 +19,19 @@ export async function summarizeAssessment(
   levels: Record<Skill, number>,
   requiredSkills: Skill[],
 ): Promise<AssessmentSummary> {
-  const ranked = [...SKILLS].sort((a, b) => levels[b] - levels[a]);
+  /**
+   * Both verdicts are drawn from TESTED skills only.
+   *
+   * `stronger_skill` used to rank all six, so a skill the assessment never
+   * touched could be announced as the learner's strength — the same class of
+   * fiction as the discount table removed from `assessment-complete`.
+   * `needs_work` was already restricted this way; now they agree.
+   */
+  const tested = requiredSkills.length > 0 ? requiredSkills : [...SKILLS];
+  const ranked = [...tested].sort((a, b) => levels[b] - levels[a]);
   const stronger = ranked[0];
-  const relevant = requiredSkills.length > 0 ? requiredSkills : [...SKILLS];
-  const needsWork =
-    [...relevant].sort((a, b) => levels[a] - levels[b])[0] ?? ranked[ranked.length - 1];
+  const needsWork = ranked[ranked.length - 1];
+  const relevant = tested;
 
   if (!aiAvailable()) {
     return {

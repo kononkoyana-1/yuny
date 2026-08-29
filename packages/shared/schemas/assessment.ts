@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { CefrLevelSchema } from "./cefr";
 import { LearningStateSchema } from "./learningState";
 import { SkillSchema } from "./skillState";
 
@@ -37,6 +38,16 @@ export const AssessmentResultSchema = z.object({
   priority_label: z.string().min(1),
   /** Short ordered list of focus areas for screen 08 (Learning Strategy). */
   focus_areas: z.array(z.string().min(1)).min(1),
+  /**
+   * What the learner claimed on screen 03 against what the ladder concluded.
+   * Screen 07 shows the comparison, and it is the backend that decides both
+   * halves — the client never derives a level (TZ.md §3, Rule 1).
+   *
+   * `assessed_cefr` is null when no answered question carried a band: an
+   * unlevelled bank must not be reported as a measured level.
+   */
+  declared_cefr: CefrLevelSchema.nullable(),
+  assessed_cefr: CefrLevelSchema.nullable(),
   created_at: z.iso.datetime({ offset: true }),
 });
 

@@ -8,6 +8,8 @@
  */
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { summarizeAssessment } from "../_shared/assessment.ts";
+import { declaredToBand, isCefrLevel } from "../_shared/cefr.ts";
+import { BUDGET_SECONDS, nextStep, type LadderAnswer } from "../_shared/ladder.ts";
 import {
   clamp01,
   createJob,
@@ -23,19 +25,21 @@ import {
 } from "../_shared/shared.ts";
 
 /**
- * Skills the short assessment cannot test directly (speaking, listening,
- * writing) start from what the tested skills show, discounted — productive
- * skills lag comprehension for most learners — and with low confidence, so
- * the first real Activity moves them quickly.
+ * Skills the assessment did not test are recorded as UNKNOWN, not estimated.
+ *
+ * There used to be a discount table here (speaking 0.65, writing 0.75,
+ * listening 0.9) applied to the tested average. It produced a stable fiction:
+ * because the factors were fixed, listening always came out the strongest
+ * untested skill and speaking always the weakest, for every learner alive,
+ * regardless of evidence. Screen 07 then reported that as a finding.
+ *
+ * `confidence: 0` is the honest record of "we have not measured this", and
+ * §5 of docs/onboarding-v2.md makes it the rule: the system does not assert
+ * what it has not tested. The level still needs a number for the column, so
+ * it carries the tested baseline — but with zero confidence attached, so no
+ * consumer can mistake it for a measurement.
  */
-const UNTESTED_DISCOUNT: Record<Skill, number> = {
-  speaking: 0.65,
-  writing: 0.75,
-  listening: 0.9,
-  reading: 1,
-  vocabulary: 1,
-  grammar: 1,
-};
+const UNTESTED_CONFIDENCE = 0;
 
 Deno.serve(
   handler(async ({ userId, admin, body }) => {
@@ -55,20 +59,41 @@ Deno.serve(
     runJobInBackground(admin, jobId, async () => {
       const { data: answers } = await admin
         .from("assessment_answers")
-        .select("selected_index, assessment_questions(skill, correct_index)")
+        .select("selected_index, assessment_questions(skill, correct_index, cefr_level)")
         .eq("goal_id", goalId);
 
-      // Per-skill correctness among the questions actually answered.
+      // Per-skill correctness among the questions actually answered, plus
+      // the per-band record the ladder needs to reach a CEFR verdict.
       const tally: Record<string, { correct: number; total: number }> = {};
+      const ladderAnswers: LadderAnswer[] = [];
       for (const answer of answers ?? []) {
         const question = answer.assessment_questions as unknown as
-          | { skill: string; correct_index: number }
+          | { skill: string; correct_index: number; cefr_level: string | null }
           | null;
-        if (!question || !isSkill(question.skill)) continue;
-        const bucket = (tally[question.skill] ??= { correct: 0, total: 0 });
-        bucket.total += 1;
-        if (answer.selected_index === question.correct_index) bucket.correct += 1;
+        if (!question) continue;
+        const correct = answer.selected_index === question.correct_index;
+        if (isSkill(question.skill)) {
+          const bucket = (tally[question.skill] ??= { correct: 0, total: 0 });
+          bucket.total += 1;
+          if (correct) bucket.correct += 1;
+        }
+        if (isCefrLevel(question.cefr_level)) {
+          ladderAnswers.push({ level: question.cefr_level, correct });
+        }
       }
+
+      /**
+       * The band verdict comes from the same ladder that chose the questions,
+       * asked to finish: one rule decides both what to serve and what the run
+       * concluded, so the two can never disagree. Null when no answer carried
+       * a band — an unlevelled bank must not be reported as a measured level.
+       */
+      const declaredBand = declaredToBand(goal.declared_cefr);
+      const finished = ladderAnswers.length > 0
+        ? nextStep({ declared: declaredBand, answers: ladderAnswers, elapsedSeconds: BUDGET_SECONDS })
+        : null;
+      const assessedCefr = finished && finished.done ? finished.assessed : null;
+      const cefrConfidence = finished && finished.done ? finished.confidence : null;
 
       const testedRatios = Object.values(tally).map((b) => b.correct / b.total);
       const baseline =
@@ -84,14 +109,22 @@ Deno.serve(
           levels[skill] = clamp01(bucket.correct / bucket.total);
           confidences[skill] = clamp01(0.45 + 0.1 * bucket.total);
         } else {
-          levels[skill] = clamp01(baseline * UNTESTED_DISCOUNT[skill]);
-          confidences[skill] = 0.3;
+          levels[skill] = clamp01(baseline);
+          confidences[skill] = UNTESTED_CONFIDENCE;
         }
       }
 
       const { data: learningState } = await admin
         .from("learning_states")
-        .upsert({ user_id: userId, goal_id: goalId }, { onConflict: "goal_id" })
+        .upsert(
+          {
+            user_id: userId,
+            goal_id: goalId,
+            assessed_cefr: assessedCefr,
+            cefr_confidence: cefrConfidence,
+          },
+          { onConflict: "goal_id" },
+        )
         .select("id")
         .single();
       if (!learningState) throw new HandlerError("assessment_failed", 500);
@@ -131,7 +164,7 @@ Deno.serve(
 
       const { data: state } = await admin
         .from("learning_states")
-        .select("id, goal_id, updated_at, skill_states(id, learning_state_id, skill, level, confidence, trend)")
+        .select("id, goal_id, assessed_cefr, cefr_confidence, updated_at, skill_states(id, learning_state_id, skill, level, confidence, trend)")
         .eq("id", learningState.id)
         .single();
 
@@ -154,9 +187,15 @@ Deno.serve(
         learning_state: {
           id: state?.id,
           goal_id: goalId,
+          assessed_cefr: state?.assessed_cefr ?? null,
+          cefr_confidence: state?.cefr_confidence === null || state?.cefr_confidence === undefined
+            ? null
+            : Number(state.cefr_confidence),
           updated_at: state?.updated_at,
           skill_states: skillStates,
         },
+        declared_cefr: goal.declared_cefr ?? null,
+        assessed_cefr: assessedCefr,
         stronger_skill: summary.stronger_skill,
         needs_work_skill: summary.needs_work_skill,
         priority_label: summary.priority_label,

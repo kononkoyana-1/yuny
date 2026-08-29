@@ -94,6 +94,7 @@ TZ.md → MVP Product Specification.md → PRD V2.md → promt.md (архивн�
 | Финальный стек, архитектура клиента, DoD, план фаз | `TZ.md` |
 | Обоснование выбора стека (историческое) | `techical_core.md` |
 | Как устроена сама система агентов | `AGENT_FRAMEWORK.md` (этот файл) |
+| Система агентов учебного контента | `docs/CONTENT_AGENTS.md` |
 | Реестр решений (после реализации) | `.claude/knowledge/decisions.md` — новый файл, накопительный лог `FE-xx`/`AGT-xx` |
 
 ---
@@ -251,6 +252,14 @@ Output → Self-check → Rule-check → Domain-check → Integration-check
 | **supabase-engineer** | Миграции, RLS, Edge Functions, AI Gateway (Фаза 6 TZ.md) | Не трогает UI-код | `migration-scaffold`, `edge-function-scaffold`, `repository-pair-scaffold` (supabase-часть) |
 | **design-system-agent** | Токены, примитивы `shared/ui`, маскот-компонент и ассеты (Фаза 0, 6 TZ.md) | Не реализует экраны, только примитивы | `token-sync-check`, `mascot-asset-export` |
 | **qa-agent** | Maestro/Playwright/Jest флоу, Integration-check | Не пишет продуктовый код | `dod-check` |
+
+**Ростер кода зафиксирован на 4 агентах (§14, решение 2).** С 2026-08-28 рядом
+существует второй ростер — три агента учебного контента (`learning-agent`,
+`content-agent`, `content-qa-agent`, см. `docs/CONTENT_AGENTS.md`). Это не
+пересмотр решения 2: те четыре строят приложение, эти производят материал
+внутри него, и ни одна пара Boundaries не пересекается. `content-qa-agent` —
+не переименованный `qa-agent`: первый судит педагогику задания, второй
+запускает Maestro/Playwright.
 
 **Ростер зафиксирован на 4 агентах (§14, решение 2).** Backend/Frontend разделены, потому что у них не пересекающиеся Boundaries (TZ.md §3 «Правило 3») — это естественная граница, а не искусственное дробление. `qa-agent` — read-only/verification роль, отдельная от «создателей», чтобы соблюсти принцип 7 (не создатель — единственный судья качества). Domain-check (сверка с решениями `MVP-x.xx`/`TECH-42.xx`) выполняет не отдельный агент, а встроенный `code-review` skill, который Orchestrator вызывает вручную перед handoff (§7, §14 решение 1). Отдельного `i18n-agent` нет — i18n покрыт Skill'ом `screen-scaffold`, отдельная роль под него была бы избыточной специализацией, которую принцип 10 фреймворка прямо запрещает.
 

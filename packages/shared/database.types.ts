@@ -163,10 +163,12 @@ export type Database = {
       }
       assessment_questions: {
         Row: {
+          cefr_level: Database["public"]["Enums"]["cefr_level"] | null
           correct_index: number
           created_at: string
           difficulty: number
           id: string
+          knowledge_item_id: string | null
           language: string
           options: string[]
           position: number
@@ -174,10 +176,12 @@ export type Database = {
           skill: Database["public"]["Enums"]["skill"]
         }
         Insert: {
+          cefr_level?: Database["public"]["Enums"]["cefr_level"] | null
           correct_index: number
           created_at?: string
           difficulty?: number
           id?: string
+          knowledge_item_id?: string | null
           language: string
           options: string[]
           position?: number
@@ -185,17 +189,27 @@ export type Database = {
           skill: Database["public"]["Enums"]["skill"]
         }
         Update: {
+          cefr_level?: Database["public"]["Enums"]["cefr_level"] | null
           correct_index?: number
           created_at?: string
           difficulty?: number
           id?: string
+          knowledge_item_id?: string | null
           language?: string
           options?: string[]
           position?: number
           prompt?: string
           skill?: Database["public"]["Enums"]["skill"]
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "assessment_questions_knowledge_item_id_fkey"
+            columns: ["knowledge_item_id"]
+            isOneToOne: false
+            referencedRelation: "knowledge_items"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       assessment_results: {
         Row: {
@@ -248,6 +262,202 @@ export type Database = {
           },
         ]
       }
+      assessment_sessions: {
+        Row: {
+          budget_seconds: number
+          created_at: string
+          current_cefr: Database["public"]["Enums"]["cefr_level"]
+          declared_cefr: Database["public"]["Enums"]["cefr_level"]
+          ended_at: string | null
+          goal_id: string
+          id: string
+          served_count: number
+          started_at: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          budget_seconds?: number
+          created_at?: string
+          current_cefr: Database["public"]["Enums"]["cefr_level"]
+          declared_cefr: Database["public"]["Enums"]["cefr_level"]
+          ended_at?: string | null
+          goal_id: string
+          id?: string
+          served_count?: number
+          started_at?: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          budget_seconds?: number
+          created_at?: string
+          current_cefr?: Database["public"]["Enums"]["cefr_level"]
+          declared_cefr?: Database["public"]["Enums"]["cefr_level"]
+          ended_at?: string | null
+          goal_id?: string
+          id?: string
+          served_count?: number
+          started_at?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assessment_sessions_goal_id_fkey"
+            columns: ["goal_id"]
+            isOneToOne: false
+            referencedRelation: "goals"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      content_sources: {
+        Row: {
+          author: string
+          created_at: string
+          id: string
+          license: string
+          license_url: string | null
+          parser: string
+          parser_config: Json
+          source_url: string
+          status: string
+          status_error: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          author: string
+          created_at?: string
+          id?: string
+          license: string
+          license_url?: string | null
+          parser: string
+          parser_config?: Json
+          source_url: string
+          status?: string
+          status_error?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          author?: string
+          created_at?: string
+          id?: string
+          license?: string
+          license_url?: string | null
+          parser?: string
+          parser_config?: Json
+          source_url?: string
+          status?: string
+          status_error?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      content_unit_topics: {
+        Row: {
+          content_unit_id: string
+          topic_id: string
+        }
+        Insert: {
+          content_unit_id: string
+          topic_id: string
+        }
+        Update: {
+          content_unit_id?: string
+          topic_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "content_unit_topics_content_unit_id_fkey"
+            columns: ["content_unit_id"]
+            isOneToOne: false
+            referencedRelation: "content_units"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_unit_topics_topic_id_fkey"
+            columns: ["topic_id"]
+            isOneToOne: false
+            referencedRelation: "topics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      content_units: {
+        Row: {
+          cefr_level: Database["public"]["Enums"]["cefr_level"] | null
+          created_at: string
+          external_id: string
+          id: string
+          kind: string
+          parsed_at: string | null
+          parsed_blocks: Json | null
+          part_title: string | null
+          position: number
+          raw_fetched_at: string | null
+          raw_html: string | null
+          source_id: string
+          status: string
+          title: string
+          unit_url: string | null
+          updated_at: string
+          word_count: number | null
+        }
+        Insert: {
+          cefr_level?: Database["public"]["Enums"]["cefr_level"] | null
+          created_at?: string
+          external_id: string
+          id?: string
+          kind: string
+          parsed_at?: string | null
+          parsed_blocks?: Json | null
+          part_title?: string | null
+          position?: number
+          raw_fetched_at?: string | null
+          raw_html?: string | null
+          source_id: string
+          status?: string
+          title: string
+          unit_url?: string | null
+          updated_at?: string
+          word_count?: number | null
+        }
+        Update: {
+          cefr_level?: Database["public"]["Enums"]["cefr_level"] | null
+          created_at?: string
+          external_id?: string
+          id?: string
+          kind?: string
+          parsed_at?: string | null
+          parsed_blocks?: Json | null
+          part_title?: string | null
+          position?: number
+          raw_fetched_at?: string | null
+          raw_html?: string | null
+          source_id?: string
+          status?: string
+          title?: string
+          unit_url?: string | null
+          updated_at?: string
+          word_count?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "content_units_source_id_fkey"
+            columns: ["source_id"]
+            isOneToOne: false
+            referencedRelation: "content_sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       events: {
         Row: {
           created_at: string
@@ -278,6 +488,7 @@ export type Database = {
           created_at: string
           goal_id: string
           id: string
+          knowledge_item_id: string | null
           payload: Json
           skill: Database["public"]["Enums"]["skill"]
           strength: Database["public"]["Enums"]["evidence_strength"]
@@ -288,6 +499,7 @@ export type Database = {
           created_at?: string
           goal_id: string
           id?: string
+          knowledge_item_id?: string | null
           payload?: Json
           skill: Database["public"]["Enums"]["skill"]
           strength: Database["public"]["Enums"]["evidence_strength"]
@@ -298,6 +510,7 @@ export type Database = {
           created_at?: string
           goal_id?: string
           id?: string
+          knowledge_item_id?: string | null
           payload?: Json
           skill?: Database["public"]["Enums"]["skill"]
           strength?: Database["public"]["Enums"]["evidence_strength"]
@@ -316,6 +529,13 @@ export type Database = {
             columns: ["goal_id"]
             isOneToOne: false
             referencedRelation: "goals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "evidence_knowledge_item_id_fkey"
+            columns: ["knowledge_item_id"]
+            isOneToOne: false
+            referencedRelation: "knowledge_items"
             referencedColumns: ["id"]
           },
         ]
@@ -354,6 +574,44 @@ export type Database = {
             columns: ["activity_response_id"]
             isOneToOne: true
             referencedRelation: "activity_responses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      generated_exercises: {
+        Row: {
+          created_at: string
+          id: string
+          knowledge_item_id: string
+          payload: Json
+          status: string
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          knowledge_item_id: string
+          payload: Json
+          status?: string
+          type: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          knowledge_item_id?: string
+          payload?: Json
+          status?: string
+          type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "generated_exercises_knowledge_item_id_fkey"
+            columns: ["knowledge_item_id"]
+            isOneToOne: false
+            referencedRelation: "knowledge_items"
             referencedColumns: ["id"]
           },
         ]
@@ -401,10 +659,12 @@ export type Database = {
           created_at: string
           daily_minutes: number
           deadline: string
+          declared_cefr: Database["public"]["Enums"]["cefr_level"] | null
           id: string
           raw_input: string
           readiness_label: string | null
           readiness_reason: string | null
+          required_cefr: Database["public"]["Enums"]["cefr_level"] | null
           status: Database["public"]["Enums"]["goal_status"]
           target_language: string
           title: string
@@ -415,10 +675,12 @@ export type Database = {
           created_at?: string
           daily_minutes: number
           deadline: string
+          declared_cefr?: Database["public"]["Enums"]["cefr_level"] | null
           id?: string
           raw_input: string
           readiness_label?: string | null
           readiness_reason?: string | null
+          required_cefr?: Database["public"]["Enums"]["cefr_level"] | null
           status?: Database["public"]["Enums"]["goal_status"]
           target_language: string
           title: string
@@ -429,10 +691,12 @@ export type Database = {
           created_at?: string
           daily_minutes?: number
           deadline?: string
+          declared_cefr?: Database["public"]["Enums"]["cefr_level"] | null
           id?: string
           raw_input?: string
           readiness_label?: string | null
           readiness_reason?: string | null
+          required_cefr?: Database["public"]["Enums"]["cefr_level"] | null
           status?: Database["public"]["Enums"]["goal_status"]
           target_language?: string
           title?: string
@@ -477,8 +741,54 @@ export type Database = {
         }
         Relationships: []
       }
+      knowledge_items: {
+        Row: {
+          content_unit_id: string
+          created_at: string
+          data: Json
+          dedup_key: string
+          id: string
+          kind: string
+          origin: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          content_unit_id: string
+          created_at?: string
+          data: Json
+          dedup_key: string
+          id?: string
+          kind: string
+          origin: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          content_unit_id?: string
+          created_at?: string
+          data?: Json
+          dedup_key?: string
+          id?: string
+          kind?: string
+          origin?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "knowledge_items_content_unit_id_fkey"
+            columns: ["content_unit_id"]
+            isOneToOne: false
+            referencedRelation: "content_units"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       learning_states: {
         Row: {
+          assessed_cefr: Database["public"]["Enums"]["cefr_level"] | null
+          cefr_confidence: number | null
           created_at: string
           goal_id: string
           id: string
@@ -486,6 +796,8 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          assessed_cefr?: Database["public"]["Enums"]["cefr_level"] | null
+          cefr_confidence?: number | null
           created_at?: string
           goal_id: string
           id?: string
@@ -493,6 +805,8 @@ export type Database = {
           user_id: string
         }
         Update: {
+          assessed_cefr?: Database["public"]["Enums"]["cefr_level"] | null
+          cefr_confidence?: number | null
           created_at?: string
           goal_id?: string
           id?: string
@@ -580,12 +894,14 @@ export type Database = {
       }
       missions: {
         Row: {
+          content_unit_id: string | null
           created_at: string
           estimated_minutes: number
           goal_id: string
           id: string
           primary_skill: Database["public"]["Enums"]["skill"]
           purpose: string
+          roadmap_module_id: string | null
           status: Database["public"]["Enums"]["mission_status"]
           title: string
           updated_at: string
@@ -593,12 +909,14 @@ export type Database = {
           why: string
         }
         Insert: {
+          content_unit_id?: string | null
           created_at?: string
           estimated_minutes: number
           goal_id: string
           id?: string
           primary_skill: Database["public"]["Enums"]["skill"]
           purpose: string
+          roadmap_module_id?: string | null
           status?: Database["public"]["Enums"]["mission_status"]
           title: string
           updated_at?: string
@@ -606,12 +924,14 @@ export type Database = {
           why: string
         }
         Update: {
+          content_unit_id?: string | null
           created_at?: string
           estimated_minutes?: number
           goal_id?: string
           id?: string
           primary_skill?: Database["public"]["Enums"]["skill"]
           purpose?: string
+          roadmap_module_id?: string | null
           status?: Database["public"]["Enums"]["mission_status"]
           title?: string
           updated_at?: string
@@ -620,10 +940,24 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "missions_content_unit_id_fkey"
+            columns: ["content_unit_id"]
+            isOneToOne: false
+            referencedRelation: "content_units"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "missions_goal_id_fkey"
             columns: ["goal_id"]
             isOneToOne: false
             referencedRelation: "goals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "missions_roadmap_module_id_fkey"
+            columns: ["roadmap_module_id"]
+            isOneToOne: false
+            referencedRelation: "roadmap_modules"
             referencedColumns: ["id"]
           },
         ]
@@ -730,6 +1064,66 @@ export type Database = {
           },
         ]
       }
+      roadmap_modules: {
+        Row: {
+          created_at: string
+          goal_id: string
+          id: string
+          kind: string
+          position: number
+          status: string
+          target_cefr: Database["public"]["Enums"]["cefr_level"]
+          title: string
+          topic_id: string | null
+          updated_at: string
+          user_id: string
+          why: string
+        }
+        Insert: {
+          created_at?: string
+          goal_id: string
+          id?: string
+          kind?: string
+          position: number
+          status?: string
+          target_cefr: Database["public"]["Enums"]["cefr_level"]
+          title: string
+          topic_id?: string | null
+          updated_at?: string
+          user_id: string
+          why: string
+        }
+        Update: {
+          created_at?: string
+          goal_id?: string
+          id?: string
+          kind?: string
+          position?: number
+          status?: string
+          target_cefr?: Database["public"]["Enums"]["cefr_level"]
+          title?: string
+          topic_id?: string | null
+          updated_at?: string
+          user_id?: string
+          why?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "roadmap_modules_goal_id_fkey"
+            columns: ["goal_id"]
+            isOneToOne: false
+            referencedRelation: "goals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "roadmap_modules_topic_id_fkey"
+            columns: ["topic_id"]
+            isOneToOne: false
+            referencedRelation: "topics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       skill_states: {
         Row: {
           confidence: number
@@ -774,6 +1168,33 @@ export type Database = {
           },
         ]
       }
+      topics: {
+        Row: {
+          category: string
+          created_at: string
+          id: string
+          label: string
+          slug: string
+          updated_at: string
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          id?: string
+          label: string
+          slug: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          id?: string
+          label?: string
+          slug?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -792,6 +1213,7 @@ export type Database = {
         | "speaking_response"
         | "speaking_roleplay"
         | "writing_response"
+      cefr_level: "A1" | "A2" | "B1" | "B2" | "C1" | "C2"
       evidence_strength: "weak" | "moderate" | "strong"
       goal_status: "draft" | "active" | "paused" | "completed"
       job_kind:
@@ -951,6 +1373,7 @@ export const Constants = {
         "speaking_roleplay",
         "writing_response",
       ],
+      cefr_level: ["A1", "A2", "B1", "B2", "C1", "C2"],
       evidence_strength: ["weak", "moderate", "strong"],
       goal_status: ["draft", "active", "paused", "completed"],
       job_kind: [

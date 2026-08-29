@@ -1,0 +1,95 @@
+{
+  "spec_id": "clothing-a2-shopping-01",
+  "version": 2,
+  "mode": "authored",
+  "goal_context": {
+    "goal_family": "everyday-independence",
+    "target_situations": [
+      "buying clothes in a shop",
+      "asking an assistant for a different size",
+      "returning or exchanging something that does not fit"
+    ],
+    "topic_slug": "clothing",
+    "module_kind": "topic"
+  },
+  "scenario": {
+    "description": "Учащийся покупает куртку в магазине: примеряет, просит другой размер, а через два дня возвращается, чтобы обменять её или вернуть деньги.",
+    "register": "service / neutral",
+    "constraints": [
+      "без названий брендов",
+      "без цен, привязанных к конкретной стране, кроме нейтральной суммы в евро",
+      "без культурно-специфичных правил возврата — только то, что верно почти везде"
+    ]
+  },
+  "level": {
+    "cefr": "A2",
+    "difficulty": 2,
+    "calibration_basis": [
+      "средняя длина предложения ≤ 12 слов",
+      "только present simple и past simple; никаких перфектных форм",
+      "не более двух грамматических точек сверх базовых (too/enough)",
+      "вся лексика вне целевого списка — из первых 1000 частотных слов"
+    ]
+  },
+  "skill": "vocabulary",
+  "sub_skills": [
+    "clothes shopping nouns"
+  ],
+  "learning_objectives": [
+    {
+      "id": "LO-1",
+      "statement": "Учащийся выбирает нужное слово покупки одежды (size, fitting room, receipt, refund, exchange) по описанию ситуации в магазине",
+      "knowledge_kind": "vocabulary",
+      "target_keys": [
+        "size",
+        "fitting room",
+        "receipt",
+        "refund",
+        "exchange"
+      ],
+      "assessment": {
+        "evidence_of_success": "4 из 5 целевых слов выбраны верно в контексте, без подсказки и без опоры на текст",
+        "exercise_types": [
+          "fill_blank",
+          "multiple_choice"
+        ],
+        "min_exercises": 5,
+        "distractor_rules": [
+          "дистракторы — только слова из этой же единицы контента",
+          "никакие два варианта не синонимичны",
+          "правильный вариант не длиннее остальных систематически"
+        ],
+        "out_of_scope": [
+          "орфография при вводе ответа",
+          "произношение",
+          "названия конкретных предметов одежды сверх куртки",
+          "правила возврата в конкретной стране"
+        ]
+      }
+    }
+  ],
+  "content_budget": {
+    "unit_word_count": [
+      150,
+      260
+    ],
+    "tasks_per_lesson": [
+      3,
+      5
+    ],
+    "exercises_per_objective": [
+      1,
+      6
+    ]
+  },
+  "provenance": {
+    "origin": "ai_generated",
+    "source_url": "yuny://authored/en/v1",
+    "source_title": "Yuny authored content (English)",
+    "author": "Yuny",
+    "parser": "authored",
+    "license": "Proprietary - Yuny original content, not an open educational resource",
+    "license_url": null
+  },
+  "coverage_rationale": "Тема clothing пуста полностью — ноль глав на всех полосах (измерено 2026-08-28, docs/plan-tasks.md, этап 2). A2 выбран, а не B1: полоса A2 уже закрыта Portland и первой authored-партией, значит новая единица сразу попадает к тем, кто на этой полосе реально находится, и проверяет пайплайн на знакомом уровне. B1 для clothing — следующий пакет.\n\nv2 (после SPEC_DEFECT в раунде 1): грамматическое LO про too/enough убрано отсюда и вынесено в отдельный пакет clothing-a2-fit-grammar-01 со skill='grammar'. Причина — миссия из этой единицы уходит в missions.primary_skill='vocabulary', и evidence по грамматическим заданиям осел бы под навыком, которого они не измеряют. Один пакет — один навык; смешение навыков внутри пакета портит Learning State."
+}

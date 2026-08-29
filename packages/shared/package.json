@@ -8,7 +8,7 @@
   "sideEffects": false,
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "gen:types": "supabase gen types typescript --project-id ixtfifglohppaimvyvui > database.types.ts"
+    "gen:types": "npx --yes supabase@latest gen types typescript --project-id ixtfifglohppaimvyvui > database.types.ts"
   },
   "dependencies": {
     "zod": "4.4.3"

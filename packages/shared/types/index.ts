@@ -1,5 +1,12 @@
 export type { Profile } from "../schemas/profile";
+export type { CefrLevel } from "../schemas/cefr";
 export type { Goal, GoalStatus } from "../schemas/goal";
+export type {
+  Roadmap,
+  RoadmapModule,
+  RoadmapModuleKind,
+  RoadmapModuleStatus,
+} from "../schemas/roadmap";
 export type { GoalOutcome } from "../schemas/goalOutcome";
 export type { LearningState } from "../schemas/learningState";
 export type { SkillState, Skill, SkillTrend } from "../schemas/skillState";
