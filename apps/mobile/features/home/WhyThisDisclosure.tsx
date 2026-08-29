@@ -56,11 +56,16 @@ export function WhyThisDisclosure({ reason, className = "" }: WhyThisDisclosureP
         </Text>
       </Pressable>
 
+      {/* The spacing class goes on a plain child: NativeWind does not apply
+          `className` to Reanimated's components, so `mt-xs` set on the
+          `Animated.View` would be dropped without any error. */}
       {isOpen ? (
-        <Animated.View style={animatedStyle} className="mt-xs">
-          <Text variant="body" tone="muted">
-            {reason}
-          </Text>
+        <Animated.View style={animatedStyle}>
+          <View className="mt-xs">
+            <Text variant="body" tone="muted">
+              {reason}
+            </Text>
+          </View>
         </Animated.View>
       ) : null}
     </View>

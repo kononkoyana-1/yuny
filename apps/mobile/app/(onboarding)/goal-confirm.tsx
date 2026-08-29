@@ -19,6 +19,7 @@ export default function GoalConfirm() {
   const rawInput = useOnboardingStore((state) => state.rawInput);
   const deadline = useOnboardingStore((state) => state.deadline);
   const dailyMinutes = useOnboardingStore((state) => state.dailyMinutes);
+  const declaredLevel = useOnboardingStore((state) => state.declaredLevel);
   const title = useOnboardingStore((state) => state.title);
   const outcomes = useOnboardingStore((state) => state.outcomes);
   const setGoalId = useOnboardingStore((state) => state.setGoalId);
@@ -42,13 +43,14 @@ export default function GoalConfirm() {
   }
 
   function handleConfirm() {
-    if (!targetLanguage || !dailyMinutes) return;
+    if (!targetLanguage || !dailyMinutes || !declaredLevel) return;
     confirmGoal.mutate(
       {
         raw_input: rawInput,
         target_language: targetLanguage,
         deadline,
         daily_minutes: dailyMinutes,
+        declared_level: declaredLevel,
         title,
         outcomes,
       },

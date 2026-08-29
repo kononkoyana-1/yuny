@@ -1,15 +1,27 @@
 import { useState } from "react";
-import { ScrollView, View } from "react-native";
+import { Pressable, ScrollView, View } from "react-native";
 import { Redirect, useRouter } from "expo-router";
 import { Button, ErrorState, Input, LoadingState, Text, TextArea } from "@/shared/ui";
 import { useAnalyzeGoal } from "@/shared/api";
 import { useOnboardingStore } from "@/features/onboarding/store";
+import { euroToIso, formatEuroDateInput } from "@/shared/lib/euroDate";
+import { PROVISIONAL_DAILY_MINUTES } from "@/features/onboarding/dailyMinutes";
+import type { DeclaredLevel } from "@/shared/repositories";
 
-const DEADLINE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
-
-function isValidDeadline(value: string): boolean {
-  return DEADLINE_PATTERN.test(value) && !Number.isNaN(Date.parse(value));
-}
+/**
+ * "I'm not sure" comes first deliberately. Most people arriving here cannot
+ * place themselves on a CEFR scale, and making them guess before the test
+ * only biases the starting band. The assessment treats it as A2 and widens
+ * its search (docs/onboarding-v2.md §4.1).
+ */
+const LEVEL_OPTIONS: { value: DeclaredLevel; label: string; hint: string }[] = [
+  { value: "unknown", label: "I'm not sure", hint: "We'll work it out in the check" },
+  { value: "A1", label: "A1 — Beginner", hint: "A few words and set phrases" },
+  { value: "A2", label: "A2 — Elementary", hint: "Simple everyday exchanges" },
+  { value: "B1", label: "B1 — Intermediate", hint: "Can handle most familiar situations" },
+  { value: "B2", label: "B2 — Upper intermediate", hint: "Comfortable in longer discussion" },
+  { value: "C1", label: "C1 — Advanced", hint: "Fluent and flexible, including nuance" },
+];
 
 /**
  * Screen 03 — Goal Setup (TZ.md §8 row 03). Free text + Deadline + Available
@@ -26,8 +38,10 @@ export default function GoalSetup() {
   const setAnalysisJobId = useOnboardingStore((state) => state.setAnalysisJobId);
 
   const [rawInput, setRawInput] = useState("");
-  const [deadline, setDeadline] = useState("");
-  const [minutesText, setMinutesText] = useState("");
+  // Held as the learner typed it (dd.mm.yyyy); converted once, on submit.
+  const [deadlineText, setDeadlineText] = useState("");
+  const [declaredLevel, setDeclaredLevel] = useState<DeclaredLevel | null>(null);
+  const deadlineIso = euroToIso(deadlineText);
 
   const analyzeGoal = useAnalyzeGoal();
 
@@ -51,17 +65,31 @@ export default function GoalSetup() {
     );
   }
 
-  const dailyMinutes = Number.parseInt(minutesText, 10);
-  const isValid =
-    rawInput.trim().length > 0 && isValidDeadline(deadline) && Number.isInteger(dailyMinutes) && dailyMinutes > 0;
+  const isValid = rawInput.trim().length > 0 && deadlineIso !== null && declaredLevel !== null;
 
   function handleContinue() {
-    if (!isValid || !targetLanguage) return;
+    if (!isValid || !targetLanguage || !declaredLevel || !deadlineIso) return;
     analyzeGoal.mutate(
-      { raw_input: rawInput, target_language: targetLanguage, deadline, daily_minutes: dailyMinutes },
+      {
+        raw_input: rawInput,
+        target_language: targetLanguage,
+        deadline: deadlineIso,
+        // The learner picks their real study time on screen 08, once they
+        // know their level — choosing it before the assessment is choosing
+        // blind. The goal still needs a value at creation (the column is NOT
+        // NULL), so it starts at the middle option and screen 08 commits the
+        // chosen one before Home is ever reached.
+        daily_minutes: PROVISIONAL_DAILY_MINUTES,
+        declared_level: declaredLevel,
+      },
       {
         onSuccess: (jobRef) => {
-          setGoalSetup({ rawInput, deadline, dailyMinutes });
+          setGoalSetup({
+            rawInput,
+            deadline: deadlineIso,
+            dailyMinutes: PROVISIONAL_DAILY_MINUTES,
+            declaredLevel,
+          });
           setAnalysisJobId(jobRef.job_id);
           router.push("/goal-analysis");
         },
@@ -93,24 +121,49 @@ export default function GoalSetup() {
           Deadline
         </Text>
         <Input
-          value={deadline}
-          onChangeText={setDeadline}
-          placeholder="YYYY-MM-DD"
+          value={deadlineText}
+          onChangeText={(next) => setDeadlineText(formatEuroDateInput(next))}
+          placeholder="31.12.2026"
+          keyboardType="number-pad"
           accessibilityLabel="Deadline"
+          accessibilityHint="Day, month, year"
         />
       </View>
 
       <View className="gap-xs">
         <Text variant="caption" tone="muted">
-          Available time (minutes per day)
+          Your level in this language
         </Text>
-        <Input
-          value={minutesText}
-          onChangeText={setMinutesText}
-          placeholder="e.g. 25"
-          keyboardType="number-pad"
-          accessibilityLabel="Available time in minutes per day"
-        />
+        <View className="gap-sm">
+          {LEVEL_OPTIONS.map((option) => {
+            const isSelected = declaredLevel === option.value;
+            return (
+              <Pressable
+                key={option.value}
+                accessibilityRole="radio"
+                accessibilityLabel={option.label}
+                accessibilityHint={option.hint}
+                accessibilityState={{ selected: isSelected }}
+                onPress={() => setDeclaredLevel(option.value)}
+                className={`min-h-[44px] justify-center rounded-md border px-md py-sm ${
+                  isSelected
+                    ? "border-primary bg-primary-soft dark:border-primary-dark dark:bg-primary-soft-dark"
+                    : "border-border bg-surface dark:border-border-dark dark:bg-surface-dark"
+                }`}
+              >
+                <Text
+                  variant="body"
+                  className={isSelected ? "font-semibold text-primary dark:text-primary-dark" : ""}
+                >
+                  {option.label}
+                </Text>
+                <Text variant="caption" tone="muted">
+                  {option.hint}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
       </View>
 
       <Button label="Continue" variant="primary" disabled={!isValid} onPress={handleContinue} />

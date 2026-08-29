@@ -57,6 +57,14 @@ export const mockGoalRepository: GoalRepository = {
     return delay(activeGoal ? GoalSchema.parse(activeGoal) : null);
   },
 
+  async setDailyMinutes(goalId, dailyMinutes) {
+    if (!activeGoal || activeGoal.id !== goalId) {
+      throw new Error(`No active mock goal ${goalId}`);
+    }
+    activeGoal = GoalSchema.parse({ ...activeGoal, daily_minutes: dailyMinutes });
+    return delay(activeGoal, 300);
+  },
+
   async getOutcomes(goalId) {
     const rows = mockGoalOutcomes.filter((outcome) => outcome.goal_id === goalId);
     return delay(rows.map((row) => GoalOutcomeSchema.parse(row)));
@@ -72,6 +80,11 @@ export const mockGoalRepository: GoalRepository = {
       ],
       required_skills: ["speaking", "vocabulary", "listening"],
       outcomes: mockGoalOutcomes.map((outcome) => OUTCOME_DRAFT_SCHEMA.parse(outcome)),
+      // Fixed in mock mode. The real `goal-analyze` reads this off the goal
+      // itself, and it is deliberately independent of what the learner
+      // declared: the point of screen 04 is to show the gap between the two.
+      required_cefr: "B2",
+      topics: ["work-and-jobs", "feelings-and-opinions", "greetings-and-introductions"],
     });
     return delay(jobRef, 800);
   },

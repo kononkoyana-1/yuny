@@ -8,8 +8,8 @@ import { TARGET_LANGUAGES } from "@/features/onboarding/targetLanguages";
 /**
  * Screen 02 — Target Language (TZ.md §8 row 02). MVP Spec §5: list can be
  * short for MVP, but nothing here assumes a fixed count — see
- * `TARGET_LANGUAGES`. No search box yet since four options don't need one;
- * adding one later only touches this file, not the data model.
+ * `TARGET_LANGUAGES`, which is English-only for MVP. No search box; adding
+ * one later only touches this file, not the data model.
  */
 export default function TargetLanguage() {
   const router = useRouter();

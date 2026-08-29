@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import type { GoalOutcome } from "@yuny/shared";
-import type { AssessmentAnswerInput } from "@/shared/repositories";
+import type { AssessmentAnswerInput, DeclaredLevel } from "@/shared/repositories";
 
 /**
  * Ephemeral cross-screen onboarding draft (TZ.md §2 — Zustand is "только
@@ -17,6 +17,12 @@ interface OnboardingState {
   rawInput: string;
   deadline: string;
   dailyMinutes: number | null;
+  /**
+   * What the learner said about their own level on screen 03. The assessment
+   * needs it to know which band to open on, so it has to survive the trip
+   * from screen 03 to screen 06.
+   */
+  declaredLevel: DeclaredLevel | null;
   analysisJobId: string | null;
   /** True once `title`/`outcomes` have been seeded from the current `analysisJobId`'s result. */
   analysisSeeded: boolean;
@@ -27,7 +33,12 @@ interface OnboardingState {
   assessmentJobId: string | null;
 
   setTargetLanguage: (code: string) => void;
-  setGoalSetup: (input: { rawInput: string; deadline: string; dailyMinutes: number }) => void;
+  setGoalSetup: (input: {
+    rawInput: string;
+    deadline: string;
+    dailyMinutes: number;
+    declaredLevel: DeclaredLevel;
+  }) => void;
   setAnalysisJobId: (jobId: string) => void;
   seedAnalysis: (title: string, outcomes: DraftOutcome[]) => void;
   setTitle: (title: string) => void;
@@ -43,6 +54,7 @@ const INITIAL_DRAFT = {
   rawInput: "",
   deadline: "",
   dailyMinutes: null,
+  declaredLevel: null,
   analysisJobId: null,
   analysisSeeded: false,
   title: "",
@@ -69,8 +81,8 @@ export const useOnboardingStore = create<OnboardingState>((set) => ({
 
   setTargetLanguage: (code) => set({ targetLanguage: code }),
 
-  setGoalSetup: ({ rawInput, deadline, dailyMinutes }) =>
-    set({ rawInput, deadline, dailyMinutes }),
+  setGoalSetup: ({ rawInput, deadline, dailyMinutes, declaredLevel }) =>
+    set({ rawInput, deadline, dailyMinutes, declaredLevel }),
 
   setAnalysisJobId: (jobId) => set({ analysisJobId: jobId, analysisSeeded: false }),
 

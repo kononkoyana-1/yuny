@@ -1,4 +1,4 @@
-import { GoalOutcomeSchema, GoalSchema, SkillSchema } from "@yuny/shared";
+import { CefrLevelSchema, GoalOutcomeSchema, GoalSchema, SkillSchema } from "@yuny/shared";
 import { z } from "zod";
 import { awaitJob, jobRefSchema } from "@/shared/lib/jobs";
 import { invokeEdge } from "@/shared/lib/edge";
@@ -26,6 +26,8 @@ const GoalAnalysisSchema = z.object({
   outcomes: z
     .array(GoalOutcomeSchema.pick({ label: true, description: true, position: true }))
     .min(1),
+  required_cefr: CefrLevelSchema,
+  topics: z.array(z.string().min(1)),
 });
 
 /**
@@ -46,6 +48,14 @@ export const supabaseGoalRepository: GoalRepository = {
 
     if (error) throw new BackendError("goal_read_failed");
     return data ? GoalSchema.parse(data) : null;
+  },
+
+  async setDailyMinutes(goalId, dailyMinutes) {
+    const response = await invokeEdge<{ goal: unknown }>("goal-set-time", {
+      goal_id: goalId,
+      daily_minutes: dailyMinutes,
+    });
+    return GoalSchema.parse(response.goal);
   },
 
   async getOutcomes(goalId) {

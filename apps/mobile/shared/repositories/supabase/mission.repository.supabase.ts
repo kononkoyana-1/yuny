@@ -1,8 +1,13 @@
+import { z } from "zod";
 import { MissionResultSchema, MissionSchema, TaskResultSchema } from "@yuny/shared";
 import { BackendError } from "@/shared/lib/backendError";
 import { invokeEdge } from "@/shared/lib/edge";
+import { awaitJob, jobRefSchema } from "@/shared/lib/jobs";
 import { getSupabase } from "@/shared/lib/supabase";
 import type { MissionRepository, TaskResponseInput } from "../mission.repository";
+import type { JobRef } from "../goal.repository";
+
+const GeneratedMissionSchema = z.object({ mission_id: z.uuid() });
 
 /**
  * Reads go straight to Postgres under RLS (`missions`/`activities`/
@@ -81,5 +86,15 @@ export const supabaseMissionRepository: MissionRepository = {
       correct_tasks: rows.filter((row) => row.strength === "strong").length,
       skills_practiced: skillsPracticed,
     });
+  },
+
+  async generate(goalId) {
+    const job = await invokeEdge<JobRef>("mission-generate", { goal_id: goalId });
+    return jobRefSchema("mission_generate").parse(job);
+  },
+
+  async getGenerated(jobId) {
+    const result = await awaitJob(jobId);
+    return GeneratedMissionSchema.parse(result);
   },
 };

@@ -1,44 +1,76 @@
-import { Pressable, ScrollView, View } from "react-native";
+import { Image, Pressable, ScrollView, View } from "react-native";
 import { useRouter } from "expo-router";
-import { Button, Card, EmptyState, ErrorState, LoadingState, Mascot, Text } from "@/shared/ui";
-import { useActiveGoal, useRecommendation } from "@/shared/api";
-import { formatDaysLeft } from "@/shared/lib/daysUntil";
+import type { Mission } from "@yuny/shared";
+import {
+  Card,
+  EmptyState,
+  ErrorState,
+  Icon,
+  LoadingState,
+  ProgressBar,
+  Text,
+} from "@/shared/ui";
+import { useActiveGoal, useMission, useProfile, useRecommendation, useRoadmap } from "@/shared/api";
+import { RoadmapStepper } from "@/features/home/RoadmapStepper";
 import { WhyThisDisclosure } from "@/features/home/WhyThisDisclosure";
-import { REQUIRES_AUTH } from "@/shared/config/dataSource";
-import { signOut } from "@/shared/lib/auth";
+import { useTheme } from "@/shared/lib/useTheme";
+import { gradients } from "@/shared/config/tokens";
+import { linearGradient } from "@/shared/platform/gradient";
 
 /**
- * Screen 09 — Home (TZ.md §8 row 09, §19 Phase 4). The main app entry point
- * (TZ.md §7 "Home — главный экран и главный entry point"): Mascot, Active
- * Goal + Deadline + Readiness, Today's Mission, "Why this?", and the single
- * primary CTA ([Start Mission]).
+ * Screen 09 — Home (TZ.md §8 row 09), laid out to `assets/image/design.png`:
+ * greeting, the mission in progress, the next lesson inside it, and the route
+ * to the goal.
+ *
+ * The reference shows "CURRENT MISSION" and "Next up" as two things, and they
+ * map onto the data exactly: the card is the mission (title plus how far
+ * through it the learner is), and "Next up" is the first task in that mission
+ * that is not yet done. One extra `useMission` call serves both.
+ *
+ * Progress is `completed / total` over task statuses the BACKEND set. The
+ * client aggregates them for display; it does not decide any of them, so
+ * TZ.md §3 Rule 1 holds. Nothing here invents a percentage.
  *
  * `(tabs)/_layout.tsx` already redirects a goalless user into `(onboarding)`
- * before this ever mounts (TZ.md §7 "во время onboarding основная
- * навигация скрыта"), so the `!goal` branch below is a defensive fallback
- * for a transient query state, not the expected path.
- *
- * Mascot props are hardcoded-plausible (`stage={1}`, `mood="neutral"`), not
- * backend-driven — there is no `mascot_states` repository yet (see this
- * screen's task handoff, "Open Questions"). `MascotStateSchema` already
- * exists in `@yuny/shared` but nothing populates or reads it; wiring that
- * up is out of scope here (TZ.md §3 Rule 1 — mascot mood/stage is backend-
- * owned, not something to fake more elaborately than a static placeholder).
+ * before this mounts, so the `!goal` branch is a defensive fallback for a
+ * transient query state rather than the expected path.
  */
+
+/** Task type → what the learner sees. Keys match `MissionTask["type"]`. */
+const TASK_LABEL: Record<string, string> = {
+  vocabulary_choice: "Vocabulary",
+  vocabulary_recall: "Vocabulary",
+  listening_comprehension: "Listening",
+  reading_comprehension: "Reading",
+  speaking_prompt: "Speaking",
+  writing_prompt: "Writing",
+  grammar_choice: "Grammar",
+  dialogue_response: "Speaking",
+};
+
+function nextPendingTask(mission: Mission | undefined) {
+  return mission?.tasks.find((task) => task.status !== "completed");
+}
+
 export default function Home() {
   const router = useRouter();
+  const { colors } = useTheme();
+
   const {
     data: goal,
     isPending: isGoalPending,
     isError: isGoalError,
     refetch: refetchGoal,
   } = useActiveGoal();
+  const { data: profile } = useProfile();
   const {
     data: recommendation,
     isPending: isRecommendationPending,
     isError: isRecommendationError,
     refetch: refetchRecommendation,
   } = useRecommendation(goal?.id);
+  const { data: mission } = useMission(recommendation?.mission_id);
+  const { data: roadmap } = useRoadmap(goal?.id);
 
   if (isGoalPending) {
     return <LoadingState message="Loading your goal…" className="flex-1 justify-center" />;
@@ -60,54 +92,52 @@ export default function Home() {
     );
   }
 
+  const totalTasks = mission?.tasks.length ?? 0;
+  const doneTasks = mission?.tasks.filter((task) => task.status === "completed").length ?? 0;
+  const progress = totalTasks > 0 ? doneTasks / totalTasks : 0;
+  const upcoming = nextPendingTask(mission);
+  const [from, to] = gradients.primary;
+
+  /**
+   * What the next lesson is called. Tasks carry a type but no title, so the
+   * name is derived from the skill it exercises — true to what the lesson is,
+   * and different from the mission's own title, which the card above already
+   * shows.
+   */
+  const lessonTitle = upcoming
+    ? `${TASK_LABEL[upcoming.type] ?? "Practice"} practice`
+    : "Review what you've learned";
+
   return (
-    <View className="flex-1 bg-background dark:bg-background-dark">
-      {REQUIRES_AUTH ? (
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Sign out"
-          onPress={() => void signOut()}
-          className="absolute right-lg top-xl z-10 min-h-[44px] min-w-[44px] items-center justify-center rounded-pill px-sm"
-        >
-          <Text variant="caption" className="text-text-muted dark:text-text-muted-dark">
-            Sign out
-          </Text>
-        </Pressable>
-      ) : null}
-
-      <ScrollView
-        contentContainerClassName="gap-lg bg-background px-lg py-xl dark:bg-background-dark"
-        className="flex-1 bg-background dark:bg-background-dark"
-      >
-      {/* Hero — Mascot + Goal + Deadline + Readiness (MVP Spec "Home — Mascot"/"Home — Goal": large, central, not overloaded with technical indicators). */}
-      <View className="items-center gap-md rounded-xl bg-primary-soft p-xl dark:bg-primary-soft-dark">
-        <Mascot stage={1} mood="neutral" size="large" />
-
-        <View className="items-center gap-xs">
-          <Text variant="caption" tone="muted" className="uppercase tracking-wide">
-            Your Goal
-          </Text>
-          <Text variant="title" className="text-center">
-            {goal.title}
-          </Text>
+    <ScrollView
+      // `gap-md` between sections, not `gap-lg`: with 24px here plus each
+      // section's own internal spacing the page drifted apart and pushed the
+      // roadmap past the fold. The reference is denser than that.
+      contentContainerClassName="gap-md px-lg pb-xl pt-xxl"
+      className="flex-1 bg-background dark:bg-background-dark"
+    >
+      {/* Greeting. The bell is a real control, not decoration: it opens
+          Profile, where notification settings live (TZ.md §8 row 12). It uses
+          the plain glyph — the badged one exists in the icon set and goes in
+          the moment there is an unread count to justify it. */}
+      <View className="flex-row items-start justify-between">
+        <View className="flex-1 gap-[2px]">
+          <Text variant="title">Hi{profile ? `, ${profile.display_name.split(" ")[0]}` : ""}!</Text>
           <Text variant="body" tone="muted">
-            {formatDaysLeft(goal.deadline)}
+            Keep going, you&apos;re doing great!
           </Text>
         </View>
-
-        {goal.readiness_label ? (
-          <View
-            accessibilityRole="text"
-            className="rounded-pill bg-accent-soft px-md py-xs dark:bg-accent-soft-dark"
-          >
-            <Text variant="body" className="font-semibold">
-              {goal.readiness_label}
-            </Text>
-          </View>
-        ) : null}
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Notifications"
+          onPress={() => router.push("/profile")}
+          className="h-[44px] w-[44px] items-center justify-center rounded-pill bg-surface shadow-md shadow-shadow/10 dark:border dark:border-border-dark dark:bg-surface-dark dark:shadow-none"
+        >
+          <Icon name="bell" size={20} color={colors.text} />
+        </Pressable>
       </View>
 
-      {/* Today's Mission — the one primary CTA on this screen (MVP Spec "Home — Recommendation": "one best next action"). */}
+      {/* Current mission */}
       {isRecommendationPending ? (
         <Card className="items-center gap-sm py-lg">
           <Text variant="body" tone="muted">
@@ -128,30 +158,138 @@ export default function Home() {
           </Text>
         </Card>
       ) : (
-        <Card className="gap-md border border-primary dark:border-primary-dark">
-          <Text variant="caption" tone="muted">
-            Today&apos;s Mission
-          </Text>
-          <Text variant="heading">{recommendation.mission_title}</Text>
-          <Text variant="caption" tone="muted">
-            ~{recommendation.estimated_minutes} min
-          </Text>
+        <>
+          {/*
+            The hero card is deliberately compact — a label, a title, a
+            progress row, nothing else. Its earlier version carried the
+            "Why this?" disclosure too, which stretched it to ~215px and left
+            the mascot floating in empty white. The reference card is about
+            130px, and that density is what makes the figure read as part of
+            the card rather than as clip-art dropped onto it.
 
-          <WhyThisDisclosure reason={recommendation.reason} />
+            The mascot is bottom-right and CLIPPED on purpose: it overflows the
+            card's right edge, so the card looks like a window onto a bigger
+            figure. The text column is capped so nothing ever runs under it.
+          */}
+          <Card className="gap-sm overflow-hidden pb-md">
+            {/* Size and position go in `style`, not `className`: NativeWind
+                did not apply the width/height utilities to `Image` here, and
+                an unsized absolutely-positioned image expands to fill its
+                parent — the mascot swallowed the whole card. */}
+            <Image
+              source={require("@/assets/mascot/neutral.png")}
+              style={{
+                position: "absolute",
+                right: -18,
+                bottom: -14,
+                width: 150,
+                height: 150,
+              }}
+              resizeMode="contain"
+              accessibilityElementsHidden
+              importantForAccessibility="no-hide-descendants"
+            />
 
-          <Button
-            label="Start Mission"
-            variant="primary"
-            onPress={() =>
-              router.push({
-                pathname: "/mission/[id]",
-                params: { id: recommendation.mission_id },
-              })
-            }
-          />
-        </Card>
+            <View className="w-[60%] gap-[2px]">
+              <Text variant="caption" tone="muted" className="uppercase tracking-wide">
+                Current mission
+              </Text>
+              <Text variant="heading">{recommendation.mission_title}</Text>
+            </View>
+
+            {totalTasks > 0 ? (
+              <View className="w-[60%] gap-[6px]">
+                <View className="flex-row items-center gap-sm">
+                  <View className="flex-1">
+                    <ProgressBar
+                      progress={progress}
+                      accessibilityLabel={`${doneTasks} of ${totalTasks} lessons done`}
+                    />
+                  </View>
+                  <Text variant="caption" className="font-bold">
+                    {Math.round(progress * 100)}%
+                  </Text>
+                </View>
+                <Text variant="caption" tone="muted">
+                  Lesson {Math.min(doneTasks + 1, totalTasks)} of {totalTasks}
+                  {upcoming ? ` · ${TASK_LABEL[upcoming.type] ?? "Practice"}` : ""}
+                </Text>
+              </View>
+            ) : null}
+          </Card>
+
+          {/* Next up — the first task of that mission that is not done yet.
+              This row IS the screen's primary action, matching the reference,
+              which carries no separate button. TZ.md §8 row 09 names the CTA
+              "[Start Mission]"; keeping both a button and this card would put
+              two primary actions on Home, which §10 rules out outright. The
+              accessible name spells the action out, so nothing is lost to a
+              screen reader by the label living on the row. */}
+          <View className="gap-sm">
+            <Text variant="body" className="font-bold">
+              Next up
+            </Text>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`Start ${lessonTitle}`}
+              onPress={() =>
+                router.push({
+                  pathname: "/mission/[id]",
+                  params: { id: recommendation.mission_id },
+                })
+              }
+              className="flex-row items-center gap-md rounded-card bg-surface p-sm shadow-md shadow-shadow/10 dark:border dark:border-border-dark dark:bg-surface-dark dark:shadow-none"
+            >
+              <View className="h-[52px] w-[52px] items-center justify-center rounded-md bg-primary-soft dark:bg-primary-soft-dark">
+                <Icon name="library" size={26} color={colors.primary} />
+              </View>
+              {/*
+                The lesson, not the mission again. Both cards used to print
+                `mission_title`, so the screen said the same sentence twice in
+                a row and read like a bug. The eyebrow places the lesson inside
+                the mission; the title names what this particular lesson does.
+              */}
+              <View className="flex-1 gap-[2px]">
+                <Text variant="caption" tone="muted">
+                  Lesson {Math.min(doneTasks + 1, Math.max(totalTasks, 1))}
+                  {totalTasks > 0 ? ` of ${totalTasks}` : ""}
+                </Text>
+                <Text variant="body" className="font-bold">
+                  {lessonTitle}
+                </Text>
+                <Text variant="caption" tone="muted">
+                  ~{recommendation.estimated_minutes} min
+                </Text>
+              </View>
+              <View
+                className="h-[44px] w-[44px] items-center justify-center rounded-pill"
+                style={linearGradient(from, to)}
+              >
+                <Text variant="heading" tone="inverse">
+                  →
+                </Text>
+              </View>
+            </Pressable>
+
+            {/* "Why this?" belongs to the recommendation, so it sits under the
+                thing it explains rather than inside the hero card, where it
+                competed with the mascot for the same corner. TZ.md §8 row 09
+                still gets its disclosure; it just stopped inflating the card. */}
+            <WhyThisDisclosure reason={recommendation.reason} />
+          </View>
+        </>
       )}
-      </ScrollView>
-    </View>
+
+      {/* The route. Absent until the backend builds one — "no map yet" is the
+          normal early state, so nothing is drawn rather than an empty frame. */}
+      {roadmap ? (
+        <View className="gap-sm">
+          <Text variant="caption" tone="muted" className="uppercase tracking-wide">
+            Your roadmap
+          </Text>
+          <RoadmapStepper roadmap={roadmap} />
+        </View>
+      ) : null}
+    </ScrollView>
   );
 }

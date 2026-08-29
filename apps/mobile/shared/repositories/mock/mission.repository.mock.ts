@@ -13,9 +13,30 @@ import { MOCK_MISSION_ANSWER_KEY, mockMission } from "./fixtures";
 const submitted = new Map<string, "weak" | "strong">();
 
 export const mockMissionRepository: MissionRepository = {
+  /**
+   * Task `status` is projected from what has actually been submitted, rather
+   * than returned frozen at `pending` from the fixture. The real backend
+   * persists these statuses, and Home reads them to show how far through a
+   * mission the learner is — a mock that always answers "nothing done" would
+   * make that indicator untestable without the real database.
+   */
   async getMission(missionId) {
     if (missionId !== mockMission.id) throw new Error(`No mock mission found for ${missionId}`);
-    return delay(MissionSchema.parse(mockMission), 400);
+    return delay(
+      MissionSchema.parse({
+        ...mockMission,
+        status: mockMission.tasks.every((task) => submitted.has(task.id))
+          ? "completed"
+          : submitted.size > 0
+            ? "active"
+            : mockMission.status,
+        tasks: mockMission.tasks.map((task) => ({
+          ...task,
+          status: submitted.has(task.id) ? "completed" : task.status,
+        })),
+      }),
+      400,
+    );
   },
 
   async submitTask(activityId, response: TaskResponseInput) {
@@ -72,5 +93,17 @@ export const mockMissionRepository: MissionRepository = {
       }),
       300,
     );
+  },
+
+  // Mock mode has exactly one fixture mission, always available — "generating"
+  // just hands back its id, matching `mockRecommendationRepository`'s
+  // always-available `mockRecommendation` (both source from the same
+  // `mockMission`). The real work here lives in `SupabaseMissionRepository`.
+  async generate() {
+    return delay({ job_id: "mock-job-mission-generate", kind: "mission_generate" }, 400);
+  },
+
+  async getGenerated() {
+    return delay({ mission_id: mockMission.id }, 300);
   },
 };

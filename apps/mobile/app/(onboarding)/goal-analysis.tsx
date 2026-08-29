@@ -95,6 +95,40 @@ export default function GoalAnalysis() {
         </View>
       ) : null}
 
+      {/*
+        The level the goal demands, shown before the learner commits. This is
+        the backend's judgement about the goal, not about the person — the
+        assessment has not run yet, and nothing here compares the two. Screen
+        07 does that comparison, once there is something to compare against.
+      */}
+      <View className="gap-xs">
+        <Text variant="caption" tone="muted">
+          Level this goal needs
+        </Text>
+        <Text variant="heading">{data.required_cefr}</Text>
+        <Text variant="body" tone="muted">
+          We&apos;ll check where you are now in a short set of questions.
+        </Text>
+      </View>
+
+      {data.topics.length > 0 ? (
+        <View className="gap-xs">
+          <Text variant="caption" tone="muted">
+            What you&apos;ll work through
+          </Text>
+          <View className="flex-row flex-wrap gap-xs">
+            {data.topics.map((topic) => (
+              <View
+                key={topic}
+                className="rounded-pill bg-surface-alt px-md py-xs dark:bg-surface-alt-dark"
+              >
+                <Text variant="caption">{topic.replace(/-/g, " ")}</Text>
+              </View>
+            ))}
+          </View>
+        </View>
+      ) : null}
+
       <View className="gap-md">
         <Text variant="caption" tone="muted">
           Language outcomes

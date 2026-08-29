@@ -1,9 +1,10 @@
 import { View } from "react-native";
 import { Redirect, useRouter } from "expo-router";
 import { Button, Card, ErrorState, LoadingState, Mascot, Text } from "@/shared/ui";
-import { useAssessmentResult } from "@/shared/api";
+import { useAssessmentResult, useGoalAnalysis } from "@/shared/api";
 import { useOnboardingStore } from "@/features/onboarding/store";
 import { capitalize } from "@/shared/lib/capitalize";
+import { LevelVerdict } from "@/features/onboarding/LevelVerdict";
 
 /**
  * Screen 07 — Assessment Result (TZ.md §8 row 07). "Stronger / Needs Work /
@@ -15,8 +16,13 @@ import { capitalize } from "@/shared/lib/capitalize";
 export default function AssessmentResult() {
   const router = useRouter();
   const jobId = useOnboardingStore((state) => state.assessmentJobId);
+  const analysisJobId = useOnboardingStore((state) => state.analysisJobId);
 
   const { data, isPending, isError, refetch } = useAssessmentResult(jobId ?? undefined);
+  // Already cached from screen 04 — same query key, no second request. Needed
+  // for the "foundations first" verdict, which compares the measured band
+  // against what the goal demands.
+  const { data: analysis } = useGoalAnalysis(analysisJobId ?? undefined);
 
   if (!jobId) {
     return <Redirect href="/assessment" />;
@@ -39,6 +45,11 @@ export default function AssessmentResult() {
         </Text>
 
         <View className="w-full gap-sm">
+          <LevelVerdict
+            declared={data.declared_cefr}
+            assessed={data.assessed_cefr}
+            required={analysis?.required_cefr ?? null}
+          />
           <Card className="gap-xs">
             <Text variant="caption" tone="muted">
               Stronger

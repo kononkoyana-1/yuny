@@ -12,6 +12,7 @@ export const queryKeys = {
     ["assessment", "question", goalId, ...answeredIds] as const,
   assessmentResult: (jobId: string) => ["assessment", "result", jobId] as const,
   recommendation: (goalId: string) => ["recommendation", goalId] as const,
+  roadmap: (goalId: string) => ["roadmap", goalId] as const,
   mission: (missionId: string) => ["mission", missionId] as const,
   missionResult: (missionId: string) => ["mission", missionId, "result"] as const,
 };

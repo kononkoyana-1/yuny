@@ -1,4 +1,12 @@
-import type { Goal, GoalOutcome, Skill } from "@yuny/shared";
+import type { CefrLevel, Goal, GoalOutcome, Skill } from "@yuny/shared";
+
+/**
+ * What the learner picks on screen 03. "unknown" is a first-class answer,
+ * not a missing value: forcing a beginner to choose between A2 and B1 asks
+ * them the very thing they cannot know. The assessment starts at A2 and
+ * simply widens its search when it gets this (docs/onboarding-v2.md §4.1).
+ */
+export type DeclaredLevel = CefrLevel | "unknown";
 
 /**
  * Input for `goal-analyze` (TZ.md §6). Mirrors the Edge Function's request
@@ -10,6 +18,7 @@ export interface GoalDraftInput {
   target_language: string;
   deadline: string;
   daily_minutes: number;
+  declared_level: DeclaredLevel;
 }
 
 /**
@@ -40,6 +49,19 @@ export interface GoalAnalysis {
   target_situations: string[];
   required_skills: Skill[];
   outcomes: Pick<GoalOutcome, "label" | "description" | "position">[];
+  /**
+   * The language level this goal actually demands — decided by the backend,
+   * never by the client (TZ.md §3, Rule 1). Screen 04 shows it so the learner
+   * sees the target before committing, and the gap between it and their own
+   * declared level is what the roadmap is built to close.
+   */
+  required_cefr: CefrLevel;
+  /**
+   * Canonical topic slugs the goal implies, for screen 04. Advisory display
+   * only, like `target_situations` — the roadmap re-derives its own module
+   * list from content availability (docs/onboarding-v2.md §6).
+   */
+  topics: string[];
 }
 
 /**
@@ -68,6 +90,16 @@ export interface JobRef {
  */
 export interface GoalRepository {
   getActive(): Promise<Goal | null>;
+  /**
+   * Commits the study time chosen on screen 08 (`goal-set-time`).
+   *
+   * A separate call from `confirm()` because the two happen at different
+   * moments: the goal is created before the assessment so answers have
+   * something to attach to, and the time is chosen after it, once the learner
+   * knows their level. Proposed contract addition — TZ.md §6's table predates
+   * this split (TZ.md §21.2 rule 3: propose, do not work around).
+   */
+  setDailyMinutes(goalId: string, dailyMinutes: number): Promise<Goal>;
   getOutcomes(goalId: string): Promise<GoalOutcome[]>;
   analyze(input: GoalDraftInput): Promise<JobRef>;
   getAnalysis(jobId: string): Promise<GoalAnalysis>;

@@ -7,6 +7,7 @@ import type {
   Mission,
   Profile,
   Recommendation,
+  Roadmap,
 } from "@yuny/shared";
 
 /**
@@ -40,6 +41,10 @@ export const mockGoal: Goal = {
   readiness_label: "On track",
   readiness_reason:
     "Your speaking and vocabulary practice this week keeps you aligned with the interview deadline.",
+  // The learner said B1 on screen 03; `goal-analyze` judged the goal itself
+  // to need B2. The gap between the two is what the roadmap has to close.
+  declared_cefr: "B1",
+  required_cefr: "B2",
   created_at: NOW,
 };
 
@@ -128,6 +133,10 @@ export const mockAssessmentQuestions: AssessmentQuestion[] = [
 export const mockLearningState: LearningState = {
   id: MOCK_LEARNING_STATE_ID,
   goal_id: MOCK_GOAL_ID,
+  // The assessment confirmed the learner's own B1 estimate. Confidence is
+  // high but not 1: fifteen questions narrow a band, they do not settle it.
+  assessed_cefr: "B1",
+  cefr_confidence: 0.72,
   updated_at: NOW,
   skill_states: [
     {
@@ -187,6 +196,10 @@ export const mockAssessmentResult: AssessmentResult = {
   stronger_skill: "listening",
   needs_work_skill: "speaking",
   priority_label: "Interview vocabulary",
+  // Declared and assessed agree here, which is the "confirmed" outcome of
+  // the three on screen 07 (docs/onboarding-v2.md §4.2).
+  declared_cefr: "B1",
+  assessed_cefr: "B1",
   focus_areas: [
     "Build interview vocabulary",
     "Practice answering questions",
@@ -219,8 +232,8 @@ export const mockRecommendation: Recommendation = {
 };
 
 /**
- * Phase 5 Mission fixture — same shape `mission-from-content` produces in
- * Supabase mode from the real "Greetings" chapter (5 vocabulary words: read,
+ * Phase 5 Mission fixture — same shape `mission-generate`'s content-sourced
+ * path produces in Supabase mode from the real "Greetings" chapter (5 vocabulary words: read,
  * repeat, write, say, listen), so manual testing looks the same in both
  * data sources. `mission.title` matches `mockRecommendation.mission_title`
  * above so Home's card and the Mission it opens agree with each other.
@@ -295,4 +308,77 @@ export const MOCK_MISSION_ANSWER_KEY: Record<string, { accepted?: string; correc
   "8e1a2c4d-6f3b-4a9c-8d2e-1b6f4a8c2e03": { accepted: "write" },
   "8e1a2c4d-6f3b-4a9c-8d2e-1b6f4a8c2e04": { correctIndex: 0 },
   "8e1a2c4d-6f3b-4a9c-8d2e-1b6f4a8c2e05": { correctIndex: 0 },
+};
+
+/**
+ * The mock roadmap — the route this goal implies, in the order the planner
+ * would work through it (docs/onboarding-v2.md §6).
+ *
+ * Exactly one module is `in_progress` and it is the one `mockMission`
+ * belongs to; everything before it is `completed` and everything after is
+ * `locked`. That invariant is the backend's, and the mock honours it so the
+ * screens are exercised against valid data rather than against a shape that
+ * could never occur.
+ */
+export const mockRoadmap: Roadmap = {
+  goal_id: MOCK_GOAL_ID,
+  completed_modules: 2,
+  total_modules: 5,
+  modules: [
+    {
+      id: "3f1c8b90-5d2e-4a76-9c14-7e0b3a5d1c01",
+      goal_id: MOCK_GOAL_ID,
+      topic_id: null,
+      position: 0,
+      title: "Introduce yourself",
+      why: "Every interview opens here, so it is the cheapest place to sound fluent.",
+      target_cefr: "A2",
+      kind: "foundation",
+      status: "completed",
+    },
+    {
+      id: "3f1c8b90-5d2e-4a76-9c14-7e0b3a5d1c02",
+      goal_id: MOCK_GOAL_ID,
+      topic_id: null,
+      position: 1,
+      title: "Talk about your experience",
+      why: "You can already name your role; this is about describing what you did in it.",
+      target_cefr: "B1",
+      kind: "topic",
+      status: "completed",
+    },
+    {
+      id: "3f1c8b90-5d2e-4a76-9c14-7e0b3a5d1c03",
+      goal_id: MOCK_GOAL_ID,
+      topic_id: null,
+      position: 2,
+      title: "Answer behavioural questions",
+      why: "Your assessment showed you understand these questions but do not yet structure an answer.",
+      target_cefr: "B1",
+      kind: "topic",
+      status: "in_progress",
+    },
+    {
+      id: "3f1c8b90-5d2e-4a76-9c14-7e0b3a5d1c04",
+      goal_id: MOCK_GOAL_ID,
+      topic_id: null,
+      position: 3,
+      title: "Ask the interviewer questions",
+      why: "The part most candidates skip, and the one that reads as confidence.",
+      target_cefr: "B1",
+      kind: "topic",
+      status: "locked",
+    },
+    {
+      id: "3f1c8b90-5d2e-4a76-9c14-7e0b3a5d1c05",
+      goal_id: MOCK_GOAL_ID,
+      topic_id: null,
+      position: 4,
+      title: "Handle a full interview",
+      why: "Everything above, end to end, without stopping to translate.",
+      target_cefr: "B2",
+      kind: "topic",
+      status: "locked",
+    },
+  ],
 };
