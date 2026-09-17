@@ -6,8 +6,10 @@
  *   node scripts/db-import.mjs dict --file /path/dict.ndjson [--limit 100000]
  *   node scripts/db-import.mjs size          — сколько занимают таблицы
  *
- * Ключ берётся из `SUPABASE_SERVICE_ROLE_KEY` (обе таблицы закрыты на запись
- * для всех, кроме service role). URL — из `apps/mobile/.env`.
+ * Ключ берётся из переменной `SUPABASE_SERVICE_ROLE_KEY` или из файла
+ * `.env.local` в корне (он в .gitignore и в репозиторий не попадает). Обе
+ * таблицы закрыты на запись для всех, кроме service role. URL — из
+ * `apps/mobile/.env`.
  *
  * Данные уходят через PostgREST как JSON, а не строками SQL. Это не вкусовщина:
  * прошлый заливщик собирал INSERT конкатенацией, и определение со словом «into»
@@ -27,14 +29,20 @@ const BATCH = 1000;
 
 function env() {
   const file = path.join(ROOT, "apps", "mobile", ".env");
+  const local = path.join(ROOT, ".env.local");
   const url = existsSync(file)
     ? readFileSync(file, "utf8").match(/EXPO_PUBLIC_SUPABASE_URL=(\S+)/)?.[1]
     : process.env.SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const key =
+    process.env.SUPABASE_SERVICE_ROLE_KEY ||
+    (existsSync(local)
+      ? readFileSync(local, "utf8").match(/SUPABASE_SERVICE_ROLE_KEY=(\S+)/)?.[1]
+      : null);
   if (!url) throw new Error("не нашёл EXPO_PUBLIC_SUPABASE_URL в apps/mobile/.env");
   if (!key) {
     throw new Error(
-      "нужен SUPABASE_SERVICE_ROLE_KEY: Dashboard → Project Settings → API → service_role",
+      "нужен ключ service_role. Dashboard → Project Settings → API → service_role,\n" +
+        "положить строкой SUPABASE_SERVICE_ROLE_KEY=… в .env.local в корне репозитория.",
     );
   }
   return { url: url.replace(/\/$/, ""), key };
