@@ -50,3 +50,7 @@ yarn-error.*
 docs/dictionary/*.dsl
 docs/dictionary/*.ann
 docs/dictionary/*.bmp
+
+# Выход парсера словаря — 350 МБ NDJSON, промежуточный артефакт импорта.
+*.ndjson
+*.ndjson.state
