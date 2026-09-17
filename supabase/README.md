@@ -15,9 +15,14 @@ Gemini; функции нового продукта (`module-create`, `module-p
 
 ```
 migrations/   applied in filename order; the schema of record
-functions/    one folder per Edge Function from TZ.md §6
+functions/    one folder per Edge Function from TZ.md §13
   _shared/    runtime shared by all of them (see below)
 ```
+
+Имена файлов миграций совпадают с версиями, записанными в `supabase_migrations`
+на проекте. До 2026-09-17 они расходились — миграции применяли не через CLI, и
+`db push` считал бы все тринадцать неприменёнными. Новые файлы называть по
+версии, которую вернул сервер, иначе расхождение вернётся.
 
 `functions/_shared/` holds the CORS + error envelope + auth wrapper and the
 Gemini gateway (`shared.ts`). Functions import it
