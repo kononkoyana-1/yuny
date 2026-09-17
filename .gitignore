@@ -44,3 +44,9 @@ supabase/.temp
 npm-debug.*
 yarn-debug.*
 yarn-error.*
+
+# Исходники словаря БКРС — 340 МБ на три файла, у GitHub лимит 100 МБ.
+# Лежат локально, в базу попадают импортом (TZ.md §14, фаза 1).
+docs/dictionary/*.dsl
+docs/dictionary/*.ann
+docs/dictionary/*.bmp
