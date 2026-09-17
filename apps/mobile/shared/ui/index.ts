@@ -19,8 +19,6 @@ export type { InputProps } from "./Input";
 export { ProgressBar } from "./ProgressBar";
 export type { ProgressBarProps } from "./ProgressBar";
 
-export { SkillPill } from "./SkillPill";
-export type { SkillPillProps } from "./SkillPill";
 
 export { FeedbackBanner } from "./FeedbackBanner";
 export type { FeedbackBannerProps, FeedbackTone } from "./FeedbackBanner";

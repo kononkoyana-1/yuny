@@ -2,13 +2,8 @@ import { z } from "zod";
 import { BackendError } from "./backendError";
 import { getSupabase } from "./supabase";
 
-/** Async job kinds (TZ.md §6, §10 loading copy). */
-export type JobKind =
-  | "goal_analyze"
-  | "assessment_evaluate"
-  | "mission_generate"
-  | "material_ingest"
-  | "speaking_assess";
+/** Async job kinds (TZ.md §13). */
+export type JobKind = "module_parse" | "lesson_generate";
 
 interface JobRow {
   status: "queued" | "running" | "done" | "failed";

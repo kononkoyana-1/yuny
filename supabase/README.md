@@ -2,9 +2,14 @@
 
 Project ref `ixtfifglohppaimvyvui` · `https://ixtfifglohppaimvyvui.supabase.co`
 
-Implements TZ.md §5 (data model), §6 (client ↔ backend contract) and §19
-Phase 6. The client selects this backend with
-`EXPO_PUBLIC_DATA_SOURCE=supabase`; with `mock` it never touches the network.
+Implements TZ.md §12 (data model) and §13 (client ↔ backend contract). The
+client selects this backend with `EXPO_PUBLIC_DATA_SOURCE=supabase`; with
+`mock` it never touches the network.
+
+Функции прежнего продукта удалены вместе с ним (TZ.md §16). Сейчас здесь
+только `_shared/shared.ts` — обёртка CORS + ошибок + авторизации и шлюз к
+Gemini; функции нового продукта (`module-create`, `module-parse`,
+`lesson-generate`, `task-submit`, `dictionary-search`) приезжают в фазах 2-6.
 
 ## Layout
 
@@ -14,10 +19,8 @@ functions/    one folder per Edge Function from TZ.md §6
   _shared/    runtime shared by all of them (see below)
 ```
 
-`functions/_shared/` holds the CORS + error envelope + auth wrapper
-(`shared.ts`), the activity type registry (`activity.ts`), the four
-learner-facing generators (`goal.ts`, `assessment.ts`, `mission.ts`,
-`feedback.ts`), and the content pipeline (`content.ts`). Functions import it
+`functions/_shared/` holds the CORS + error envelope + auth wrapper and the
+Gemini gateway (`shared.ts`). Functions import it
 as `../_shared/…`; each deploy bundles its own copy.
 
 ## The AI gateway

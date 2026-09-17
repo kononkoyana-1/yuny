@@ -15,7 +15,7 @@ export const supabaseUserRepository: UserRepository = {
     const userId = await requireUserId();
     const { data, error } = await getSupabase()
       .from("profiles")
-      .select("id, native_language, ui_language, display_name, created_at")
+      .select("id, display_name, created_at")
       .eq("id", userId)
       .single();
 
@@ -29,7 +29,7 @@ export const supabaseUserRepository: UserRepository = {
       .from("profiles")
       .update(patch)
       .eq("id", userId)
-      .select("id, native_language, ui_language, display_name, created_at")
+      .select("id, display_name, created_at")
       .single();
 
     if (error || !data) throw new BackendError("profile_update_failed");

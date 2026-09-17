@@ -47,11 +47,8 @@
 | ----- | ----- | ----- |
 | Orchestrator (основная сессия) | Opus | Принимает задачу от пользователя, раскладывает на срезы, выбирает агента, читает Handoff, эскалирует |
 | `ui-designer` | Opus | Решает, что и как строить (gate A), и выносит вердикт по результату (gate B) — суждение, не исполнение |
-| `learning-agent` | Opus | Решает педагогику: цель, навык, полоса, критерии проверки |
-| `content-qa-agent` | Opus | Выносит `APPROVED` / `REVISION_REQUIRED` / `SPEC_DEFECT` |
 | `frontend-builder` | Sonnet | Строит по спецификации |
 | `design-system-agent` | Sonnet | Строит токены, примитивы, ассеты по решению |
-| `content-agent` | Sonnet | Пишет материал строго по спецификации |
 
 Граница проходит **не по «сложности» задачи, а по типу работы**: где
 результат — это *решение* (что строить, годится ли построенное, чему учим),
@@ -278,19 +275,19 @@ Output → Self-check → Rule-check → Domain-check → Integration-check
 
 | Agent | Отвечает за | Не делает | Основные Skills |
 | ----- | ----- | ----- | ----- |
-| **frontend-builder** | Экраны, features, Activity-рендереры, навигация (Фазы 0, 2–5, 7–9 TZ.md) | Не пишет миграции и Edge Functions, не принимает продуктовых решений | `screen-scaffold`, `activity-renderer-scaffold`, `repository-pair-scaffold` (mock-часть) |
-| **supabase-engineer** | Миграции, RLS, Edge Functions, AI Gateway (Фаза 6 TZ.md) | Не трогает UI-код | `migration-scaffold`, `edge-function-scaffold`, `repository-pair-scaffold` (supabase-часть) |
-| **design-system-agent** | Токены, примитивы `shared/ui`, маскот-компонент и ассеты (Фаза 0, 6 TZ.md) | Не реализует экраны, только примитивы | `token-sync-check`, `mascot-asset-export` |
+| **frontend-builder** | Экраны, features, рендереры заданий, навигация (фазы 2–7 TZ.md) | Не пишет миграции и Edge Functions, не принимает продуктовых решений | `screen-scaffold`, `activity-renderer-scaffold`, `repository-pair-scaffold` (mock-часть) |
+| **supabase-engineer** | Миграции, RLS, Edge Functions, шлюз к Gemini (фазы 1–3, 5 TZ.md) | Не трогает UI-код | `migration-scaffold`, `edge-function-scaffold`, `repository-pair-scaffold` (supabase-часть) |
+| **design-system-agent** | Токены, примитивы `shared/ui`, маскот-компонент и ассеты, китайская типографика (TZ.md §15) | Не реализует экраны, только примитивы | `token-sync-check`, `mascot-asset-export` |
 | **qa-agent** | Maestro/Playwright/Jest флоу, Integration-check | Не пишет продуктовый код | `dod-check` |
 | **ui-designer** | UX/UI-решение до кода и вердикт по результату (`docs/DESIGN_LOOP.md`) | Не пишет код приложения, не владеет токенами и примитивами | — |
 
-**Ростер кода зафиксирован на 4 агентах (§14, решение 2).** С 2026-08-28 рядом
-существует второй ростер — три агента учебного контента (`learning-agent`,
-`content-agent`, `content-qa-agent`, см. `docs/CONTENT_AGENTS.md`). Это не
-пересмотр решения 2: те четыре строят приложение, эти производят материал
-внутри него, и ни одна пара Boundaries не пересекается. `content-qa-agent` —
-не переименованный `qa-agent`: первый судит педагогику задания, второй
-запускает Maestro/Playwright.
+**Ростер кода зафиксирован на 4 агентах (§14, решение 2).** Второй ростер —
+три агента учебного контента (`learning-agent`, `content-agent`,
+`content-qa-agent`) — существовал с 2026-08-28 по 2026-09-17 и удалён вместе
+с прежним ТЗ: приложение больше не производит собственный учебный материал,
+его приносит пользователь (`TZ.md` §1). Роль, которую они закрывали, в новом
+продукте выполняет Gemini по промптам из `TZ.md` §7–§9, а качество их работы
+проверяется кодом и словарём, а не агентом-рецензентом.
 
 **Пятый агент кода — `ui-designer` (2026-09-08).** Решение 2 фиксировало ростер
 на четырёх ролях, потому что дробить *реализацию* дальше было бы избыточной

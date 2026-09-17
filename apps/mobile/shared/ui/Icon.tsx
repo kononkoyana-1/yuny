@@ -2,9 +2,9 @@ import BellSvg from "@/assets/bell.svg";
 import BellUnreadSvg from "@/assets/bell-notification-social-media.svg";
 import BookSvg from "@/assets/book-alt.svg";
 import CyborgSvg from "@/assets/cyborg.svg";
-import GoalSvg from "@/assets/bullseye-arrow.svg";
 import HomeSvg from "@/assets/home.svg";
-import UserSvg from "@/assets/user.svg";
+import SettingsSvg from "@/assets/settings.svg";
+import UploadSvg from "@/assets/upload.svg";
 
 /**
  * The icon set, behind one name-keyed component.
@@ -21,9 +21,10 @@ import UserSvg from "@/assets/user.svg";
  */
 const GLYPHS = {
   home: HomeSvg,
-  goal: GoalSvg,
-  library: BookSvg,
-  profile: UserSvg,
+  upload: UploadSvg,
+  /** The dictionary tab, and a word looked up anywhere else. */
+  dictionary: BookSvg,
+  settings: SettingsSvg,
   bell: BellSvg,
   /** Bell carrying a dot. Only for a real unread count — never decoration. */
   bellUnread: BellUnreadSvg,

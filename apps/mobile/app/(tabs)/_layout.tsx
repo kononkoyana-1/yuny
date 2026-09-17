@@ -1,18 +1,17 @@
 import type { ComponentProps } from "react";
 import { Pressable, View, useWindowDimensions } from "react-native";
 import { TabList, TabSlot, Tabs, TabTrigger } from "expo-router/ui";
-import { Redirect } from "expo-router";
-import { ErrorState, Icon, LoadingState, Text } from "@/shared/ui";
+import { Icon, Text } from "@/shared/ui";
 import type { IconName } from "@/shared/ui";
-import { useActiveGoal } from "@/shared/api";
 import { useTheme } from "@/shared/lib/useTheme";
 import { spacing, typography } from "@/shared/config/tokens";
 import type { Href } from "expo-router";
 
 /**
- * Four tabs — Home / Goal / Library / Profile (TZ.md §7, MVP-3.01). Mission
- * is deliberately not part of this navigator (TZ.md §7, MVP-3.03) — it will
- * live at `app/mission/[id]/` as a separate full-screen flow (Phase 5).
+ * Four tabs — Главная / Загрузка / Словарь / Настройки (TZ.md §11). The
+ * lesson is deliberately not part of this navigator: it lives at
+ * `app/lesson/` as a separate full-screen flow, so a task fills the screen
+ * with nothing competing for the exit.
  *
  * Built on `expo-router/ui`'s headless Tabs/TabList/TabTrigger/TabSlot
  * rather than the styled `Tabs` layout, specifically so the same trigger
@@ -36,10 +35,10 @@ import type { Href } from "expo-router";
  *    NativeWind does handle, so classes are fine there.
  */
 const TAB_ITEMS: { name: string; href: Href; label: string; icon: IconName }[] = [
-  { name: "index", href: "/", label: "Home", icon: "home" },
-  { name: "goal", href: "/goal", label: "Goal", icon: "goal" },
-  { name: "library", href: "/library", label: "Library", icon: "library" },
-  { name: "profile", href: "/profile", label: "Profile", icon: "profile" },
+  { name: "index", href: "/", label: "Главная", icon: "home" },
+  { name: "upload", href: "/upload", label: "Загрузка", icon: "upload" },
+  { name: "dictionary", href: "/dictionary", label: "Словарь", icon: "dictionary" },
+  { name: "settings", href: "/settings", label: "Настройки", icon: "settings" },
 ];
 
 interface TabBarButtonProps extends ComponentProps<typeof Pressable> {
@@ -106,34 +105,14 @@ function TabBarButton({ label, icon, isWide, isFocused, ...pressableProps }: Tab
 }
 
 /**
- * Gate (TZ.md §7 "во время onboarding основная навигация скрыта"): a user
- * with no active Goal has never finished onboarding, so the tab bar must
- * never mount for them at all — not even briefly. `useActiveGoal()` shares
- * the `["goal","active"]` query key with `useConfirmGoal`'s invalidation,
- * so the moment onboarding confirms a goal this flips without a manual
- * refresh. This early-return happens before `<Tabs>` renders, so it carries
- * no risk to the TabSlot/TabList structure documented above — no children
- * of `Tabs` are touched by this change.
+ * No gate in front of the tabs. The previous product hid them until a goal
+ * existed; this one has nothing to set up before the first screen — a user
+ * with no modules sees the Главная empty state inviting the first upload.
  */
 export default function TabsLayout() {
   const { colors } = useTheme();
   const { width } = useWindowDimensions();
   const isWide = width >= 768;
-  const { data: goal, isPending, isError, refetch } = useActiveGoal();
-
-  if (isPending) {
-    return <LoadingState message="Loading your goal…" className="flex-1 justify-center" />;
-  }
-
-  if (isError) {
-    return (
-      <ErrorState onRetry={() => refetch()} className="flex-1 justify-center" />
-    );
-  }
-
-  if (!goal) {
-    return <Redirect href="/welcome" />;
-  }
 
   return (
     /*

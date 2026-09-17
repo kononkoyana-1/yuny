@@ -134,7 +134,7 @@ docs/design/
 ```
 
 `<slug>` один на всю цепочку: `<экран>-<что-делаем>`, например
-`home-mission-card` или `onboarding-goal-input`. По имени видно, какая
+`home-module-circle` или `lesson-word-cards`. По имени видно, какая
 спецификация породила какое ревью.
 
 ### **5.1 Design Spec — выход gate A**

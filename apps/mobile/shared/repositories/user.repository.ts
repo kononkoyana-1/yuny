@@ -1,14 +1,11 @@
 import type { Profile } from "@yuny/shared";
 
-/** Partial update for `profiles` — client has UPDATE rights on its own row (TZ.md §5). */
-export type ProfileUpdateInput = Partial<
-  Pick<Profile, "native_language" | "ui_language" | "display_name">
->;
+/** Частичное обновление `profiles` — клиент правит только свою строку (TZ.md §12). */
+export type ProfileUpdateInput = Partial<Pick<Profile, "display_name">>;
 
 /**
- * `profiles` domain repository (TZ.md §6 mock-first pattern). Every
- * implementation must parse its response through `ProfileSchema` from
- * `@yuny/shared` before returning — see `mock/user.repository.mock.ts`.
+ * Домен `profiles` (TZ.md §13). Любая реализация обязана прогнать ответ через
+ * `ProfileSchema` из `@yuny/shared` перед возвратом.
  */
 export interface UserRepository {
   getProfile(): Promise<Profile>;

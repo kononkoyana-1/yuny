@@ -16,7 +16,7 @@ export interface ErrorStateProps {
  * system is working, and by the time this shows, it has stopped.
  *
  * The reassurance line is the substance of this screen. A learner who hits an
- * error mid-mission does not know whether their work survived, and that — not
+ * error mid-lesson does not know whether their work survived, and that — not
  * the failure itself — is what they need answered. Every write goes through an
  * Edge Function that has either committed or not, so the claim holds.
  *

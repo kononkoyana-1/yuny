@@ -1,6 +1,6 @@
 ---
 name: frontend-builder
-description: Implements Yuny's cross-platform client (Expo / React Native / Web) — screens, features, navigation, shared/ui composition, and dependency wiring. Use for any TZ.md Phase 2–5, 7–9 task that writes or modifies apps/mobile code. On visual/UX tasks it is the implementer half of the design loop (docs/DESIGN_LOOP.md): builds strictly to a ui-designer spec and hands the result back for review.
+description: Implements Yuny's cross-platform client (Expo / React Native / Web) — screens, features, navigation, shared/ui composition, and dependency wiring. Use for any TZ.md phase 2–7 task that writes or modifies apps/mobile code. On visual/UX tasks it is the implementer half of the design loop (docs/DESIGN_LOOP.md): builds strictly to a ui-designer spec and hands the result back for review.
 model: sonnet
 tools: Read, Write, Edit, Bash, Grep, Glob, WebFetch
 ---
