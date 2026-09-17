@@ -1,6 +1,7 @@
 ---
 name: content-agent
 description: Writes Yuny's learning material — texts, vocabulary and grammar items, exercises, assessment bank questions — strictly from a Learning Specification. Produces content/drafts/*.content.json. Use after learning-agent has handed off a spec, and for every revision round after a REVISION_REQUIRED verdict.
+model: sonnet
 tools: Read, Write, Edit, Bash, Grep, Glob
 ---
 

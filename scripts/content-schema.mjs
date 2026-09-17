@@ -239,12 +239,18 @@ export function validateSpec(spec) {
   } else {
     if (spec.mode !== "assessment-bank") requireRange(r, "content_budget.unit_word_count", budget.unit_word_count);
     if (requireRange(r, "content_budget.tasks_per_lesson", budget.tasks_per_lesson)) {
-      // onboarding-v2.md §7.1 — 3..5 tasks per 5–7 minute lesson.
+      // onboarding-v2.md §7.1 — 15..20 tasks in a mission, and the same two
+      // numbers as MISSION_MIN_TASKS / MISSION_MAX_TASKS in
+      // supabase/functions/_shared/mission.ts. Was 3..5 until 2026-09-08, when
+      // the lesson stopped being one link in an unimplemented chain of five
+      // and became the whole session; a package still budgeted for the old
+      // size fills a quarter of a mission and leaves the rest to be authored
+      // on the fly, which is the opposite of why packages exist.
       const [min, max] = budget.tasks_per_lesson;
-      if (min < 3 || max > 5) {
+      if (min < 15 || max > 20) {
         r.warn(
           "content_budget.tasks_per_lesson",
-          `${min}..${max} sits outside the 3..5 fixed by onboarding-v2.md §7.1 — state why in the spec if deliberate`,
+          `${min}..${max} sits outside the 15..20 fixed by onboarding-v2.md §7.1 — state why in the spec if deliberate`,
         );
       }
     }

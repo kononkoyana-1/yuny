@@ -29,11 +29,11 @@ import {
  * Matching is by the learner's own words: a learner who analysed twice gets
  * the analysis they actually confirmed, not whichever finished last.
  */
-async function requiredCefrFromAnalysis(
+async function analysisFor(
   admin: SupabaseClient,
   userId: string,
   rawInput: string,
-): Promise<string | null> {
+): Promise<{ requiredCefr: string | null; topics: string[] }> {
   const { data: jobs } = await admin
     .from("jobs")
     .select("input, result")
@@ -46,10 +46,45 @@ async function requiredCefrFromAnalysis(
   for (const job of (jobs ?? []) as { input: unknown; result: unknown }[]) {
     const input = job.input as { raw_input?: string } | null;
     if (input?.raw_input !== rawInput) continue;
-    const level = (job.result as { required_cefr?: unknown } | null)?.required_cefr;
-    if (isCefrLevel(level)) return level;
+
+    const result = job.result as { required_cefr?: unknown; topics?: unknown } | null;
+    const level = result?.required_cefr;
+    const topics = Array.isArray(result?.topics)
+      ? (result.topics as unknown[]).filter((slug): slug is string => typeof slug === "string")
+      : [];
+    return { requiredCefr: isCefrLevel(level) ? level : null, topics };
   }
-  return null;
+  return { requiredCefr: null, topics: [] };
+}
+
+/**
+ * Records which canonical topics this goal asked for (see the
+ * `goal_topics` migration). `analyzeGoal` already filtered the slugs against
+ * the taxonomy, and the insert joins `topics` again rather than trusting them:
+ * a slug that has since been renamed simply does not match, which is the right
+ * outcome for a table whose whole job is to be countable.
+ *
+ * Failing here must not fail the confirmation. The learner's goal, outcomes
+ * and learning state are the transaction that matters; this is bookkeeping for
+ * authoring decisions, and losing a row of it costs a line in a report, not a
+ * learner's onboarding.
+ */
+async function recordDemand(
+  admin: SupabaseClient,
+  goalId: string,
+  slugs: string[],
+): Promise<void> {
+  if (slugs.length === 0) return;
+  try {
+    const { data: topics } = await admin.from("topics").select("id, slug").in("slug", slugs);
+    const rows = ((topics ?? []) as { id: string }[]).map((topic) => ({
+      goal_id: goalId,
+      topic_id: topic.id,
+    }));
+    if (rows.length > 0) await admin.from("goal_topics").insert(rows);
+  } catch (error) {
+    console.error("goal_topics_insert_failed", goalId, error);
+  }
 }
 
 function readOutcomes(body: Record<string, unknown>): OutcomeDraft[] {
@@ -81,7 +116,7 @@ Deno.serve(
     // and writing a band the learner never claimed would erase that.
     const declaredLevel = optionalString(body, "declared_level");
     const declaredCefr = isCefrLevel(declaredLevel) ? declaredLevel : null;
-    const requiredCefr = await requiredCefrFromAnalysis(admin, userId, input.raw_input);
+    const analysis = await analysisFor(admin, userId, input.raw_input);
 
     // One active goal per user (enforced by a partial unique index too).
     await admin
@@ -98,11 +133,13 @@ Deno.serve(
         title,
         status: "active",
         declared_cefr: declaredCefr,
-        required_cefr: requiredCefr,
+        required_cefr: analysis.requiredCefr,
       })
       .select("*")
       .single();
     if (goalError || !goal) throw new HandlerError("goal_create_failed", 500);
+
+    await recordDemand(admin, goal.id as string, analysis.topics);
 
     const { error: outcomeError } = await admin.from("goal_outcomes").insert(
       outcomes.map((outcome) => ({ user_id: userId, goal_id: goal.id, ...outcome })),

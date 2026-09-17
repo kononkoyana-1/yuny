@@ -22,7 +22,13 @@ export default function MissionPlay() {
   const { data: mission, isPending, isError, refetch } = useMission(id);
   const submitTask = useSubmitTask(id);
 
-  const [index, setIndex] = useState(0);
+  /**
+   * `null` until the learner moves: where a mission *starts* is a question
+   * about the mission, not about this component, so it is answered from the
+   * loaded tasks below rather than guessed at mount. Once they press Continue
+   * this holds their actual position.
+   */
+  const [index, setIndex] = useState<number | null>(null);
   const [draft, setDraft] = useState<TaskResponseInput | null>(null);
 
   if (isPending) {
@@ -32,7 +38,18 @@ export default function MissionPlay() {
     return <ErrorState onRetry={() => refetch()} className="flex-1 justify-center" />;
   }
 
-  const task = mission.tasks[index];
+  /**
+   * Resume where the learner stopped. `activity-submit` marks each activity
+   * `completed`, so the first task that is not completed is the one they owe.
+   * Restarting from zero was survivable at four tasks; at fifteen to twenty it
+   * means a learner who closes the app mid-session comes back to answers they
+   * have already given, and the submitted ones are already graded — they would
+   * be re-answering for nothing.
+   */
+  const firstUnfinished = mission.tasks.findIndex((candidate) => candidate.status !== "completed");
+  const position = index ?? (firstUnfinished === -1 ? mission.tasks.length : firstUnfinished);
+
+  const task = mission.tasks[position];
   if (!task) {
     // All tasks already completed (e.g. the learner navigated back in here
     // after finishing) — there is nowhere useful to go but the result.
@@ -51,13 +68,13 @@ export default function MissionPlay() {
   const missionId = mission.id;
 
   function handleContinue() {
-    const wasLast = index === totalTasks - 1;
+    const wasLast = position === totalTasks - 1;
     submitTask.reset();
     setDraft(null);
     if (wasLast) {
       router.replace({ pathname: "/mission/[id]/result", params: { id: missionId } });
     } else {
-      setIndex((current) => current + 1);
+      setIndex(position + 1);
     }
   }
 
@@ -68,11 +85,11 @@ export default function MissionPlay() {
     >
       <View className="gap-xs">
         <Text variant="caption" tone="muted">
-          Task {index + 1} of {mission.tasks.length}
+          Task {position + 1} of {mission.tasks.length}
         </Text>
         <ProgressBar
-          progress={(index + (showingFeedback ? 1 : 0)) / mission.tasks.length}
-          accessibilityLabel={`Task ${index + 1} of ${mission.tasks.length}`}
+          progress={(position + (showingFeedback ? 1 : 0)) / mission.tasks.length}
+          accessibilityLabel={`Task ${position + 1} of ${mission.tasks.length}`}
         />
       </View>
 

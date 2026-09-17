@@ -392,3 +392,74 @@ export async function buildRoadmap(
 
   return drafts.length;
 }
+
+// ------------------------------------------------------------- progression
+
+/**
+ * How many missions a module holds before it closes.
+ *
+ * A module is a situation — "at a hotel", "renting a flat", "buying
+ * groceries" — and a situation is worth a run of lessons, not one. Twenty is
+ * the product decision of 2026-09-08 (docs/onboarding-v2.md §6 "Статусы":
+ * «модуль закрывается, когда закрыты его уроки»); this constant is the whole
+ * of that rule, because nothing else in the codebase moves a module's status
+ * after `buildRoadmap` sets the opening one.
+ */
+const MISSIONS_PER_MODULE = 20;
+
+/**
+ * Closes the open module when its missions are done and opens the next one.
+ *
+ * Until this existed the route was built once and then frozen: `buildRoadmap`
+ * marked module 0 `in_progress` and no other code ever wrote `status` again.
+ * Every mission a learner ever generated was therefore stamped with the first
+ * module for the life of the goal — the binding worked and the map did not
+ * move, which is the same as having no map.
+ *
+ * Called after a mission completes. Returns the module that is open when it
+ * finishes, so the caller can log a transition rather than infer one.
+ */
+export async function advanceRoadmap(
+  admin: SupabaseClient,
+  goalId: string,
+): Promise<{ closed: string; opened: string | null } | null> {
+  const { data: open } = await admin
+    .from("roadmap_modules")
+    .select("id, position")
+    .eq("goal_id", goalId)
+    .eq("status", "in_progress")
+    .order("position", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  if (!open) return null;
+
+  // Completed missions carrying this module's id — `head: true` so the count
+  // comes back without the rows, which is all that is being asked.
+  const { count } = await admin
+    .from("missions")
+    .select("id", { count: "exact", head: true })
+    .eq("roadmap_module_id", open.id)
+    .eq("status", "completed");
+  if ((count ?? 0) < MISSIONS_PER_MODULE) return null;
+
+  await admin.from("roadmap_modules").update({ status: "completed" }).eq("id", open.id);
+
+  // The next two modules by position: one becomes the open module, the one
+  // after it becomes visible as what is coming (§6 "Статусы": exactly one
+  // `in_progress`, the next `available`, the rest `locked`).
+  const { data: upcoming } = await admin
+    .from("roadmap_modules")
+    .select("id, position")
+    .eq("goal_id", goalId)
+    .gt("position", open.position as number)
+    .order("position", { ascending: true })
+    .limit(2);
+
+  const next = (upcoming ?? [])[0] as { id: string } | undefined;
+  const after = (upcoming ?? [])[1] as { id: string } | undefined;
+
+  if (next) await admin.from("roadmap_modules").update({ status: "in_progress" }).eq("id", next.id);
+  if (after) await admin.from("roadmap_modules").update({ status: "available" }).eq("id", after.id);
+
+  return { closed: open.id as string, opened: next?.id ?? null };
+}

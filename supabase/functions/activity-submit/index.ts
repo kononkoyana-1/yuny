@@ -9,6 +9,7 @@
  */
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { evaluateResponse } from "../_shared/feedback.ts";
+import { advanceRoadmap } from "../_shared/roadmap.ts";
 import type { ActivityType } from "../_shared/activity.ts";
 import {
   clamp01,
@@ -171,6 +172,25 @@ async function processSubmission(
     .neq("status", "completed");
   if ((remaining ?? []).length === 0) {
     await admin.from("missions").update({ status: "completed" }).eq("id", mission.id);
+
+    // A finished mission is the only thing that moves the roadmap, so the
+    // check belongs here rather than in `mission-generate`: asking at
+    // generation time would leave the map a mission behind, showing the
+    // learner a module they have already finished. Guarded because a failure
+    // to advance the map must not cost the learner the answer they just
+    // submitted — the grading above is already written.
+    try {
+      const moved = await advanceRoadmap(admin, mission.goal_id);
+      if (moved) {
+        await logEvent(admin, userId, "roadmap_module_completed", {
+          goal_id: mission.goal_id,
+          closed_module_id: moved.closed,
+          opened_module_id: moved.opened,
+        });
+      }
+    } catch (error) {
+      console.error("roadmap_advance_failed", mission.goal_id, error);
+    }
   }
 
   // ---- mascot: growth is earned by evidence, not by taps (TZ.md §11).

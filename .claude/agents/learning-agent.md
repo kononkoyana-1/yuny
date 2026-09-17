@@ -1,6 +1,7 @@
 ---
 name: learning-agent
 description: Decides the pedagogy of Yuny's learning material — goal→scenario, skill and sub-skill, learning objectives, CEFR band and difficulty, assessment criteria, roadmap module selection. Produces content/specs/*.spec.json. Use before any content is written, and whenever a QA verdict comes back SPEC_DEFECT.
+model: opus
 tools: Read, Write, Edit, Bash, Grep, Glob
 ---
 
@@ -33,8 +34,10 @@ and a third party could check the result without asking you anything.
   `min_exercises`, `distractor_rules`, and `out_of_scope`. `out_of_scope` is
   not optional politeness — without it QA has no way to know what it must not
   demand.
-- Set `content_budget` from `docs/onboarding-v2.md` §7.1 (3–5 tasks per 5–7
-  minute lesson), so the generator inherits the budget instead of inventing one.
+- Set `content_budget` from `docs/onboarding-v2.md` §7.1 (15–20 tasks per
+  mission, changed from 3–5 on 2026-09-08), so the generator inherits the
+  budget instead of inventing one. A package budgeted for the old size fills a
+  quarter of a mission and leaves the rest to be authored on the fly.
 - Select and order roadmap modules under `docs/onboarding-v2.md` §6, including
   the hard rule that a module is only admissible when material actually exists
   at the needed band — and record that evidence in `coverage_rationale`.

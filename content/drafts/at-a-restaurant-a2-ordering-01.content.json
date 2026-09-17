@@ -1,0 +1,477 @@
+{
+  "spec_id": "at-a-restaurant-a2-ordering-01",
+  "spec_version": 1,
+  "content_unit": {
+    "external_id": "authored-ordering-dinner-for-two",
+    "kind": "chapter",
+    "title": "Ordering dinner for two",
+    "position": 0,
+    "cefr_level": "A2",
+    "topics": [
+      "at-a-restaurant"
+    ],
+    "parsed_blocks": [
+      {
+        "type": "paragraph",
+        "text": "On Friday Maya wants to eat out with her friend Tom. In the morning she calls a small restaurant near her house. She asks them to book a table for two people at seven."
+      },
+      {
+        "type": "paragraph",
+        "text": "They arrive on time. A waiter meets them at the door and shows them a table by the window. He gives them the menu and a glass of water."
+      },
+      {
+        "type": "paragraph",
+        "text": "Maya opens the menu and reads it slowly. The starters are on the first page: small dishes for the beginning. Then come the main courses, the big dishes in the middle. The desserts are at the end."
+      },
+      {
+        "type": "paragraph",
+        "text": "Next to the chicken she sees rice and salad. Rice is not a whole meal. It is a side dish, and it comes with the main course."
+      },
+      {
+        "type": "paragraph",
+        "text": "At the top of the menu there is one dish in a box. It is the daily special, and the cook makes it only today."
+      },
+      {
+        "type": "paragraph",
+        "text": "Tom does not know what to choose. He asks the waiter to recommend something. The waiter says the soup is very good today. Tom is allergic to fish, so he asks about the soup first. There is no fish in it."
+      },
+      {
+        "type": "paragraph",
+        "text": "Now they are ready to order. Maya says she would like the daily special. Tom orders the soup and then the chicken with rice. The waiter writes the order down and takes the menu away."
+      },
+      {
+        "type": "paragraph",
+        "text": "The food comes ten minutes later. They eat slowly and talk about their week. For dessert they both take ice cream."
+      },
+      {
+        "type": "paragraph",
+        "text": "At the end of the meal Maya asks the waiter for the bill. He brings it on a small plate. It is forty euros for the two of them. They split the bill, so each friend pays twenty euros."
+      },
+      {
+        "type": "paragraph",
+        "text": "Tom has no cash in his pocket today. He asks if he can pay by card. Maya pays her half in cash. Before they leave, she puts a small tip on the table for the kind waiter."
+      }
+    ],
+    "word_count": 325
+  },
+  "knowledge_items": [
+    {
+      "objective_id": "LO-1",
+      "kind": "vocabulary",
+      "dedup_key": "menu",
+      "origin": "ai_generated",
+      "data": {
+        "word": "menu",
+        "definition": "the list of all the food and drinks that a restaurant can give you",
+        "example": "The waiter gives them the menu and a glass of water."
+      }
+    },
+    {
+      "objective_id": "LO-1",
+      "kind": "vocabulary",
+      "dedup_key": "starter",
+      "origin": "ai_generated",
+      "data": {
+        "word": "starter",
+        "definition": "the small dish that you eat before the main course; in American English people often say appetizer",
+        "example": "Tom takes the soup as his starter."
+      }
+    },
+    {
+      "objective_id": "LO-1",
+      "kind": "vocabulary",
+      "dedup_key": "main course",
+      "origin": "ai_generated",
+      "data": {
+        "word": "main course",
+        "definition": "the big dish in the middle of a meal, after the starter and before the dessert",
+        "example": "Tom's main course is chicken with rice."
+      }
+    },
+    {
+      "objective_id": "LO-1",
+      "kind": "vocabulary",
+      "dedup_key": "dessert",
+      "origin": "ai_generated",
+      "data": {
+        "word": "dessert",
+        "definition": "the sweet dish at the end of a meal, like ice cream or fruit",
+        "example": "For dessert they both take ice cream."
+      }
+    },
+    {
+      "objective_id": "LO-1",
+      "kind": "vocabulary",
+      "dedup_key": "side dish",
+      "origin": "ai_generated",
+      "data": {
+        "word": "side dish",
+        "definition": "a small plate of food, like rice or salad, that comes with the main course; people often say just a side",
+        "example": "The rice next to the chicken is a side dish."
+      }
+    },
+    {
+      "objective_id": "LO-1",
+      "kind": "vocabulary",
+      "dedup_key": "daily special",
+      "origin": "ai_generated",
+      "data": {
+        "word": "daily special",
+        "definition": "the dish that a restaurant cooks for one day only, so it is different tomorrow",
+        "example": "Maya says she would like the daily special."
+      }
+    },
+    {
+      "objective_id": "LO-2",
+      "kind": "vocabulary",
+      "dedup_key": "book a table",
+      "origin": "ai_generated",
+      "data": {
+        "word": "book a table",
+        "definition": "to call or write to a restaurant and ask them to keep a table free for you",
+        "example": "In the morning she calls the restaurant to book a table."
+      }
+    },
+    {
+      "objective_id": "LO-2",
+      "kind": "vocabulary",
+      "dedup_key": "waiter",
+      "origin": "ai_generated",
+      "data": {
+        "word": "waiter",
+        "definition": "the person in a restaurant who takes your order and brings your food to the table; in American English people often say server",
+        "example": "A waiter meets them at the door."
+      }
+    },
+    {
+      "objective_id": "LO-2",
+      "kind": "vocabulary",
+      "dedup_key": "order",
+      "origin": "ai_generated",
+      "data": {
+        "word": "order",
+        "definition": "to tell the waiter what food or drink you want; also the food you asked for",
+        "example": "Tom orders the soup and then the chicken with rice."
+      }
+    },
+    {
+      "objective_id": "LO-2",
+      "kind": "vocabulary",
+      "dedup_key": "recommend",
+      "origin": "ai_generated",
+      "data": {
+        "word": "recommend",
+        "definition": "to tell someone which thing you think is good, so they can choose it",
+        "example": "He asks the waiter to recommend something."
+      }
+    },
+    {
+      "objective_id": "LO-2",
+      "kind": "vocabulary",
+      "dedup_key": "allergic",
+      "origin": "ai_generated",
+      "data": {
+        "word": "allergic",
+        "definition": "made ill by one kind of food, so you must not eat it",
+        "example": "Tom is allergic to fish, so he asks about the soup first."
+      }
+    },
+    {
+      "objective_id": "LO-3",
+      "kind": "vocabulary",
+      "dedup_key": "bill",
+      "origin": "ai_generated",
+      "data": {
+        "word": "bill",
+        "definition": "the paper that shows how much you must pay for your meal; in American English people often say check",
+        "example": "At the end of the meal Maya asks the waiter for the bill."
+      }
+    },
+    {
+      "objective_id": "LO-3",
+      "kind": "vocabulary",
+      "dedup_key": "tip",
+      "origin": "ai_generated",
+      "data": {
+        "word": "tip",
+        "definition": "extra money that you leave for the waiter because the service is good",
+        "example": "She puts a small tip on the table."
+      }
+    },
+    {
+      "objective_id": "LO-3",
+      "kind": "vocabulary",
+      "dedup_key": "split the bill",
+      "origin": "ai_generated",
+      "data": {
+        "word": "split the bill",
+        "definition": "to pay for a meal together, with each person paying part of it",
+        "example": "They split the bill, so each friend pays twenty euros."
+      }
+    },
+    {
+      "objective_id": "LO-3",
+      "kind": "vocabulary",
+      "dedup_key": "cash",
+      "origin": "ai_generated",
+      "data": {
+        "word": "cash",
+        "definition": "paper money and coins that you can hold in your hand, not a card",
+        "example": "Maya pays her half in cash."
+      }
+    },
+    {
+      "objective_id": "LO-3",
+      "kind": "vocabulary",
+      "dedup_key": "pay by card",
+      "origin": "ai_generated",
+      "data": {
+        "word": "pay by card",
+        "definition": "to pay with a bank card instead of paper money and coins",
+        "example": "Tom has no cash, so he asks if he can pay by card."
+      }
+    }
+  ],
+  "exercises": [
+    {
+      "objective_id": "LO-1",
+      "knowledge_dedup_key": "menu",
+      "type": "multiple_choice",
+      "payload": {
+        "prompt": "The waiter brings a long list of all the food and drinks in the restaurant. What is this list?",
+        "options": [
+          "the bill",
+          "the daily special",
+          "the menu",
+          "the side dish"
+        ],
+        "correct_index": 2
+      }
+    },
+    {
+      "objective_id": "LO-1",
+      "knowledge_dedup_key": "starter",
+      "type": "multiple_choice",
+      "payload": {
+        "prompt": "Tom eats a small dish of soup before his big dish of chicken. Which part of the meal is the soup?",
+        "options": [
+          "the dessert",
+          "the main course",
+          "the side dish",
+          "the starter"
+        ],
+        "correct_index": 3
+      }
+    },
+    {
+      "objective_id": "LO-1",
+      "knowledge_dedup_key": "main course",
+      "type": "multiple_choice",
+      "payload": {
+        "prompt": "Tom eats his soup first, and then the waiter brings him chicken with rice. Which part of the meal is the chicken?",
+        "options": [
+          "the side dish",
+          "the main course",
+          "the dessert",
+          "the daily special"
+        ],
+        "correct_index": 1
+      }
+    },
+    {
+      "objective_id": "LO-1",
+      "knowledge_dedup_key": "dessert",
+      "type": "fill_blank",
+      "payload": {
+        "sentence_with_blank": "Maya and Tom finish with ice cream, so the ice cream is their ___.",
+        "accepted_answers": [
+          "dessert"
+        ]
+      }
+    },
+    {
+      "objective_id": "LO-1",
+      "knowledge_dedup_key": "side dish",
+      "type": "fill_blank",
+      "payload": {
+        "sentence_with_blank": "Tom's chicken comes with a small plate of rice, so the rice is a ___.",
+        "accepted_answers": [
+          "side dish",
+          "side"
+        ]
+      }
+    },
+    {
+      "objective_id": "LO-1",
+      "knowledge_dedup_key": "daily special",
+      "type": "fill_blank",
+      "payload": {
+        "sentence_with_blank": "This dish is on the menu only today, so the cook calls it the ___.",
+        "accepted_answers": [
+          "daily special",
+          "special"
+        ]
+      }
+    },
+    {
+      "objective_id": "LO-2",
+      "knowledge_dedup_key": "book a table",
+      "type": "multiple_choice",
+      "payload": {
+        "prompt": "Maya called the restaurant and asked them to keep two places for seven o'clock. What did she do?",
+        "options": [
+          "She ordered the food.",
+          "She paid the bill in cash.",
+          "She booked a table.",
+          "She asked the waiter to recommend a dish."
+        ],
+        "correct_index": 2
+      }
+    },
+    {
+      "objective_id": "LO-2",
+      "knowledge_dedup_key": "waiter",
+      "type": "fill_blank",
+      "payload": {
+        "sentence_with_blank": "A young man brings the menu and takes their order, so he is their ___.",
+        "accepted_answers": [
+          "waiter",
+          "server"
+        ]
+      }
+    },
+    {
+      "objective_id": "LO-2",
+      "knowledge_dedup_key": "order",
+      "type": "multiple_choice",
+      "payload": {
+        "prompt": "Maya told the waiter that she wanted the daily special. What did she do?",
+        "options": [
+          "She booked a table.",
+          "She asked for the bill.",
+          "She left a tip for the waiter.",
+          "She ordered her food."
+        ],
+        "correct_index": 3
+      }
+    },
+    {
+      "objective_id": "LO-2",
+      "knowledge_dedup_key": "order",
+      "type": "fill_blank",
+      "payload": {
+        "sentence_with_blank": "The waiter writes in his little book and takes the ___ to the kitchen.",
+        "accepted_answers": [
+          "order"
+        ]
+      }
+    },
+    {
+      "objective_id": "LO-2",
+      "knowledge_dedup_key": "recommend",
+      "type": "multiple_choice",
+      "payload": {
+        "prompt": "Tom does not know this restaurant, so he asks the waiter which dish is best. What does Tom want the waiter to do?",
+        "options": [
+          "to book a table for them",
+          "to recommend a dish",
+          "to bring the bill",
+          "to split the bill with him"
+        ],
+        "correct_index": 1
+      }
+    },
+    {
+      "objective_id": "LO-2",
+      "knowledge_dedup_key": "allergic",
+      "type": "fill_blank",
+      "payload": {
+        "sentence_with_blank": "Fish makes Tom ill, so he tells the waiter that he is ___ to fish.",
+        "accepted_answers": [
+          "allergic"
+        ]
+      }
+    },
+    {
+      "objective_id": "LO-3",
+      "knowledge_dedup_key": "bill",
+      "type": "multiple_choice",
+      "payload": {
+        "prompt": "After dinner Maya asks the waiter for the paper with the price of the meal. What does she ask for?",
+        "options": [
+          "the menu",
+          "the daily special",
+          "the tip",
+          "the bill"
+        ],
+        "correct_index": 3
+      }
+    },
+    {
+      "objective_id": "LO-3",
+      "knowledge_dedup_key": "tip",
+      "type": "fill_blank",
+      "payload": {
+        "sentence_with_blank": "The waiter smiles, because Maya leaves a good ___ on the table for him.",
+        "accepted_answers": [
+          "tip"
+        ]
+      }
+    },
+    {
+      "objective_id": "LO-3",
+      "knowledge_dedup_key": "tip",
+      "type": "multiple_choice",
+      "payload": {
+        "prompt": "Maya pays her twenty euros for the meal. She puts two more euros on the plate for the waiter. What are the two extra euros?",
+        "options": [
+          "the bill",
+          "a tip",
+          "the daily special",
+          "a side dish"
+        ],
+        "correct_index": 1
+      }
+    },
+    {
+      "objective_id": "LO-3",
+      "knowledge_dedup_key": "split the bill",
+      "type": "multiple_choice",
+      "payload": {
+        "prompt": "The bill is forty euros, and each friend pays twenty euros of it. What do the friends do?",
+        "options": [
+          "They split the bill.",
+          "They book a table for two.",
+          "They order a side dish.",
+          "They ask the waiter to recommend a dish."
+        ],
+        "correct_index": 0
+      }
+    },
+    {
+      "objective_id": "LO-3",
+      "knowledge_dedup_key": "cash",
+      "type": "fill_blank",
+      "payload": {
+        "sentence_with_blank": "Maya does not want to use her card, so she pays her half in ___.",
+        "accepted_answers": [
+          "cash"
+        ]
+      }
+    },
+    {
+      "objective_id": "LO-3",
+      "knowledge_dedup_key": "pay by card",
+      "type": "fill_blank",
+      "payload": {
+        "sentence_with_blank": "Tom has no paper money and no coins, so he pays by ___.",
+        "accepted_answers": [
+          "card",
+          "bank card",
+          "credit card",
+          "debit card"
+        ]
+      }
+    }
+  ]
+}

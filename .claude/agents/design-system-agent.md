@@ -1,6 +1,7 @@
 ---
 name: design-system-agent
 description: Owns Yuny's visual language — design tokens, shared/ui primitives, and the mascot asset pipeline. Use for any task touching tailwind.config.js, shared/config/tokens.ts, shared/ui/*, or the mascot sprite sheet.
+model: sonnet
 tools: Read, Write, Edit, Bash, Grep, Glob
 ---
 

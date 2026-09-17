@@ -1,85 +1,54 @@
-# **ТЗ — Yuny. Кросс-платформенное приложение (iOS · Android · Web)**
+# **ТЗ — Yuny. Китайский по своим материалам (iOS · Android · Web)**
 
-> **Статус:** финальная версия для передачи AI-агенту разработки.
-> **Заменяет:** `promt.md` и `techical_core.md` (обе версии описывали native iOS / SwiftUI).
-> **Источники:** `docs/PRD V2.md`, `docs/MVP Product Specification.md`, `promt.md`, `techical_core.md`, `assets/image/mascot.png`.
-> **Приоритет при конфликте:** этот документ → `MVP Product Specification.md` → `PRD V2.md` → `promt.md`.
+> Редакция от 2026-09-17. Полностью заменяет предыдущую редакцию — она осталась в истории git (последний коммит со старым ТЗ — `b1b30f0`).
 
 ---
 
-## **0. Что изменилось относительно предыдущей версии**
+## **0. Что изменилось относительно предыдущей редакции**
 
-| Было | Стало | Причина |
-| ----- | ----- | ----- |
-| Native iOS: Swift / SwiftUI / Xcode | Expo (React Native) + React Native Web + TypeScript | Требование: iOS + Android + Web из одной кодовой базы, быстрая упаковка |
-| Backend «не создавать, пока не нужен» | TypeScript + Supabase, определён с первого дня как контракт | Backend-стек зафиксирован заказчиком |
-| Mock data навсегда локально | Mock-first через Repository-интерфейс, переключаемый на Supabase одним флагом | Сохраняет скорость frontend-разработки, убирает переписывание |
-| Tab Bar: Home / Learn / Goals / Profile | **Home / Goal / Library / Profile** | `MVP-3.01`; «Learn» отклонён — противоречит принципу *one best next action* |
-| Маскот — placeholder (SF Symbols / шейпы) | Реальный ассет `assets/image/mascot.png`, 4 mood-состояния | Ассет получен |
-| 31 экран в промте / 19 в MVP Spec | **19 screen states**, остальное — состояния внутри них | `MVP-4.01`, `MVP-4.12` |
+Продукт сокращён до одного цикла: **пользователь загружает свой учебный материал → ИИ делает по нему задания → ИИ их проверяет.**
 
-Продуктовые решения (`MVP-3.xx`, `MVP-4.xx`, `NAV-28.xx`, `IA-27.xx`, `TECH-42.xx`) **не меняются**. Меняется только исполнение.
+Убрано полностью: постановка цели и её анализ, тест на определение уровня, дорожная карта модулей, адаптивная лестница CEFR, подбор открытых учебников и контентный пайплайн из трёх агентов, миссии, рекомендации, навыки и Evidence, маскот как механика роста.
+
+Осталось: авторизация, дизайн-система и примитивы `shared/ui`, шлюз к Gemini, таблица `jobs` с Realtime, Storage под файлы пользователя.
+
+Появилось: словарь БКРС в базе, список HSK 2.0, модули из загруженных материалов, четыре типа заданий, проверка ответов ИИ и проверка карточек по словарю, свой словарь пользователя с папками.
 
 ---
 
 ## **1. Продукт за 60 секунд**
 
-Yuny — **Learning Operating System** для изучения языка.
+Приложение для тех, кто учит **китайский язык**, говоря по-русски. У человека есть свой материал — страница учебника, распечатка с урока, конспект, домашнее задание. Он фотографирует или загружает его, и приложение превращает материал в четыре задания: чтение с утверждениями, развёрнутые ответы на вопросы, письменный перевод и карточки со словами. Ответы проверяет ИИ и объясняет ошибки; карточки проверяются по словарю.
 
-Пользователь называет жизненную цель («получить работу в международной компании»), дедлайн и сколько времени реально готов уделять. Система превращает это в **языковые требования**, оценивает текущий уровень, строит стратегию и на каждом шаге выдаёт **одно следующее наиболее полезное действие** с объяснением, почему именно оно.
+Приложение **не учит по своей программе**. Программа — это то, что человек принёс. Приложение делает из неё упражнения и даёт обратную связь.
 
-```
-Goal + Deadline + Available Time
-   ↓
-AI Feasibility Analysis → Goal Adjustment
-   ↓
-Initial Assessment → Learning State
-   ↓
-Learning Strategy
-   ↓
-Dashboard + Mascot
-   ↓
-Recommendation → Mission → Activities
-   ↓
-Evidence → Learning State Update → Mascot Growth
-   ↓
-Next Recommendation
-```
-
-**Ключевой продуктовый принцип.** Приложение не ставит пользователю жизненные цели. Оно развивает языковые навыки, необходимые для их достижения.
-
-> ❌ «Снять квартиру»
-> ✅ «Развить языковые навыки, необходимые для поиска и аренды жилья»
-
-Язык остаётся центральным объектом продукта.
-
-**Это не** курс, **не** чат-бот, **не** тамагочи с языком, **не** каталог уроков.
+**Языковая пара зафиксирована:** изучаемый — китайский, родной и язык интерфейса — русский.
 
 ---
 
-## **2. Технологический стек — зафиксирован**
+## **2. Технологический стек**
+
+Наследуется из предыдущей редакции без изменений.
 
 ### **Frontend**
 
 | Слой | Технология |
 | ----- | ----- |
 | Язык | TypeScript, `strict: true` |
-| Платформа | Expo (последний стабильный SDK) + React Native + React Native Web |
+| Платформа | Expo + React Native + React Native Web |
 | Роутинг | `expo-router` (file-based, typed routes) |
 | Server state | TanStack Query |
 | Client state | Zustand — только эфемерный UI-стейт |
 | Стилизация | NativeWind v4 |
 | Формы | react-hook-form + zod resolver |
 | Анимация | react-native-reanimated + moti |
-| Аудио | `expo-audio` + web-адаптер на `MediaRecorder` |
-| Медиа/файлы | `expo-document-picker`, `expo-image-picker`, `expo-camera`, `expo-file-system` |
-| Push | `expo-notifications` |
+| Медиа/файлы | `expo-document-picker`, `expo-image-picker`, `expo-camera`, `expo-image-manipulator`, `expo-file-system` |
 | Хранилище | `expo-secure-store` (native), MMKV/AsyncStorage (кэш) |
 | i18n | i18next + `expo-localization` |
-| Ошибки | `@sentry/react-native` |
-| Аналитика | PostHog |
-| Тесты | Jest + React Native Testing Library · Maestro (E2E) · Playwright (web) |
+| Тесты | Jest + RNTL · Maestro (E2E) · Playwright (web) |
 | Сборка | EAS Build / Submit / Update |
+
+Аудио, push-уведомления и PostHog из стека убраны — в сокращённом продукте им нечего обслуживать.
 
 ### **Backend**
 
@@ -88,772 +57,386 @@ Next Recommendation
 | Платформа | Supabase |
 | БД | Postgres + Row Level Security |
 | Аутентификация | Supabase Auth |
-| Файлы | Supabase Storage (buckets `materials`, `recordings`) |
+| Файлы | Supabase Storage, bucket `materials` |
 | Серверная логика | Supabase Edge Functions (Deno, TypeScript) |
 | Асинхронные статусы | Supabase Realtime (таблица `jobs`) |
+| ИИ | Google Gemini через `_shared/shared.ts::aiJson()`, модель `gemini-3.5-flash` |
 | Типы | `supabase gen types typescript` → `packages/shared/database.types.ts` |
 
-### **Инструменты**
-
-pnpm workspaces + Turborepo · ESLint + Prettier · `tsc --noEmit` в pre-commit · GitHub Actions.
-
-**Перед установкой пакетов проверь актуальные версии.** Не полагайся на версии из памяти. Ставь через `npx expo install`, а не `npm install`, чтобы версии совпадали с SDK.
-
-**Запрещено без явного разрешения:** UI-киты (NativeBase, Tamagui, gluestack, RN Paper), state-менеджеры сверх Zustand, ORM поверх Supabase, навигационные библиотеки помимо expo-router, любые пакеты, ломающие web-таргет.
+**Запрещено без явного разрешения:** UI-киты, state-менеджеры сверх Zustand, ORM поверх Supabase, навигационные библиотеки помимо expo-router, любые пакеты, ломающие web-таргет.
 
 ---
 
-## **3. Архитектура системы**
+## **3. Три правила, которые нельзя нарушать**
 
-```
-┌──────────────────────────────────────────────┐
-│                 CLIENT                        │
-│        Expo · iOS / Android / Web             │
-│                                               │
-│  UI · navigation · local UI state             │
-│  захват ввода и медиа · рендер рекомендаций   │
-└───────────────────┬──────────────────────────┘
-                    │  supabase-js
-        ┌───────────┴────────────┐
-        ↓                        ↓
-┌────────────────┐   ┌──────────────────────────┐
-│ Postgres + RLS │   │     Edge Functions        │
-│                │   │   = LOS Core + AI Gateway │
-│ SELECT-only    │   │                           │
-│ для клиента    │   │ Goal · Learning State     │
-│                │◄──┤ Evidence · Decision       │
-│ Realtime: jobs │   │ Strategy · Mission        │
-└────────────────┘   │ Recommendation            │
-                     └───────────┬──────────────┘
-                                 ↓
-                     ┌──────────────────────────┐
-                     │      AI Providers         │
-                     │  LLM · Speech · Embedding │
-                     └──────────────────────────┘
-```
-
-### **Три правила, которые нельзя нарушать**
-
-**Правило 1 — `TECH-42.03`. Клиент не принимает образовательных решений.**
-
-Клиент **никогда** не вычисляет локально:
-
-* Readiness и прогресс к цели;
-* Learning State и уровни навыков;
-* приоритет навыков («speaking — твой главный пробел»);
-* выбор следующей Activity или Mission;
-* оценку ответа пользователя (правильно / неправильно / насколько);
-* стадию и настроение Mascot;
-* feasibility и любые прогнозы по дедлайну.
-
-Всё это приходит с backend готовым. Если для экрана не хватает поля — **проси добавить поле в контракт**, не считай его на клиенте.
-
-**Правило 2 — `PRD гл. 21 §32`. Никаких прямых вызовов AI-провайдеров с клиента.**
-
-Отклонено явно: «создаёт проблемы безопасности, контроля и архитектурной связности». Ключи AI-провайдеров живут только в секретах Edge Functions. В клиентском бандле их нет и быть не может.
-
-**Правило 3 — записи только через Edge Functions.**
-
-RLS-политика для клиента: **SELECT собственных строк во всех доменных таблицах, INSERT/UPDATE — запрещён**. Исключения: `profiles` (свой профиль) и загрузка файлов в собственные папки Storage.
-
-Любое изменение домена (создать Goal, отправить ответ, обновить Learning State) идёт через Edge Function с service role. Это техническое воплощение Правила 1 — клиент физически не может испортить образовательное состояние.
+1. **Учебное состояние считает сервер.** Прогресс модуля, процент правильности, какие слова изучены, какой уровень HSK закрыт — всё это вычисляют Edge Functions. Клиент отображает то, что пришло.
+2. **Клиент не ходит к Gemini.** Ключ живёт только в секретах Edge Functions. У клиента нет ни ключа, ни промптов.
+3. **ИИ отвечает только за содержание, не за структуру.** Сколько заданий в уроке, сколько слов в пачке, когда урок пройден, что показывать на главной — решает код. ИИ пишет текст, вопросы и комментарий к ответу.
 
 ---
 
-## **4. Структура монорепозитория**
+## **4. Уровни HSK**
 
-```
-yuny/
-├── apps/
-│   └── mobile/                    # Expo — iOS · Android · Web
-│       ├── app/                   # expo-router: только композиция
-│       │   ├── (onboarding)/
-│       │   │   ├── welcome.tsx
-│       │   │   ├── language.tsx
-│       │   │   ├── goal-setup.tsx
-│       │   │   ├── goal-analysis.tsx
-│       │   │   ├── goal-confirm.tsx
-│       │   │   ├── assessment.tsx
-│       │   │   ├── assessment-result.tsx
-│       │   │   └── strategy.tsx
-│       │   ├── (tabs)/
-│       │   │   ├── _layout.tsx    # Home · Goal · Library · Profile
-│       │   │   ├── index.tsx      # Home
-│       │   │   ├── goal.tsx
-│       │   │   ├── library.tsx
-│       │   │   └── profile.tsx
-│       │   ├── mission/[id]/
-│       │   │   ├── index.tsx      # Mission Overview
-│       │   │   ├── activity.tsx   # Activity flow — все состояния здесь
-│       │   │   └── result.tsx     # Mission Result
-│       │   ├── material/add.tsx   # modal
-│       │   ├── settings.tsx
-│       │   ├── _layout.tsx
-│       │   └── +not-found.tsx
-│       ├── features/
-│       │   ├── onboarding/  goal/  assessment/
-│       │   ├── mission/  library/  profile/
-│       │   ├── mascot/
-│       │   └── activity/
-│       │       ├── renderers/     # один файл на тип Activity
-│       │       ├── registry.ts
-│       │       ├── ActivityShell.tsx
-│       │       └── machine.ts
-│       ├── shared/
-│       │   ├── repositories/      # интерфейсы + mock + supabase
-│       │   ├── api/               # supabase client, TanStack Query hooks
-│       │   ├── ui/                # примитивы
-│       │   ├── platform/          # .ios.ts / .android.ts / .web.ts
-│       │   ├── i18n/
-│       │   └── config/            # токены дизайна, env
-│       └── assets/
-│           └── mascot/            # нарезанные спрайты
-│
-├── packages/
-│   └── shared/                    # ЕДИНЫЙ контракт клиента и backend
-│       ├── schemas/               # Zod-схемы домена
-│       ├── types/                 # выводимые типы
-│       └── database.types.ts      # сгенерировано supabase gen types
-│
-├── supabase/
-│   ├── migrations/                # схема БД
-│   ├── functions/
-│   │   ├── _shared/
-│   │   │   ├── ai/                # AI Gateway: generate/assess/transcribe/embed
-│   │   │   └── los/               # LOS Core: decision, strategy, state
-│   │   ├── goal-analyze/
-│   │   ├── goal-confirm/
-│   │   ├── assessment-next/
-│   │   ├── assessment-complete/
-│   │   ├── recommendation-get/
-│   │   ├── mission-generate/
-│   │   ├── activity-submit/
-│   │   └── material-ingest/
-│   └── seed.sql
-│
-├── assets/image/mascot.png        # исходный спрайт-лист
-├── .maestro/                      # E2E-флоу
-└── docs/
-```
+Используется список **HSK 2.0**: 6 уровней, 5000 слов, 2663 иероглифа. Источник — `docs/hsk-words-visualized.pdf`, разобран и проверен: 150 / 150 / 300 / 600 / 1300 / 2500 слов по уровням.
 
-### **Правила границ**
+Уровень спрашивается **один раз при первом входе** (HSK 1–6) и хранится в профиле; менять его можно в настройках.
 
-* `app/` импортирует только из `features/` и `shared/ui`, бизнес-логики не содержит;
-* `features/*` не импортируют друг друга напрямую — только через `packages/shared` и `apps/mobile/shared`;
-* `shared/*` не импортирует из `features/` и `app/`;
-* **`Platform.OS` запрещён в `features/` и `app/`** — вся платформенная специфика в `shared/platform/`;
-* `packages/shared` не импортирует ничего из Expo или Deno — он общий для обеих сторон.
+Где уровень применяется:
+
+- **Ограничивает сложность генерации.** Сгенерированный текст и вопросы держатся в пределах уровня пользователя плюс слова из его материала. Это жёсткое требование промпта, а не пожелание.
+- **Помечает слова служебно.** У каждого слова в базе проставлен уровень HSK, если слово есть в списке. Метка нужна серверу для генерации и для прогресса.
+- **Даёт прогресс по уровням.** В настройках — сколько слов уровня встречено в материалах и пройдено в карточках.
+
+**В карточках и в словаре уровень не показывается.** Это решение п. 4 опроса; метка остаётся внутренней.
 
 ---
 
-## **5. Модель данных (Supabase)**
+## **5. Сквозной сценарий**
 
-Все таблицы: `id uuid pk`, `user_id uuid → auth.users`, `created_at timestamptz`, RLS включён.
-
-| Таблица | Ключевые поля | Права клиента |
-| ----- | ----- | ----- |
-| `profiles` | `native_language`, `ui_language`, `display_name` | SELECT + UPDATE своего |
-| `goals` | `raw_input`, `title`, `target_language`, `deadline`, `daily_minutes`, `status` (draft/active/paused/completed), `readiness_label`, `readiness_reason` | SELECT |
-| `goal_outcomes` | `goal_id`, `label`, `description`, `position` | SELECT |
-| `learning_states` | `goal_id`, `updated_at` | SELECT |
-| `skill_states` | `learning_state_id`, `skill` (speaking/listening/vocabulary/grammar/reading/writing), `level`, `confidence`, `trend` | SELECT |
-| `evidence` | `goal_id`, `activity_id`, `skill`, `strength`, `payload jsonb` | SELECT |
-| `missions` | `goal_id`, `title`, `purpose`, `why`, `primary_skill`, `estimated_minutes`, `status` | SELECT |
-| `activities` | `mission_id`, `type`, `payload jsonb`, `position`, `status` | SELECT |
-| `activity_responses` | `activity_id`, `payload jsonb`, `submitted_at` | — (через Edge Function) |
-| `feedback` | `activity_response_id`, `went_well`, `improve`, `example` | SELECT |
-| `recommendations` | `goal_id`, `mission_id`, `reason`, `skills_affected` | SELECT |
-| `materials` | `kind` (pdf/image/text/url), `storage_path`, `source_url`, `title`, `status` | SELECT |
-| `public_resources` | `title`, `source_url`, `description`, `skills[]`, `language` | SELECT (публичные) |
-| `mascot_states` | `stage` (1–5), `mood`, `growth_progress` | SELECT |
-| `jobs` | `kind`, `status` (queued/running/done/failed), `result jsonb`, `error_code` | SELECT + **Realtime** |
-| `events` | `name`, `payload jsonb` | — (`PRD гл. 42 §14`) |
-
-**Storage**
-
-* `materials/{user_id}/…` — PDF, изображения пользователя;
-* `recordings/{user_id}/{activity_id}.m4a` — записи Speaking.
-
-Обе корзины приватные, доступ по RLS-политике на `user_id`.
+1. Пользователь регистрируется, выбирает свой уровень HSK.
+2. Открывает **Загрузку**, кладёт от одного до трёх файлов — фото, PDF или DOCX.
+3. Файлы уходят на сервер, оттуда в Gemini с промптом разбора. Пользователь видит один экран ожидания.
+4. Из разбора собирается **модуль**: слова, грамматика и тема материала.
+5. Пользователь попадает на **Главную**, где модуль появился кружком. Нажимает — всплывает окно: сколько заданий в модуле и сколько пройдено.
+6. Нажимает дальше — попадает в урок, решает задание, отправляет ответ.
+7. Задания, кроме карточек, проверяет ИИ: процент правильности и комментарий по существу — что не так, какая ошибка, какая грамматика нарушена. Карточки проверяет словарь.
+8. Пройдя модуль, пользователь может пройти его заново, выбрать конкретный урок или сформировать новые задания по тому же материалу. Может загрузить новый материал — тогда появится новый модуль.
 
 ---
 
-## **6. Контракт клиент ↔ backend**
+## **6. Загрузка материала**
 
-### **Edge Functions**
+### **Форматы и лимиты**
 
-| Функция | Вход | Выход |
-| ----- | ----- | ----- |
-| `goal-analyze` | `raw_input`, `target_language`, `deadline`, `daily_minutes` | `job_id` → outcomes, required skills, feasibility, предложенные корректировки |
-| `goal-confirm` | `goal_draft` | активная `goal` + `learning_strategy` |
-| `assessment-next` | `goal_id`, предыдущие ответы | следующий вопрос или `{ done: true }` |
-| `assessment-complete` | `goal_id` | начальный `learning_state` + `skill_states` |
-| `recommendation-get` | `goal_id` | `recommendation` + `reason` + `mission_id` |
-| `mission-generate` | `goal_id` | `job_id` → `mission` + `activities` |
-| `activity-submit` | `activity_id`, `payload` \| `recording_path` | `feedback` + `evidence` + обновлённые `skill_states` + `mascot_state` |
-| `material-ingest` | `kind`, `storage_path` \| `url` | `job_id` → `material` в Library |
-
-### **Асинхронные операции**
-
-`goal-analyze`, `mission-generate`, `material-ingest`, `activity-submit` для Speaking — долгие. Они возвращают `job_id` немедленно (`TECH-42.09`).
-
-Клиент **не опрашивает** статус в цикле. Клиент подписывается через Supabase Realtime:
-
-```ts
-supabase.channel(`job:${jobId}`)
-  .on('postgres_changes',
-      { event: 'UPDATE', schema: 'public', table: 'jobs', filter: `id=eq.${jobId}` },
-      onJobUpdate)
-  .subscribe();
-```
-
-Пока job не завершён — показывается объясняющий loading state (§10). Обязателен таймаут и переход в Error/Recovery.
-
-### **Валидация**
-
-Каждый ответ Edge Function проходит `schema.parse()` Zod-схемой из `packages/shared` **до** попадания в стейт (`PRD гл. 42 §22–23`: AI может вернуть неполный или невалидный результат). Ошибка парсинга → Error/Recovery + лог в Sentry. Пользователь технической ошибки не видит никогда.
-
-### **Mock-first**
-
-Каждый домен описан интерфейсом репозитория с двумя реализациями:
-
-```ts
-// shared/repositories/goal.repository.ts
-export interface GoalRepository {
-  getActive(): Promise<Goal | null>;
-  analyze(input: GoalDraftInput): Promise<JobRef>;
-  confirm(draft: GoalDraft): Promise<Goal>;
-}
-```
-
-`MockGoalRepository` — реалистичные данные, без Lorem Ipsum. `SupabaseGoalRepository` — реальные вызовы. Выбор через `EXPO_PUBLIC_DATA_SOURCE=mock|supabase`.
-
-**Ни один компонент не обращается к Supabase напрямую** — только через репозиторий, обёрнутый в TanStack Query hook. Это позволяет разрабатывать и демонстрировать весь frontend до готовности backend и не переписать при переключении ни одного экрана.
-
----
-
-## **7. Навигация**
-
-Четыре таба (`MVP-3.01`, `FE-01.05`):
-
-```
-┌──────────────────────────────────┐
-│           Current Screen         │
-├──────────────────────────────────┤
-│  Home   Goal   Library   Profile │
-└──────────────────────────────────┘
-```
-
-* **Home** — главный экран и главный entry point (`MVP-3.02`).
-* **Mission — не таб.** Открывается из Home / Recommendation как full-screen flow с приглушённой навигацией (`MVP-3.03`, `NAV-28.07`, `PRD гл. 28 §20`). Пользователь не должен переключать табы посреди Mission.
-* **Progress — не таб.** Встроен в Home и Goal (`MVP Spec гл. 4 §38`).
-* **«Learn» — не таб.** Каталог уроков противоречит принципу *one best next action*. Home и есть Learn.
-* **Web:** тот же Tab Bar снизу при ширине ≤ 768px, Sidebar при > 768px (`PRD гл. 28 §17`). Роуты и структура идентичны.
-* **Во время onboarding основная навигация скрыта** (`PRD гл. 28 §19`) — пользователь не должен видеть четыре пустых раздела до создания первой Goal.
-* Возврат из Activity ведёт в Mission, а не на Home (`PRD гл. 28 §14`).
-
----
-
-## **8. Карта экранов — 19 screen states**
-
-Реализуй ровно эти. Не добавляй экраны без явного запроса (`MVP-4.01`).
-
-### **Onboarding**
-
-| # | Экран | Одна задача | Primary action | Маскот |
-| --- | --- | --- | --- | --- |
-| 01 | Welcome | Объяснить ценность | Get Started | ✅ large, `neutral` |
-| 02 | Target Language | Выбрать изучаемый язык | Continue | — |
-| 03 | Goal Setup | Свободный текст цели + Deadline + Available Time | Continue | — |
-| 04 | Goal Analysis | Показать, как система поняла цель; дать исправить | Continue | ✅ small, `thinking` |
-| 05 | Goal Confirmation | Подтвердить Goal / Deadline / Time / Outcomes | Looks right | — |
-| 06 | Initial Assessment | Короткий адаптивный ассессмент | (per-question submit) | — |
-| 07 | Assessment Result | Stronger / Needs Work / Priority | Continue | ✅ medium, `neutral` |
-| 08 | Learning Strategy | Путь + «план будет адаптироваться» | Start Learning | — |
-
-### **Main App**
-
-| # | Экран | Содержимое | Маскот |
-| --- | --- | --- | --- |
-| 09 | **Home** | Mascot · Active Goal + Deadline + Readiness · Today's Mission · «Why this?» · **[Start Mission]** | ✅ large, центральный |
-| 10 | Goal | Goal · Deadline · Available time · Readiness · Language Outcomes · Current priorities · [Edit Goal] | ✅ small |
-| 11 | Library | For Your Goal / Public Resources / My Materials | только в empty state |
-| 12 | Profile | account · languages · preferences · notifications · privacy · subscription · help · mascot stage | ✅ small |
-
-### **Learning**
-
-| # | Экран | Содержимое | Маскот |
-| --- | --- | --- | --- |
-| 13 | Mission Overview | Название · Purpose · Why · Estimated time · N activities · [Start Mission] | ✅ small, `neutral` |
-| 14 | **Activity** | Универсальная оболочка. Все состояния — здесь | ❌ не отвлекает |
-| 15 | Activity Feedback | What went well / Improve / Example · [Continue] | — |
-| 16 | Mission Result | You practiced / We learned / Still needs work / Mascot progress · [See what's next] | ✅ large, `celebrating` |
-| 17 | Add Material | PDF / image / text / URL → upload → processing → Library | — |
-| 18 | Settings | notifications · language · account · privacy · subscription · data | — |
-| 19 | Error / Recovery | «Something went wrong» · [Try Again] · [Continue with another activity] | ✅ small, `thinking` |
-
-### **Куда делись экраны из `promt.md`**
-
-| Из промта | Реализация |
+| Формат | Ограничение |
 | ----- | ----- |
-| 0. Launch / Splash | Нативный splash Expo, не экран |
-| 3. Goal Introduction | Заголовок и текст экрана 03 |
-| 6. Skills Preview | Секция экрана 04 (Goal Analysis) |
-| 11. Skills Overview | Секция «Current priorities» экрана 10 (Goal) |
-| 13. Mission (контейнер) | Экран 14 — `ActivityShell` владеет прогрессом Mission |
-| 14–18. Multiple Choice / Fill in the Blank / Short Answer / Speaking / Listening | Рендереры внутри экрана 14 (§9), не отдельные экраны |
-| 19. Activity Result | Экран 15 |
-| 21. Learning Progress / Evidence | Секция экрана 16 |
-| 22. Goals List | Отложено — одна активная Goal (`MVP-3.08`) |
-| 23. Goal Detail | Экран 10 |
-| 25. Resource Detail | Modal поверх экрана 11 |
-| 28. Empty Goal / 29. No Mission | Empty states экранов 09 и 11 |
-| 30. Loading / 31. Error | Состояния экранов + экран 19 как крайний случай |
+| Фото (jpg, png, heic) | 10 МБ, клиент сжимает до 2048 px по длинной стороне |
+| PDF | 20 страниц, 20 МБ |
+| DOCX | 5 МБ |
+| За одну загрузку | до 3 файлов, суммарно до 30 МБ |
 
-Причина: `MVP-4.12` — вариация UI не должна становиться отдельным экраном.
-
----
-
-## **9. Activity — центральное место реализации**
-
-`MVP-4.05`: Activity — универсальная оболочка, тип задания варьируется.
-
-### **Разделение ответственности**
-
-**`ActivityShell` владеет:** прогрессом по Mission, таймером, кнопкой submit, обработкой сети и ошибок, переходами состояний, отправкой ответа, приёмом feedback.
-
-**Рендерер владеет:** только вёрсткой конкретного задания и формой ответа. Ничего больше.
-
-### **Реестр**
-
-```ts
-// features/activity/registry.ts
-export const ACTIVITY_RENDERERS = {
-  vocabulary_choice:       VocabularyChoice,     // multiple choice
-  vocabulary_recall:       VocabularyRecall,     // fill in the blank
-  grammar_practice:        GrammarPractice,
-  reading_comprehension:   ReadingComprehension,
-  listening_comprehension: ListeningComprehension,
-  speaking_response:       SpeakingResponse,
-  speaking_roleplay:       SpeakingRoleplay,
-  writing_response:        WritingResponse,      // short answer
-} satisfies Record<ActivityType, ActivityRenderer>;
-```
-
-Backend отдаёт `activity.type` + `payload`. Клиент выбирает рендерер по типу.
-
-**Добавление нового типа = один новый файл + одна строка в реестре.** Навигация, API-слой и машина состояний не меняются. Это правило нарушать нельзя — оно определяет стоимость развития продукта.
-
-### **Состояния — одна discriminated union, не отдельные экраны**
-
-```ts
-type ActivityState =
-  | { status: 'loading' }
-  | { status: 'ready';       activity: Activity }
-  | { status: 'in_progress'; activity: Activity; draft: Answer }
-  | { status: 'submitting';  activity: Activity; draft: Answer }
-  | { status: 'feedback';    activity: Activity; feedback: Feedback }
-  | { status: 'error';       reason: UserFacingError; retry: () => void };
-```
-
-Плоский reducer поверх этого union. Никаких XState и внешних стейт-машин.
-
-### **Speaking — самый сложный рендерер**
-
-Поток: запись → загрузка в Storage → `activity-submit` → Realtime-статус job → транскрипт → feedback.
-
-| Платформа | Реализация |
-| ----- | ----- |
-| iOS / Android | `expo-audio` |
-| Web | адаптер на `MediaRecorder` + `getUserMedia` в `shared/platform/audio.web.ts` |
-
-Обязательные состояния: `idle` → `permission_request` → `recording` (с индикатором уровня и таймером) → `uploading` → `processing` → `feedback`. Плюс `permission_denied` с внятным объяснением.
-
-### **Listening**
-
-Воспроизведение через `expo-audio`. **Текстовая расшифровка обязательна** — accessibility (§13), не опция.
-
----
-
-## **10. Универсальные правила экрана**
-
-Каждый экран обязан иметь (`MVP Spec гл. 4 §28`):
-
-1. **Primary Action** — ровно одно главное действие (`MVP-4.03`);
-2. **Secondary Action** — если нужно, визуально слабее;
-3. **Context** — понятно, почему пользователь здесь;
-4. **Exit** — понятный способ вернуться.
-
-И три состояния:
-
-### **Loading (`MVP-4.09`)**
-
-Объясняющий текст, не бесконечный спиннер. Тексты — i18n-ключи, согласованные с backend по `job.kind`:
-
-| Job | Текст |
-| ----- | ----- |
-| `goal_analyze` | «Analyzing your goal…» |
-| `assessment_evaluate` | «Checking your answers…» |
-| `mission_generate` | «Building your next mission…» |
-| `speaking_assess` | «Listening to your answer…» |
-| `material_ingest` | «Processing your material…» |
-
-**Не сочиняй сообщения о процессах, которых система не выполняет.** Маскот может анимироваться в `thinking`.
-
-### **Empty (`PRD гл. 28 §18`)**
-
-Объясняет, что делать дальше:
-
-* Goal → «Create your first language goal»
-* Library → «Add a material or create one with AI»
-* Progress → «Your progress will appear as the system collects learning evidence»
-* No Mission → «Let's figure out what would help you most»
-
-### **Error (`MVP-4.10`)**
-
-Человеческий текст + повтор. **Никаких кодов ошибок, stack trace, сообщений LLM/API, слова "LLM", "API", "token".**
-
-```
-Something went wrong.
-Let's try again.
-[ Try Again ]          [ Continue with another activity ]
-```
-
----
-
-## **11. Маскот**
-
-**Ассет:** `assets/image/mascot.png` — спрайт-лист 2×2, 1254×1254 px, квадранты 627×627 px.
-
-| Позиция | Что изображено | Mood |
-| ----- | ----- | ----- |
-| Верх-лево | Читает книгу, довольный | `neutral` |
-| Верх-право | Задумался, вопросительный знак, буквы | `thinking` |
-| Низ-лево | Празднует, лапы вверх, звёзды | `celebrating` |
-| Низ-право | Спит на книге, «Zzz» | `resting` |
-
-**Задача агента на первом шаге:** нарезать спрайт-лист на 4 PNG с прозрачным фоном (белый фон удалить), экспортировать в `apps/mobile/assets/mascot/` как `neutral.png`, `thinking.png`, `celebrating.png`, `resting.png` в @1x / @2x / @3x.
-
-### **API компонента**
-
-```ts
-type MascotStage = 1 | 2 | 3 | 4 | 5;
-type MascotMood  = 'neutral' | 'thinking' | 'celebrating' | 'resting';
-type MascotSize  = 'small' | 'medium' | 'large';
-
-interface MascotProps {
-  stage: MascotStage;   // приходит с backend
-  mood:  MascotMood;    // приходит с backend или задан экраном
-  size:  MascotSize;
-}
-```
-
-* `mood` выбирает спрайт;
-* `stage` пока влияет на масштаб и индикатор стадии рядом с фигурой — **отдельных ассетов на стадии нет**. Компонент спроектирован так, чтобы позже подменить источник на per-stage ассеты или Rive без изменения ни одного вызывающего экрана;
-* `growth_progress` (0…1) внутри текущей стадии — тонкое кольцо вокруг маскота.
+Почему так: Storage у Supabase по умолчанию режет загрузку на 50 МБ, Gemini принимает файл в теле запроса до 20 МБ, дальше нужен Files API — лишний шаг. Страница учебника после сжатия до 2048 px читается целиком.
 
 ### **Правила**
 
-* `stage`, `mood` и `growth_progress` **приходят с backend** (`mascot_states`). Клиент их не вычисляет.
-* Рост связан с реальным Evidence: `Activity → Evidence → Learning State Update → Mascot State Update`. **Никогда** `Tap → XP → Growth` (`PRD гл. 46 §14`).
-* Маскот на Home — центральный визуальный элемент, но **не занимает весь экран** и **никогда не конкурирует с primary CTA**. Если анимация перетягивает внимание с «Start Mission» — это баг.
-* Присутствует на: Home, Mission Result, Mission Overview, Assessment Result, Welcome, Goal Analysis, Profile, empty states, Error. **Не на каждом экране** — он companion, а не обои.
-* Анимация: мягкий idle-float (translateY ±4px, 3 с, easeInOut), плавный кроссфейд при смене mood, короткий bounce+scale при росте стадии. Через Reanimated. `prefers-reduced-motion` уважается — анимации отключаются.
-* Запрещено: XP, валюта, кормление, покупки, наказания за пропуски, streak как основная механика (`PRD гл. 46 §28`).
-
-> Принцип: **learning app with a mascot**, а не mascot game with language learning.
+- Одна загрузка = один модуль. Три файла — это три части одного материала, а не три модуля.
+- Файлы лежат в Storage, bucket `materials`, путь `{user_id}/{material_id}/{filename}`, доступ только владельцу через RLS.
+- **Если текст не распознан или материал не про китайский язык — это ошибка, а не повод генерировать.** Пользователю показывается понятное сообщение и предложение загрузить другой файл. Модуль не создаётся, мусор в базу не попадает.
 
 ---
 
-## **12. Дизайн-система**
+## **7. Разбор материала**
 
-### **Визуальное направление**
+Один вызов Gemini на модуль. На вход — файлы, на выход — строгая JSON-схема:
 
-Современно, тепло, premium. **Не копировать Duolingo.**
-
-❌ детский интерфейс · кислотные цвета · перегруженный gamification · много бейджей · cartoon UI везде
-✅ clean · calm · modern · spacious · readable · mobile-first
-
-Маскот может быть playful. Остальной интерфейс — спокойный.
-
-### **Палитра — выведена из ассета маскота**
-
-```ts
-// shared/config/tokens.ts
-export const colors = {
-  light: {
-    primary:      '#7B6BD6',  // фиолетовый — уши/худи маскота
-    primarySoft:  '#EFECFB',
-    accent:       '#FFD764',  // жёлтая звезда
-    accentSoft:   '#FFF6DC',
-    info:         '#6BC0EC',  // голубой кончик хвоста
-    success:      '#4A9B6E',
-    warning:      '#E8A54B',
-    danger:       '#D96A6A',
-    background:   '#FAF7F2',  // тёплый кремовый
-    surface:      '#FFFFFF',
-    surfaceAlt:   '#F3EFE8',
-    border:       '#E6E0D6',
-    text:         '#2A2440',
-    textMuted:    '#7A7391',
-    textInverse:  '#FFFFFF',
-  },
-  dark: {
-    primary:      '#9B8FE3',
-    primarySoft:  '#2B2547',
-    accent:       '#FFD764',
-    accentSoft:   '#3A3320',
-    info:         '#6BC0EC',
-    success:      '#5FB584',
-    warning:      '#E8A54B',
-    danger:       '#E58585',
-    background:   '#17142A',
-    surface:      '#221E3B',
-    surfaceAlt:   '#2B2547',
-    border:       '#332D52',
-    text:         '#F2EFF8',
-    textMuted:    '#A9A2C4',
-    textInverse:  '#17142A',
-  },
-} as const;
-
-export const spacing     = { xs: 4, sm: 8, md: 16, lg: 24, xl: 32, xxl: 48 };
-export const radius      = { sm: 8, md: 12, lg: 16, xl: 24, pill: 999 };
-export const typography  = {
-  display: { size: 32, weight: '700', lineHeight: 40 },
-  title:   { size: 24, weight: '700', lineHeight: 32 },
-  heading: { size: 18, weight: '600', lineHeight: 26 },
-  body:    { size: 16, weight: '400', lineHeight: 24 },
-  caption: { size: 13, weight: '400', lineHeight: 18 },
-};
+```
+{
+  "is_language_material": boolean,   // false → ошибка, модуль не создаётся
+  "title": string,                   // короткое название материала для кружка
+  "topic": string,                   // тема урока, если её видно
+  "context": string,                 // о чём материал, 2-3 предложения
+  "vocabulary": [                    // слова из заданий материала
+    { "word": "汉字", "reading": "hànzì", "meaning_ru": "иероглиф",
+      "sense_hint": "как употреблено в материале" }
+  ],
+  "grammar": [                       // грамматика урока, если она есть
+    { "point": "把-конструкция", "explanation": "...", "examples": ["..."] }
+  ]
+}
 ```
 
-Токены дублируются в `tailwind.config.js` для NativeWind. **Магических значений hex/px в компонентах нет.** Тёмная тема обязательна с первого экрана — доделывать её потом дороже.
+Правила разбора:
 
-### **Примитивы `shared/ui`**
+- Слова вытягиваются **из заданий материала**, а не из всего текста подряд.
+- `sense_hint` обязателен: он определяет, какое из словарных значений будет правильным ответом в карточке (см. §9).
+- Грамматика извлекается, только если она в материале действительно есть. Пустой список — нормальный результат, выдумывать нечего.
 
-| Компонент | Назначение |
+Результат разбора складывается в `module_vocabulary` и `module_grammar`. Слова сверяются со словарём БКРС и списком HSK: подтягивается `dictionary_entry_id` и `hsk_level`.
+
+---
+
+## **8. Генерация заданий**
+
+Урок — это **четыре задания**, всегда в одном порядке:
+
+### **1. Чтение с утверждениями**
+
+- Текст на китайском, **200–300 иероглифов**, по теме загруженного материала.
+- Обязательно использует слова и грамматику из материала.
+- Не выходит за уровень HSK пользователя, кроме слов самого материала.
+- К тексту — **8 утверждений на китайском**, каждое верно или неверно.
+- Пиньинь по умолчанию скрыт, показывается кнопкой.
+
+### **2. Развёрнутые ответы**
+
+- **6 вопросов на китайском** по тексту из первого задания.
+- Если в материале была грамматика — она обязательно задействована в вопросах.
+- Пользователь отвечает **китайскими иероглифами** в свободной форме, системной клавиатурой.
+- Ответ без китайских символов не принимается — подсказка вместо отправки.
+
+### **3. Письменный перевод**
+
+- Текст на русском, **около 200 слов**, по той же теме.
+- Разбит на предложения: **каждое предложение — отдельное поле ввода**.
+- Пользователь переводит на китайский.
+
+### **4. Карточки со словами**
+
+- Слова из материала, **пачками до 20 слов**.
+- Каждое слово — отдельное поле, порядок слов случайный.
+- Направление карточки случайное: либо китайское слово → русский перевод, либо русское слово → китайское написание.
+- Перевод вписывается с клавиатуры. Выбора вариантов нет.
+- Пиньинь по умолчанию скрыт, показывается кнопкой.
+
+**Если слов в материале больше двадцати**, лишние не выбрасываются: в модуль добавляется ещё один урок со своей пачкой слов и своим комплектом из четырёх заданий. 45 слов — это три урока.
+
+---
+
+## **9. Проверка ответов**
+
+### **Задания 1–3 проверяет ИИ**
+
+Один вызов на отправку задания. Возвращает:
+
+```
+{ "score_percent": 0-100,
+  "comment": "разбор по существу на русском",
+  "errors": [ { "fragment": "...", "what": "...", "correct": "..." } ] }
+```
+
+Требования к комментарию: по существу, без похвалы ради похвалы. Что не так, почему не так, как правильно. Грамматические ошибки называются своими именами. Комментарий на русском, примеры — на китайском.
+
+Для чтения с утверждениями процент считает **код** (верных из восьми), ИИ только комментирует спорные места. Для развёрнутых ответов и перевода процент ставит ИИ.
+
+### **Задание 4 проверяет словарь**
+
+Никакого ИИ. Ответ сверяется со значением из словарной статьи БКРС — с тем самым значением, которое подошло по контексту материала (`sense_hint` из §7).
+
+- Регистр и пробелы по краям игнорируются, буква «ё» приравнивается к «е».
+- Если у выбранного значения несколько синонимов через запятую — засчитывается любой из них.
+- Синонимы вне словарной статьи **не засчитываются**. Это осознанное ограничение: проверка должна быть предсказуемой и бесплатной.
+- В обратную сторону (русский → китайский) сверяется написание иероглифов, ровно как в словаре.
+
+Результат карточек: процент — доля верных из пачки, комментария нет, показывается список ошибок с правильным ответом.
+
+---
+
+## **10. Модуль, урок, прогресс**
+
+- **Модуль** = один загруженный материал (до 3 файлов). Название и картинка кружка берутся из разбора.
+- **Урок** = четыре задания и одна пачка слов до 20. Уроков в модуле столько, сколько нужно, чтобы разложить все слова материала.
+- **Прогресс** = пройденные задания ко всем заданиям модуля. Именно это число во всплывающем окне: «3 / 8».
+- Задание считается пройденным после первой отправки ответа, независимо от процента.
+- Уроки проходятся в любом порядке, состояние сохраняется после каждого задания.
+
+### **После прохождения модуля**
+
+Две кнопки:
+
+1. **Пройти заново** — открывает выбор урока, задания те же самые.
+2. **Сформировать новые задания** — новый комплект заданий по тому же материалу, старый остаётся доступным.
+
+### **Жизнь модулей**
+
+Все модули остаются на главной навсегда. Архива нет, удаления нет. Пройденный модуль ничем не отличается от нового, кроме прогресса.
+
+---
+
+## **11. Экраны**
+
+Меню из четырёх пунктов: **Главная · Загрузка · Словарь · Настройки.**
+
+### **01. Главная**
+
+Модули кружками. Тап по кружку — всплывающее окно: название материала, сколько заданий всего и сколько пройдено, кнопка перехода. Прогресс кружка виден кольцом вокруг него, числом — только внутри окна.
+
+Пустое состояние: один призыв загрузить первый материал.
+
+### **02. Загрузка**
+
+Выбор до трёх файлов (камера, галерея, файлы), список выбранного с размерами, один primary action «Создать модуль». Далее — экран ожидания с объяснением, что происходит. Ошибка разбора показывается здесь же.
+
+### **03. Урок**
+
+Одно задание на экране, переход к следующему после отправки. После отправки — процент, комментарий и разбор ошибок. Кнопка показа пиньиня в первом и четвёртом заданиях.
+
+### **04. Словарь**
+
+Поиск **по всему сразу**: иероглиф, пиньинь, русский перевод — одно поле, один запрос. Результат — словарная статья БКРС. Кнопка «в мой словарь» с выбором папки.
+
+Свой словарь: папки создаёт пользователь, слово может лежать в нескольких папках.
+
+### **05. Настройки**
+
+Уровень HSK и прогресс по уровням. Тема оформления. Выход из аккаунта. Удаление аккаунта.
+
+### **Универсальные правила экрана**
+
+- Ровно один primary action.
+- Реализованы loading, empty и error состояния.
+- Светлая и тёмная темы.
+- Ни одна техническая ошибка не доходит до пользователя в сыром виде.
+- Тап-таргеты ≥ 44, все строки через i18n, интерфейс на русском.
+
+---
+
+## **12. Модель данных**
+
+Остаются: `profiles` (плюс `hsk_level`), `materials`, `jobs`, `events`, `feedback`.
+
+Удаляются: `goals`, `goal_topics`, `goal_outcomes`, `assessment_*`, `roadmap_modules`, `skill_states`, `learning_states`, `recommendations`, `missions`, `activities`, `activity_responses`, `activity_answer_keys`, `evidence`, `mascot_states`, `content_sources`, `content_units`, `content_unit_topics`, `knowledge_items`, `generated_exercises`, `topics`, `public_resources`.
+
+Новые таблицы:
+
+| Таблица | Назначение |
 | ----- | ----- |
-| `Button` | варианты `primary` / `secondary` / `ghost`, состояния loading и disabled |
-| `Card` | контейнер для Goal, Mission preview, Resource |
-| `Text` | типографические варианты из токенов |
-| `Input` / `TextArea` | ввод цели, ответов |
-| `ProgressBar` / `ProgressRing` | прогресс Mission, рост маскота |
-| `SkillPill` | бейдж «Speaking · Developing» |
-| `FeedbackBanner` | тёплый фидбэк, см. §14 |
-| `LoadingState` | объясняющее состояние + анимация маскота |
-| `EmptyState` | параметризуемый, с маскотом |
-| `ErrorState` | спокойный recovery |
-| `Mascot` | см. §11 |
+| `modules` | модуль: владелец, название, тема, контекст, статус, ссылка на материалы |
+| `module_materials` | связь модуля с файлами в Storage |
+| `module_vocabulary` | слово из материала: написание, чтение, значение из словаря, `sense_hint`, `dictionary_entry_id`, `hsk_level` |
+| `module_grammar` | грамматика материала: пункт, объяснение, примеры |
+| `lessons` | урок модуля: порядковый номер, пачка слов |
+| `tasks` | задание урока: тип, содержимое (jsonb), порядок |
+| `task_submissions` | отправка: ответы, процент, комментарий, ошибки, время |
+| `dictionary_entries` | словарь БКРС: заголовок, чтение, значения (jsonb) |
+| `hsk_words` | 5000 слов HSK 2.0 с уровнем |
+| `user_dictionary_folders` | папки своего словаря |
+| `user_dictionary_items` | слово в папке |
 
-Больше ничего заранее не строить (`MVP Spec гл. 4 §34`). Design System расширяется после первых пользовательских тестов.
+Типы заданий (`tasks.type`): `reading_truefalse`, `open_questions`, `translation`, `word_cards`.
+
+RLS: всё пользовательское — только владельцу. `dictionary_entries` и `hsk_words` — чтение всем авторизованным, запись только service role.
 
 ---
 
-## **13. Accessibility — обязательно в MVP (`MVP-4.11`)**
+## **13. Контракт клиент ↔ backend**
 
-Требования из MVP Spec были сформулированы для iOS. Кросс-платформенные эквиваленты:
-
-| iOS-формулировка | Реализация |
+| Функция | Что делает |
 | ----- | ----- |
-| Dynamic Type | `allowFontScaling`, относительные размеры, без фиксированных высот текстовых блоков |
-| VoiceOver | `accessibilityRole` / `accessibilityLabel` / `accessibilityState` — маппятся в VoiceOver, TalkBack и ARIA |
-| Tap targets | ≥ 44×44 на всех платформах |
-| Contrast | WCAG AA, проверяется для обеих тем |
-| Captions for audio | текстовая расшифровка для каждой Listening-активности — обязательна |
-| Не зависеть от цвета | статус дублируется иконкой и текстом |
+| `module-create` | принимает материалы, ставит job, возвращает `job_id` |
+| `module-parse` | разбор файлов в Gemini, заполняет `module_vocabulary` и `module_grammar` (фоном) |
+| `lesson-generate` | генерация четырёх заданий урока |
+| `task-submit` | проверка ответа: ИИ для 1–3, словарь для карточек; пишет `task_submissions` |
+| `module-regenerate` | новый комплект заданий по существующему модулю |
+| `dictionary-search` | поиск по иероглифу, пиньиню и русскому переводу |
+| `profile-update` | уровень HSK и настройки |
 
-Дополнительно: `prefers-reduced-motion` отключает idle-анимации маскота и переходы.
+Долгие операции (`module-parse`, `lesson-generate`) идут через `jobs` со статусами `queued → running → done | error` и Realtime-подпиской. Клиент показывает один экран ожидания, а не спиннер без объяснения.
 
----
-
-## **14. Тон и копирайт**
-
-Copy: **warm · encouraging · intelligent · concise.**
-
-| ❌ Никогда | ✅ Вместо этого |
-| ----- | ----- |
-| «YOU FAILED» | «Not quite» |
-| «WRONG!» | «Let's try another way» |
-| «BAD» | «You're getting closer» |
-| «Calling LLM…» | «Preparing your next challenge…» |
-| «Error 500 / API timeout» | «Something went wrong. Let's try again» |
-
-Ни одна строка UI не хардкодится — всё через i18next (§15). Тексты фидбэка приходят с backend; клиент их **не перефразирует и не генерирует**.
+Все ответы валидируются Zod-схемами из `packages/shared` на обеих сторонах.
 
 ---
 
-## **15. Интернационализация**
+## **14. Словарь БКРС**
 
-`PRD гл. 42 §21` — четыре независимых измерения, не путать:
+Источник: `docs/dictionary/dabkrs_*.dsl` — 大БКРС от 2026-06-10 с bkrs.info, формат ABBYY Lingvo DSL, UTF-16LE, три файла по 114 МБ.
 
-* **UI language** — язык интерфейса;
-* **native language** — родной язык пользователя;
-* **target language** — изучаемый язык;
-* **content language** — язык конкретного материала.
+Что в нём: 3 452 950 карточек, 151 млн символов, разметка из девяти тегов (`m1`–`m4`, `i`, `p`, `c`, `b`, `ref`, `ex`, `*`).
 
-Не предполагать, что source language = English. На MVP список target-языков может быть коротким, но модель и UI должны быть расширяемыми без переписывания.
+**В базу заливается срез:** заголовки длиной до 4 иероглифов (1 892 438 карточек), без блоков примеров. Порядка 140–200 МБ текста. Фразы, топонимы и имена собственные длиннее четырёх иероглифов не импортируются — они разбираются как последовательность слов.
 
----
+Значения раскладываются по структуре статьи: гнёзда частей речи (у частотных знаков это римские разделы) и нумерованные значения внутри. В `dictionary_entries.senses` лежит массив значений; полный текст статьи хранится для страницы словаря, усечённый список значений — для промптов и карточек.
 
-## **16. Explainability**
-
-`IA-27.06`, `PRD гл. 27 §22` — прогрессивное раскрытие в четыре уровня:
-
-1. **Что делать сейчас** → всегда видно на Home;
-2. **Почему** → «Why this?», раскрывается по тапу;
-3. **Какие навыки это улучшает** → внутри объяснения;
-4. **Какие Evidence повлияли** → самый глубокий уровень, доступен, но не навязан.
-
-Текст объяснения приходит с backend в `recommendations.reason`.
+**Лицензия.** БКРС — свободно распространяемая народная база на ядре словаря Ошанина, статуса «разрешено встраивать в коммерческое приложение» у неё нет. Риск принят решением от 2026-09-17.
 
 ---
 
-## **17. Конвенции кода**
+## **15. Дизайн-система**
 
-* Файл — одна ответственность, ориентир ≤ 200 строк. Больше — разделяй.
-* Компоненты функциональные, пропсы типизированы явно. Без `any`, без `as` кроме `satisfies`.
-* Именование: компоненты `PascalCase`, хуки `useX`, файл называется по основному экспорту.
-* Стилизация только через NativeWind. Инлайн-стили — только для анимируемых значений Reanimated.
-* Никаких `useEffect` + `fetch`. Все запросы — TanStack Query через репозиторий.
-* Мутации инвалидируют затронутые ключи. После `activity-submit` инвалидируются `learning_state`, `mascot_state`, `recommendation`.
-* Никаких `console.log` в коммитах — `shared/lib/logger`.
-* Комментарии только там, где неочевидно «почему». Не комментируй «что».
-* Всегда указывай полный путь файла, который создаёшь или меняешь.
+Наследуется полностью: токены в `shared/config/tokens.ts`, примитивы в `apps/mobile/shared/ui` (`Button`, `Card`, `Text`, `Input`, `ProgressBar`, `EmptyState`, `ErrorState`, `LoadingState`, `FeedbackBanner`, `Icon`, `Mascot`, `AtmosphericBackground`, `Sparkles`).
+
+Направление прежнее: clean, calm, modern, spacious, readable. Не копировать Duolingo. Маскот остаётся элементом оформления — экраном ожидания, пустым состоянием, реакцией на результат, — но перестаёт быть механикой роста.
+
+Новое, чего не было: **китайская типографика**. Иероглифы в заданиях и карточках набираются крупнее латиницы и кириллицы, с увеличенным межстрочным интервалом; шрифт с полным покрытием CJK проверяется на всех трёх платформах.
 
 ---
 
-## **18. Definition of Done**
+## **16. Что удаляется из кода**
+
+Работа начинается с чистки. Текущее состояние замораживается в отдельной ветке, рабочая ветка чистится.
+
+Удаляются: экраны онбординга 03–08 (`goal-setup`, `goal-analysis`, `goal-confirm`, `assessment`, `assessment-result`, `strategy`), вкладки `goal` и `library`, экраны миссии, Edge Functions `goal-analyze`, `goal-confirm`, `goal-set-time`, `assessment-next`, `assessment-complete`, `mission-generate`, `activity-submit`, `recommendation-get`, `content-import`, `material-ingest` в нынешнем виде, схемы домена в `packages/shared/schemas` кроме профиля, контентные агенты и их документация, сиды учебников и тем.
+
+Отдельно: задеплоенная в прод `mission-from-content` висит ACTIVE с доступом к service role и должна быть удалена с платформы.
+
+Остаётся: авторизация, `_shared/shared.ts` со шлюзом к Gemini, `jobs`, Storage, дизайн-система, примитивы, каркас навигации.
+
+---
+
+## **17. Definition of Done**
 
 Задача не завершена, пока не выполнено всё:
 
 - [ ] `tsc --noEmit` — чисто;
 - [ ] `eslint` — чисто;
-- [ ] работает на **iOS, Android и Web** — проверено запуском, не предположением;
+- [ ] `deno check --all` по Edge Functions — чисто (из `supabase/functions`, с `DENO_NO_PACKAGE_JSON=1`);
+- [ ] работает на iOS, Android и Web — проверено запуском, не предположением;
 - [ ] реализованы loading, empty и error состояния;
 - [ ] ровно один primary action на экране;
 - [ ] светлая и тёмная темы;
 - [ ] ни одна техническая ошибка не доходит до пользователя;
 - [ ] все строки через i18n;
 - [ ] accessibility-атрибуты проставлены, тап-таргеты ≥ 44;
-- [ ] нет вычисления образовательного состояния на клиенте;
+- [ ] учебное состояние не вычисляется на клиенте;
 - [ ] нет `Platform.OS` вне `shared/platform/`;
 - [ ] нет прямого обращения к Supabase из компонента — только через репозиторий;
-- [ ] Maestro-флоу добавлен или обновлён, если задача затрагивает пользовательский путь.
+- [ ] китайский текст проверен на всех трёх платформах — шрифт, перенос строк, ввод.
 
 ---
 
-## **19. План работ**
+## **18. План работ**
 
-Фазы строго последовательны. Не начинай следующую, пока предыдущая не проходит DoD.
+Фазы последовательны. Не начинать следующую, пока предыдущая не проходит DoD.
 
-### **Фаза 0 — Каркас**
-Монорепо (pnpm + Turborepo). Expo + TypeScript + expo-router + NativeWind. Токены дизайна, светлая и тёмная темы. Нарезка `mascot.png` → 4 спрайта. Компонент `Mascot`. Примитивы `shared/ui`. Настройка EAS (три канала).
-**Проверка:** пустое приложение с маскотом собирается и запускается на iOS, Android и Web.
+### **Фаза 0 — Чистка**
+Заморозить текущее состояние в ветке, вырезать из рабочей всё из §16, удалить `mission-from-content` с платформы, привести миграции к новой модели данных.
+**Проверка:** приложение собирается и запускается на трёх платформах, экран после входа пустой, `tsc` и `deno check` чисты.
 
-### **Фаза 1 — Контракт и данные**
-`packages/shared`: Zod-схемы всего домена. Репозитории с mock-реализациями и реалистичными данными («Prepare for English job interviews», настоящие миссии, настоящие фразы фидбэка). TanStack Query. Централизованная обработка ошибок. Экран 19.
-**Проверка:** `EXPO_PUBLIC_DATA_SOURCE=mock` отдаёт полный набор данных для всех экранов.
+### **Фаза 1 — Словарь и HSK**
+Парсер DSL, срез до 4 иероглифов, импорт в `dictionary_entries`. Импорт 5000 слов HSK 2.0 в `hsk_words`. Поиск по иероглифу, пиньиню и переводу.
+**Проверка:** поиск по 打 отдаёт статью со значениями, поиск по «дюжина» находит его же, слово знает свой уровень HSK.
 
-### **Фаза 2 — Навигация и оболочки**
-Tab Bar из 4 табов + web Sidebar. Пустые экраны 09–12 с empty states. Mission как отдельный flow. Скрытие навигации во время onboarding.
+### **Фаза 2 — Загрузка и разбор**
+Экран загрузки, лимиты §6, Storage, `module-create` и `module-parse`, экран ожидания на `jobs`, ошибка на нераспознанный материал.
+**Проверка:** фото страницы учебника превращается в модуль со словами и грамматикой; фото кота даёт понятную ошибку.
 
-### **Фаза 3 — Onboarding**
-Экраны 01–08. Goal Setup с Deadline и Available Time, Feasibility-результат, возможность скорректировать Goal / Deadline / Time.
-**Проверка:** пользователь доходит до Home с активной Goal.
+### **Фаза 3 — Генерация заданий**
+`lesson-generate`, четыре типа заданий, разбиение слов на пачки до 20, дополнительные уроки при избытке слов.
+**Проверка:** по модулю с 45 словами получается три урока по четыре задания, текст держится в пределах уровня HSK.
 
-### **Фаза 4 — Home**
-Экран 09 целиком: Goal + Readiness + Today's Mission + «Why this?» + primary CTA + маскот.
+### **Фаза 4 — Главная**
+Модули кружками, всплывающее окно с прогрессом, кольцо прогресса, пустое состояние.
+**Проверка:** прогресс совпадает с числом отправленных заданий, пройденный модуль остаётся на месте.
 
-### **Фаза 5 — Learning loop**
-Экраны 13–16. `ActivityShell` + машина состояний + реестр. Начни с двух рендереров: `vocabulary_choice` (простейший) и `speaking_response` (самый сложный — запись на трёх платформах). Остальные добавляются только после того, как эти два работают.
-**Проверка:** сквозной проходимый путь от первого запуска до завершения первой Mission.
+### **Фаза 5 — Урок и проверка**
+Экран урока, все четыре рендерера, `task-submit`, проверка ИИ и словарём, показ процента, комментария и ошибок.
+**Проверка:** сквозной путь от загрузки файла до разбора ответа, карточки проверяются без обращения к ИИ.
 
-### **Фаза 6 — Supabase**
-Миграции, RLS, Storage, Auth. Edge Functions по §6. AI Gateway. `SupabaseRepository` для каждого домена. Realtime на `jobs`.
-**Проверка:** `EXPO_PUBLIC_DATA_SOURCE=supabase` даёт тот же сквозной путь без изменений в UI-коде.
+### **Фаза 6 — Словарь пользователя**
+Страница словаря, папки, добавление слова, поиск по своему словарю.
 
-### **Фаза 7 — Library и Materials**
-Экраны 11 и 17. Загрузка PDF / image / text / URL, async processing со статусом.
-
-### **Фаза 8 — Profile, Settings, Notifications**
-Экраны 12 и 18. Push через `expo-notifications`.
-
-### **Фаза 9 — Полировка**
-Оставшиеся рендереры Activity, анимации переходов, accessibility-аудит, Maestro-покрытие, оптимизация web-бандла.
+### **Фаза 7 — Настройки и полировка**
+Уровень HSK и прогресс по уровням, темы, удаление аккаунта, китайская типографика, accessibility-аудит, Maestro-покрытие сквозного пути.
 
 ---
 
-## **20. Чего не делать**
+## **19. Чего не делать**
 
-* Не писать код до завершения шага §21.1.
-* Не реализовывать несколько экранов за одну итерацию.
-* Не строить design system заранее — только примитивы из §12.
-* Не превращать вариацию UI в отдельный экран (`MVP-4.12`).
-* Не делать чат главным интерфейсом (`MVP Spec гл. 4 §38`).
-* Не давать AI генерировать структуру приложения — только контент (`MVP Spec гл. 4 §38`).
-* Не делать Library первой вкладкой и не превращать её в бесконечный feed.
-* Не реализовывать offline learning — только корректное no-network состояние с повтором (`MVP Spec гл. 4 §31`).
-* Не добавлять XP, streak как основную механику, виртуальную валюту, наказания за пропуски, social features, marketplace (`PRD гл. 46 §28`).
-* Не показывать numerical progress как главный показатель (`MVP Spec гл. 4 §40.3`).
-* Не откладывать web-таргет «на потом».
-* Не вызывать AI-провайдеров с клиента (`PRD гл. 21 §32`).
-* Не вычислять на клиенте ничего из списка в §3, Правило 1.
+- Не возвращать цели, тест уровня, дорожную карту и миссии.
+- Не давать ИИ решать структуру: число заданий, размер пачки, прохождение урока.
+- Не вызывать Gemini с клиента.
+- Не проверять карточки через ИИ.
+- Не показывать уровень HSK в карточках и словаре.
+- Не добавлять XP, streak, валюту, наказания за пропуски, social features.
+- Не удалять и не архивировать модули.
+- Не заливать словарь целиком — только срез из §14.
+- Не откладывать web-таргет.
+- Не реализовывать рукописный ввод: перевод вписывается с клавиатуры.
 
 ---
 
-## **21. Формат работы с агентом**
+## **20. Открытые вопросы**
 
-### **21.1 Первый шаг — БЕЗ КОДА**
-
-Прежде чем писать хоть строку, верни:
-
-1. Подтверждение прочтения этого ТЗ и списка расхождений, если найдёшь;
-2. Финальную структуру монорепозитория;
-3. Полный список Zod-схем домена в `packages/shared`;
-4. Схему БД Supabase — DDL миграции;
-5. Список Edge Functions с сигнатурами входа и выхода;
-6. Архитектуру маскота — как нарежешь ассет, как свяжешь stage/mood/growth;
-7. Список примитивов `shared/ui` с пропсами;
-8. Порядок реализации экранов внутри Фазы 0–1;
-9. Риски и технические упрощения, которые предлагаешь принять.
-
-**После этого остановись и жди команды `START PHASE 0`.**
-
-### **21.2 На каждую последующую задачу**
-
-1. Назови фазу и экран/flow.
-2. Перечисли файлы, которые создашь или изменишь, — **до** того, как писать код.
-3. Если задача требует поля или Edge Function, которых нет в контракте, — **предложи контракт**, не считай на клиенте.
-4. Если задача противоречит зафиксированному решению (`MVP-x.xx`, `TECH-42.xx`, `NAV-28.xx`) — **остановись и укажи, какому именно**.
-5. Пиши полный код файлов с полными путями, а не фрагменты.
-6. После реализации пройди чек-лист §18 и отчитайся честно: что проверено запуском, что нет.
-
-**Не сообщай о готовности того, что не запускал.**
-
----
-
-## **22. Открытые вопросы**
-
-Не блокируют старт, но должны быть закрыты до Фазы 6:
-
-1. **Аутентификация** — email + magic link, OAuth-провайдеры, или anonymous-first с последующей привязкой? Влияет на экран 01 и Profile.
-2. **AI-провайдер** — какой основной, какой fallback? Влияет только на `_shared/ai`, архитектура provider-agnostic (`TECH-42.06`).
-3. **Speech-to-text** — Whisper через Edge Function, или облачный STT провайдера?
-4. **Target-языки на старте** — сколько и какие?
-5. **Latency-бюджеты** AI-эндпоинтов — от них зависит, где Realtime достаточно, а где нужен стриминг.
-6. **Стадии маскота 2–5** — будут ли отдельные ассеты, и когда? До этого stage выражается масштабом и кольцом прогресса.
-7. **Монетизация** — экран Subscription в Profile нужен на MVP или заглушка?
-
----
-
-## **Итог**
-
-> Один TypeScript-код → Expo → iOS + Android + Web → EAS → сторы и веб.
-> Supabase держит образовательное состояние. Клиент его только показывает.
-
-Главное архитектурное преимущество продукта — не количество экранов, а то, что **образовательное решение является самостоятельной сущностью системы, а LLM остаётся исполнительным инструментом** (`PRD гл. 42, Итоговое архитектурное решение`).
-
-И на уровне клиента то же самое одной строкой:
-
-> **Activity — это данные, а не код.** Backend решает, чему учить. Клиент знает только, как это отрисовать.
+- Что делать, если в материале меньше пяти слов — генерировать урок или считать это ошибкой разбора?
+- Нужен ли предпросмотр разобранных слов до генерации, чтобы пользователь мог убрать лишнее?
+- Сколько комплектов заданий хранить на модуль, прежде чем старые начнут мешать в интерфейсе?
+- Что показывать в прогрессе по уровням HSK, если человек загружает материалы выше своего уровня?

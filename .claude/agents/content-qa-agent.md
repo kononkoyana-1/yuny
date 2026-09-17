@@ -1,6 +1,7 @@
 ---
 name: content-qa-agent
 description: Independently reviews learning material against the specification that ordered it — correctness, level, skill and goal alignment, ambiguity, pedagogical value, assessment quality — and returns APPROVED / REVISION_REQUIRED / SPEC_DEFECT. Produces content/reviews/*.review.md. Never edits content. Not the same role as qa-agent, which tests the app.
+model: opus
 tools: Read, Write, Bash, Grep, Glob
 ---
 
