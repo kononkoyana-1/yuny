@@ -7,9 +7,30 @@ client selects this backend with `EXPO_PUBLIC_DATA_SOURCE=supabase`; with
 `mock` it never touches the network.
 
 Функции прежнего продукта удалены вместе с ним (TZ.md §16). Сейчас здесь
-только `_shared/shared.ts` — обёртка CORS + ошибок + авторизации и шлюз к
-Gemini; функции нового продукта (`module-create`, `module-parse`,
-`lesson-generate`, `task-submit`, `dictionary-search`) приезжают в фазах 2-6.
+`_shared/shared.ts` — обёртка CORS + ошибок + авторизации и шлюз к Gemini — и
+`dictionary-search` из фазы 1. Остальные функции нового продукта
+(`module-create`, `module-parse`, `lesson-generate`, `task-submit`,
+`module-regenerate`, `profile-update`) приезжают в фазах 2-6.
+
+## Словарь
+
+Поиск живёт в базе: `public.dictionary_search(query, limit, offset)` сама
+определяет письменность запроса и выбирает под неё индекс — заголовок для
+иероглифов, `reading_plain` для пиньиня, полнотекстовый по значениям для
+русского. Функция `dictionary-search` поверх неё держит только границы
+запроса, форму ответа и признак «есть ещё».
+
+Данные заливаются с машины разработчика, а не миграцией: 914 786 статей с
+заголовками до трёх иероглифов (`scripts/dict-parse.mjs` →
+`scripts/db-import.mjs dict`) и 5000 слов HSK (`db-import.mjs hsk`). Нужен
+секретный ключ в `.env.local` — обе таблицы закрыты на запись для всех, кроме
+service role. Заливка идемпотентна и продолжается с места обрыва, последним
+шагом проставляя `hsk_level`.
+
+Место на проекте — ограничение, а не фон. Словарь с индексами занимает около
+350 МБ при лимите free-плана в 500 МБ. Первый срез, до четырёх иероглифов,
+занял 853 МБ и переполнил диск (TZ.md §14). Если заливать словарь заново,
+сперва стоит свериться с этой цифрой.
 
 ## Layout
 
@@ -23,6 +44,20 @@ functions/    one folder per Edge Function from TZ.md §13
 на проекте. До 2026-09-17 они расходились — миграции применяли не через CLI, и
 `db push` считал бы все тринадцать неприменёнными. Новые файлы называть по
 версии, которую вернул сервер, иначе расхождение вернётся.
+
+Применяются миграции скриптом:
+
+```bash
+node scripts/db-apply-migration.mjs supabase/migrations/<файл>.sql
+node scripts/db-apply-migration.mjs --sql "select 1"     # разовый запрос
+```
+
+Он ходит в Management API (`/database/query`) по токену из
+`~/.supabase/access-token`, применяет файл и сам дописывает строку в
+`supabase_migrations.schema_migrations`. `supabase db push` не годится — он
+просит пароль от базы, которого локально нет, а MCP-канал на запись отвечает
+`25006 read-only transaction`: он подключается ролью `supabase_read_only_user`,
+и снять флаг можно только на саму транзакцию, что скрипт и делает.
 
 `functions/_shared/` holds the CORS + error envelope + auth wrapper and the
 Gemini gateway (`shared.ts`). Functions import it
