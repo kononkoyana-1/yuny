@@ -466,6 +466,67 @@ export type Database = {
           },
         ]
       }
+      task_submissions: {
+        Row: {
+          answers: Json
+          comment: string | null
+          created_at: string
+          errors: Json
+          id: string
+          lesson_id: string
+          module_id: string
+          score_percent: number
+          task_id: string
+          user_id: string
+        }
+        Insert: {
+          answers: Json
+          comment?: string | null
+          created_at?: string
+          errors?: Json
+          id?: string
+          lesson_id: string
+          module_id: string
+          score_percent: number
+          task_id: string
+          user_id: string
+        }
+        Update: {
+          answers?: Json
+          comment?: string | null
+          created_at?: string
+          errors?: Json
+          id?: string
+          lesson_id?: string
+          module_id?: string
+          score_percent?: number
+          task_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_submissions_lesson_id_fkey"
+            columns: ["lesson_id"]
+            isOneToOne: false
+            referencedRelation: "lessons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_submissions_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "modules"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "task_submissions_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tasks: {
         Row: {
           content: Json
