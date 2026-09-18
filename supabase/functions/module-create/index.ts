@@ -55,6 +55,30 @@ Deno.serve(
     const folder = `${userId}/${materialId}/`;
     const requested = requireFiles(body, folder);
 
+    // Повторный вызов с тем же `material_id` — это не второй модуль, а тот
+    // же самый: ответ первого вызова мог потеряться в сети, и клиент шлёт
+    // снова (docs/design/specs/upload.design.md §2, «Попробовать ещё раз»).
+    // Отдаём уже созданный модуль и его последнюю задачу разбора.
+    const { data: existing } = await admin
+      .from("module_materials")
+      .select("module_id")
+      .eq("user_id", userId)
+      .like("storage_path", `${folder}%`)
+      .limit(1)
+      .maybeSingle();
+    if (existing) {
+      const { data: job } = await admin
+        .from("jobs")
+        .select("id")
+        .eq("user_id", userId)
+        .eq("kind", "module_parse")
+        .eq("input->>module_id", existing.module_id)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (job) return json({ job_id: job.id, kind: "module_parse", module_id: existing.module_id });
+    }
+
     // Что на самом деле лежит в папке загрузки. Размер и тип — отсюда.
     const { data: objects, error: listError } = await admin.storage
       .from(BUCKET)

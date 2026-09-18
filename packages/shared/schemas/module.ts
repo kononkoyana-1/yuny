@@ -73,25 +73,43 @@ export const ModuleParseResultSchema = z.object({
 });
 
 /**
- * Коды ошибок загрузки и разбора. Клиент превращает их в текст, техническая
- * причина до экрана не доходит (TZ.md §11).
+ * Коды ошибок, которые сервер отдаёт в загрузке и разборе. Клиент превращает
+ * их в текст, техническая причина до экрана не доходит (TZ.md §11). Что с
+ * каким кодом делать — таблица в docs/design/specs/upload.design.md §2.
  *
- * `not_language_material` — единственный код, после которого модуля больше нет:
- * повторять разбор бессмысленно, нужен другой файл. После `ai_unavailable` и
- * `ai_invalid_response` модуль остаётся, и его можно разобрать заново.
+ * Что после кода остаётся на сервере:
+ *   * `module-create` отказал по лимитам (`too_many_files`, `total_too_large`,
+ *     `file_too_large`, `unsupported_type`, `file_missing`) — модуля нет,
+ *     файлы загрузки удалены;
+ *   * разбор отверг материал (`not_language_material`, `pdf_too_many_pages`) —
+ *     модуль и файлы удалены, повторять нечего, нужен другой файл;
+ *   * разбор упал (`ai_unavailable`, `ai_invalid_response`, `internal_error`) —
+ *     модуль в статусе `failed` с файлами, `module-parse` разберёт его заново;
+ *   * разбор не нашёл файл в Storage (`file_missing` из задачи) — модуль в
+ *     `failed`, но повтор не поможет: файлов нет;
+ *   * `module-parse` отказал (`module_not_found`, `module_not_retryable`) —
+ *     модуля нет или он не в `failed`.
+ *
+ * Сверх этого списка клиент видит свои коды из `BackendError`: `network_error`,
+ * `empty_response`, `timeout`, `realtime_unavailable`, `unauthorized`.
  */
 export const ModuleErrorCodeSchema = z.enum([
+  "invalid_request",
   "too_many_files",
   "total_too_large",
   "file_too_large",
   "unsupported_type",
-  "pdf_too_many_pages",
   "file_missing",
+  "storage_unavailable",
+  "module_create_failed",
+  "job_create_failed",
+  "pdf_too_many_pages",
   "not_language_material",
   "module_not_found",
   "module_not_retryable",
   "ai_unavailable",
   "ai_invalid_response",
+  "internal_error",
 ]);
 
 export type MaterialFile = z.infer<typeof MaterialFileSchema>;
