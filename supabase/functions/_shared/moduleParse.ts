@@ -14,6 +14,7 @@
 import type { SupabaseClient } from "npm:@supabase/supabase-js@2.112.4";
 import { type AiPart, aiJson, aiUploadFile, HandlerError, objectSchema } from "./shared.ts";
 import { docxText, LIMITS, materialKind, pdfPageCount, splitInline } from "./materials.ts";
+import { batchWords } from "./lessons.ts";
 
 const BUCKET = "materials";
 
@@ -251,18 +252,34 @@ export async function parseModule(
       }));
 
     // Повторный разбор начинает с чистого листа: прошлая попытка могла успеть
-    // записать часть слов, прежде чем упасть.
+    // записать часть слов или уроков, прежде чем упасть.
+    await admin.from("lessons").delete().eq("module_id", moduleId);
     await admin.from("module_vocabulary").delete().eq("module_id", moduleId);
     await admin.from("module_grammar").delete().eq("module_id", moduleId);
 
-    const { error: vocabError } = await admin.from("module_vocabulary").insert(
-      linked.map((row) => ({ ...row, module_id: moduleId, user_id: userId })),
-    );
-    if (vocabError) throw vocabError;
+    const { data: inserted, error: vocabError } = await admin
+      .from("module_vocabulary")
+      .insert(linked.map((row) => ({ ...row, module_id: moduleId, user_id: userId })))
+      .select("id, position");
+    if (vocabError || !inserted) throw vocabError ?? new HandlerError("internal_error", 500);
     if (grammar.length > 0) {
       const { error: grammarError } = await admin.from("module_grammar").insert(grammar);
       if (grammarError) throw grammarError;
     }
+
+    // Уроки первого комплекта — пачками слов в порядке материала. Задания к
+    // ним делает `lesson-generate`, до тех пор урок в статусе `pending`.
+    const ordered = [...inserted].sort((a, b) => a.position - b.position).map((v) => v.id);
+    const { error: lessonsError } = await admin.from("lessons").insert(
+      batchWords(ordered).map((ids, index) => ({
+        module_id: moduleId,
+        user_id: userId,
+        generation: 1,
+        position: index + 1,
+        vocabulary_ids: ids,
+      })),
+    );
+    if (lessonsError) throw lessonsError;
 
     const { error: moduleError } = await admin
       .from("modules")

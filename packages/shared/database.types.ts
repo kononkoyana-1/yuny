@@ -152,6 +152,53 @@ export type Database = {
         }
         Relationships: []
       }
+      lessons: {
+        Row: {
+          created_at: string
+          error_code: string | null
+          generation: number
+          id: string
+          module_id: string
+          position: number
+          status: Database["public"]["Enums"]["lesson_status"]
+          updated_at: string
+          user_id: string
+          vocabulary_ids: string[]
+        }
+        Insert: {
+          created_at?: string
+          error_code?: string | null
+          generation?: number
+          id?: string
+          module_id: string
+          position: number
+          status?: Database["public"]["Enums"]["lesson_status"]
+          updated_at?: string
+          user_id: string
+          vocabulary_ids: string[]
+        }
+        Update: {
+          created_at?: string
+          error_code?: string | null
+          generation?: number
+          id?: string
+          module_id?: string
+          position?: number
+          status?: Database["public"]["Enums"]["lesson_status"]
+          updated_at?: string
+          user_id?: string
+          vocabulary_ids?: string[]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lessons_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "modules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       materials: {
         Row: {
           created_at: string
@@ -393,6 +440,80 @@ export type Database = {
         }
         Relationships: []
       }
+      task_answer_keys: {
+        Row: {
+          answer_key: Json
+          created_at: string
+          task_id: string
+        }
+        Insert: {
+          answer_key: Json
+          created_at?: string
+          task_id: string
+        }
+        Update: {
+          answer_key?: Json
+          created_at?: string
+          task_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "task_answer_keys_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: true
+            referencedRelation: "tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tasks: {
+        Row: {
+          content: Json
+          created_at: string
+          id: string
+          lesson_id: string
+          module_id: string
+          position: number
+          type: Database["public"]["Enums"]["task_type"]
+          user_id: string
+        }
+        Insert: {
+          content: Json
+          created_at?: string
+          id?: string
+          lesson_id: string
+          module_id: string
+          position: number
+          type: Database["public"]["Enums"]["task_type"]
+          user_id: string
+        }
+        Update: {
+          content?: Json
+          created_at?: string
+          id?: string
+          lesson_id?: string
+          module_id?: string
+          position?: number
+          type?: Database["public"]["Enums"]["task_type"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tasks_lesson_id_fkey"
+            columns: ["lesson_id"]
+            isOneToOne: false
+            referencedRelation: "lessons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tasks_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "modules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -419,9 +540,15 @@ export type Database = {
     Enums: {
       job_kind: "module_parse" | "lesson_generate"
       job_status: "queued" | "running" | "done" | "failed"
+      lesson_status: "pending" | "generating" | "ready" | "failed"
       material_kind: "pdf" | "image" | "text" | "url"
       material_status: "queued" | "processing" | "ready" | "failed"
       module_status: "parsing" | "ready" | "failed"
+      task_type:
+        | "reading_truefalse"
+        | "open_questions"
+        | "translation"
+        | "word_cards"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -551,9 +678,16 @@ export const Constants = {
     Enums: {
       job_kind: ["module_parse", "lesson_generate"],
       job_status: ["queued", "running", "done", "failed"],
+      lesson_status: ["pending", "generating", "ready", "failed"],
       material_kind: ["pdf", "image", "text", "url"],
       material_status: ["queued", "processing", "ready", "failed"],
       module_status: ["parsing", "ready", "failed"],
+      task_type: [
+        "reading_truefalse",
+        "open_questions",
+        "translation",
+        "word_cards",
+      ],
     },
   },
 } as const
