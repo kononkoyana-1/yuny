@@ -46,7 +46,7 @@ export type ProgressRingProps =
 
 /**
  * A circular progress indicator (home.design.md §Composition, new
- * primitives). Draws a track (`primarySoft`) and, above a fraction of 0, an
+ * primitives). Draws a track (`ringTrack`) and, above a fraction of 0, an
  * arc (`primary`) with rounded caps starting at 12 o'clock and growing
  * clockwise.
  *
@@ -125,7 +125,7 @@ export function ProgressRing(props: ProgressRingProps) {
           cx={size / 2}
           cy={size / 2}
           r={radius}
-          stroke={colors.primarySoft}
+          stroke={colors.ringTrack}
           strokeWidth={strokeWidth}
           fill="none"
         />

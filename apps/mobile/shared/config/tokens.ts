@@ -18,6 +18,15 @@ export const colors = {
      */
     primary: "#6B5AC9",
     primarySoft: "#EFECFB",
+    /**
+     * `ProgressRing`'s track (home.design.md v2, §Theming). `primarySoft`
+     * itself only reaches 1.02:1 against `background` — at 0/N progress the
+     * ring was invisible (home.review.md S1). #D8CCF0 stays in the same
+     * primary-tinted lavender family, one step darker than `primarySoft`,
+     * and clears the spec's 1.25:1 floor at 1.34:1 while staying visibly
+     * quieter than the `primary` arc it surrounds.
+     */
+    ringTrack: "#D8CCF0",
     accent: "#FFD764",
     /**
      * Softened toward neutral from #FFF6DC. The accent itself stays gold —
@@ -59,6 +68,14 @@ export const colors = {
   dark: {
     primary: "#9B8FE3",
     primarySoft: "#2B2547",
+    /**
+     * Dark counterpart of `ringTrack` above. Dark `primarySoft` itself was
+     * the spec's reference floor at 1.2465:1 — under the 1.25:1 requirement
+     * once rounded honestly, not just visually tight. #3A3260 sits one step
+     * lighter, in the same violet family as `border-dark` (#332D52), and
+     * clears the floor at 1.54:1.
+     */
+    ringTrack: "#3A3260",
     accent: "#FFD764",
     /**
      * Was #3A3320 — gold mixed into near-black, which came out olive and

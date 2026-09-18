@@ -14,6 +14,10 @@ module.exports = {
         "primary-dark": "#9B8FE3",
         "primary-soft": "#EFECFB",
         "primary-soft-dark": "#2B2547",
+        // `ProgressRing`'s track; mirrors `colors.{light,dark}.ringTrack` in
+        // shared/config/tokens.ts — see there for the contrast math.
+        "ring-track": "#D8CCF0",
+        "ring-track-dark": "#3A3260",
         accent: "#FFD764",
         "accent-soft": "#FCF3E8",
         "accent-soft-dark": "#31294A",

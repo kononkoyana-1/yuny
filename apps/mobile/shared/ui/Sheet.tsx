@@ -97,6 +97,14 @@ export function Sheet({
       animationType="none"
       onRequestClose={onClose}
       statusBarTranslucent
+      // Names the *outer* dialog — react-native-web's own `ModalContent`
+      // already sets `role="dialog"`/`aria-modal` on this element (see
+      // `node_modules/react-native-web/dist/exports/Modal/ModalContent.js`),
+      // unnamed. `sheetA11y.web.ts`'s panel used to set a second, nested
+      // `role="dialog"` to supply that name — two dialog roles, one with no
+      // name, is an invalid ARIA tree. Naming this one and dropping the
+      // inner role (kept as a plain focus target) leaves exactly one.
+      accessibilityLabel={accessibilityLabel}
     >
       <View style={{ flex: 1, height }}>
         <Pressable
@@ -104,13 +112,23 @@ export function Sheet({
           onPress={onClose}
           style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }}
         >
+          {/*
+           * `Animated.View` carries only the animated `style` here.
+           * NativeWind does not apply `className` to Reanimated's
+           * components (same defect already documented in `Mascot.tsx` and
+           * `LoadingState.tsx`) — classes placed directly on it are silently
+           * dropped, which is why the scrim previously rendered with no
+           * background at all. The colour classes live on a plain `View`
+           * nested inside instead.
+           */}
           <Animated.View
             style={[
               { position: "absolute", top: 0, left: 0, right: 0, bottom: 0 },
               scrimStyle,
             ]}
-            className="bg-scrim dark:bg-scrim-dark"
-          />
+          >
+            <View className="flex-1 bg-scrim dark:bg-scrim-dark" />
+          </Animated.View>
         </Pressable>
 
         <View
@@ -122,9 +140,15 @@ export function Sheet({
             padding: isWide ? spacing.lg : 0,
           }}
         >
+          {/* Same split as the scrim above: this carries only the animated
+           * transform/opacity plus the non-class sizing (width/maxWidth/
+           * maxHeight can't be expressed as static classes since they're
+           * computed from window dimensions). The panel's own visual
+           * classes (background, padding, radius, border) live on the
+           * plain `View` nested inside, which is also where the a11y props
+           * and `panelRef` sit — that's the element assistive tech should
+           * actually see as the panel. */}
           <Animated.View
-            ref={panelRef}
-            {...sheetPanelA11yProps(accessibilityLabel)}
             style={[
               panelStyle,
               {
@@ -133,16 +157,34 @@ export function Sheet({
                 maxHeight: height - insets.top - insets.bottom,
               },
             ]}
-            className={`bg-surface px-lg pt-lg dark:border-t dark:border-border-dark dark:bg-surface-dark ${
-              isWide ? "rounded-xl" : "rounded-t-xl"
-            } ${className}`}
           >
-            <ScrollView
-              style={{ flexGrow: 0 }}
-              contentContainerStyle={{ paddingBottom: spacing.lg + insets.bottom }}
+            <View
+              ref={panelRef}
+              {...sheetPanelA11yProps(accessibilityLabel)}
+              // The panel keeps its content height and shrinks only when the
+              // outer `Animated.View` hits its `maxHeight`, so the
+              // `ScrollView` below gets a bounded height to scroll against
+              // (home.review.md B2, round 2). `minHeight: 0` lets a flex
+              // child shrink below its content size on the web.
+              //
+              // `flexShrink`, not `flex: 1`: `flex: 1` means a flex basis of
+              // 0, and Yoga on iOS/Android takes that literally — under a
+              // parent with no set height the panel would collapse to
+              // nothing and the sheet would open empty. The web resolves
+              // the same basis against the content, which is why `flex: 1`
+              // looked fine in the browser (home.review.md, round 3).
+              style={{ flexShrink: 1, minHeight: 0 }}
+              className={`bg-surface px-lg pt-lg dark:border-t dark:border-border-dark dark:bg-surface-dark ${
+                isWide ? "rounded-xl" : "rounded-t-xl"
+              } ${className}`}
             >
-              {children}
-            </ScrollView>
+              <ScrollView
+                style={{ flexGrow: 0 }}
+                contentContainerStyle={{ paddingBottom: spacing.lg + insets.bottom }}
+              >
+                {children}
+              </ScrollView>
+            </View>
           </Animated.View>
         </View>
       </View>
