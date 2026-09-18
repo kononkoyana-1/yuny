@@ -3,6 +3,8 @@ import * as Crypto from "expo-crypto";
 import { MATERIAL_LIMITS, type ModuleParseResult } from "@yuny/shared";
 import { moduleRepository } from "@/shared/repositories";
 import { BackendError } from "@/shared/lib/backendError";
+import { queryClient } from "@/shared/api/queryClient";
+import { queryKeys } from "@/shared/api/queryKeys";
 import { addPickedAssets, displayNameFor, type SelectedFile, type BannerMessage } from "./selection";
 import { pickFromCamera, pickFromFiles, pickFromGallery, type PickOutcome } from "./sources";
 import { errorRoute, needsFreshMaterialId, type ErrorPhase, type FailureKind } from "./errorRoute";
@@ -140,6 +142,10 @@ async function runAwaitParse(
       moduleId: null,
       startedAt: null,
     });
+    // Fires at the moment of success, not on the "На главную" button
+    // (home.design.md §1): a user can reach Главная through the tab bar
+    // instead, and the new module must already be there when they do.
+    void queryClient.invalidateQueries({ queryKey: queryKeys.modules });
   } catch (err) {
     if (get().jobId !== jobId) return;
     failInto(set, "job", codeOf(err), files, { materialId, jobId, moduleId });

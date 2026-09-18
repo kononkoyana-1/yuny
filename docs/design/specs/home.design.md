@@ -1,4 +1,11 @@
-# Design Spec — home · v1 · 2026-09-18
+# Design Spec — home · v2 · 2026-09-18
+
+> **v2 (2026-09-18, после gate B раунд 1 → `SPEC_DEFECT`, см. `docs/design/reviews/home.review.md`).** Три исправления, всё остальное без изменений:
+> 1. **Дорожка кольца.** В v1 дорожка — `primarySoft`. В светлой теме это `1.02:1` к `background`: кольцо модуля с прогрессом 0 не видно, а у остальных видна только дуга без круга, от которого её отсчитывать. Теперь нужен новый цветовой токен `ringTrack` / `ring-track-dark` (§Composition, п. 1 и п. 4; Theming; Acceptance #9, #21, #23).
+> 2. **Ширина названия под кружком.** В v1 было «не больше ячейки», и это разрешало сузить название до диаметра кольца, из-за чего слова ломаются посередине («Приветств / ия»). Теперь ширина равна ширине ячейки (§3; Acceptance #12).
+> 3. **Acceptance #11.** В v1 требовался тест `coverText()` на случай «`cover_text` не `null`», но в эту ветку функция не вызывается. Пункт переписан (Acceptance #11).
+>
+> Дефект `Sheet` (оформление окна не доходит до отрисовки) — ошибка не спеки, а примитива. Требование к нему не меняется (Acceptance #22).
 
 **Task:** Экран 01 «Главная», фаза 4. Модули показаны кружками с кольцом прогресса (#23), по тапу открывается окно модуля (#24), есть пустое состояние (#25).
 **Screen:** TZ.md §11 «01. Главная», вкладка `apps/mobile/app/(tabs)/index.tsx`
@@ -71,8 +78,8 @@
 1. **`ProgressRing`** диаметром `sizing.moduleCircle`. Внутри кольца — диск с отступом `sizing.progressRingGap` от внутреннего края кольца:
    - диск: `rounded-pill bg-surface dark:bg-surface-dark`. В светлой теме у него тень, как у `Card`, в тёмной — рамка `border-dark`;
    - текст внутри диска — `cover_text`. Если `cover_text === null`, выводится первая графема `title` после `trim()` (`Array.from(title.trim())[0]`). Кириллица и латиница переводятся в верхний регистр через `toLocaleUpperCase("ru")`. Функция живёт в `features/home/coverText.ts` и покрыта тестами. Текст: `Text variant="title"`, `tone` по умолчанию (`text`), `numberOfLines={1}`, `adjustsFontSizeToFit` запрещён: размер задаёт токен. Отдельный размер для CJK — задача фазы 7 (TZ.md §15, китайская типографика). Сейчас используется `title`;
-   - кольцо: дорожка `primarySoft`, заполнение `primary`, толщина `sizing.progressRingStroke`, закруглённые концы, старт в 12 часов, рост по часовой стрелке. У пройденного модуля кольцо просто полное. Цвет `success`, галочек, бейджей и отличий в оттенке нет (TZ.md §10).
-2. **Название** — `Text variant="caption" className="text-center"`, `numberOfLines={2}`, ширина не больше ячейки. Полное название есть в окне и в `accessibilityLabel`.
+   - кольцо: дорожка `ringTrack` (v2, было `primarySoft`), заполнение `primary`, толщина `sizing.progressRingStroke`, закруглённые концы, старт в 12 часов, рост по часовой стрелке. У пройденного модуля кольцо просто полное. Цвет `success`, галочек, бейджей и отличий в оттенке нет (TZ.md §10).
+2. **Название** — `Text variant="caption" className="text-center"`, `numberOfLines={2}`. **Ширина равна ширине ячейки** (v2), а не диаметру кольца: `Pressable` растягивается на ячейку (`self-stretch`), кольцо внутри стоит по центру. Иначе слова длиннее диаметра кольца переносятся посреди слова. Полное название есть в окне и в `accessibilityLabel`.
 
 Числа прогресса в кружке **нет** (TZ.md §11: «числом — только внутри окна»).
 
@@ -115,7 +122,7 @@
 | Заголовок | `Text variant="title"` | `text` | `header` |
 | Сетка | `FlatList` | отступы `lg`, `xl`, `md` | §3 |
 | Кружок | **`ModuleCircle`** (feature, `apps/mobile/features/home/ModuleCircle.tsx`) | см. §3 | строится из `ProgressRing` и `Text`, делает `frontend-builder` |
-| Кольцо | **`ProgressRing` (новый, shared/ui)** | `primarySoft`, `primary` | |
+| Кольцо | **`ProgressRing` (новый, shared/ui)** | `ringTrack` (v2), `primary` | |
 | Окно | **`Sheet` (новый, shared/ui)** | `surface`, `scrim`, радиус `xl` | |
 | Закрыть окно | `IconButton icon="close"` | существует | |
 | К заданиям | `Button variant="primary"` | существует | |
@@ -129,7 +136,7 @@
 1. **`ProgressRing`** (`apps/mobile/shared/ui/ProgressRing.tsx`), SVG на `react-native-svg`.
    - Props: `value: number`, `max: number`, `size: number` (из `sizing`), `strokeWidth?: number` (по умолчанию `sizing.progressRingStroke`), `children?: ReactNode` (центр кольца), `decorative?: boolean`, `accessibilityLabel?: string` (обязателен, если `decorative` не задан; сделать это дискриминированным union, по уроку `Mascot`).
    - Доля: `max > 0 ? clamp(value / max, 0, 1) : 0`.
-   - Цвета берутся из `useTheme().colors`: дорожка `primarySoft`, дуга `primary`. `strokeLinecap="round"`, старт в 12 часов, рост по часовой стрелке. При доле 0 дуга не рисуется совсем, круглой точки нулевой длины быть не должно.
+   - Цвета берутся из `useTheme().colors`: дорожка `ringTrack` (v2), дуга `primary`. `strokeLinecap="round"`, старт в 12 часов, рост по часовой стрелке. При доле 0 дуга не рисуется совсем, круглой точки нулевой длины быть не должно.
    - Анимация: изменение доли анимируется Reanimated, так же как у `ProgressBar`. При `useReducedMotion()` значение ставится сразу.
    - A11y без `decorative`: `accessibilityRole="progressbar"`, `accessibilityLabel`, `accessibilityValue={{ min: 0, max, now: value, text: <строка вызывающего, например «3 из 8»> }}`. С `decorative` кольцо и его SVG скрыты: `accessible={false}`, `importantForAccessibility="no-hide-descendants"`, `aria-hidden` в web. Кольцо внутри `ModuleCircle` декоративно, число произносит сама кнопка (см. Accessibility): в web `progressbar` внутри `button` нарушает дерево ролей.
    - Web: SVG рендерится через `react-native-svg` web, `Platform.OS` в компоненте не используется (TZ.md §17).
@@ -149,7 +156,8 @@
    - `sizing.sheetMaxWidth` — ширина окна по центру, предлагаю 480.
    - `breakpoints.wide` = 768. Это значение уже зашито литералом в `(tabs)/_layout.tsx`. Токен нужен, чтобы Главная и `Sheet` не завели второй литерал; перевести на него `_layout.tsx` — на усмотрение `design-system-agent`.
    - Цвет `scrim` / `scrim-dark`: полупрозрачный, 8-значный hex, как в `atmosphere`. На его фоне панель `surface` должна отделяться без тени. Значения выбирает `design-system-agent`.
-   Окончательные значения за `design-system-agent`. Спека требует только имена и условие для `moduleCircle`.
+   - **v2.** Цвет `ringTrack` / `ring-track-dark`: дорожка кольца. Условие: контраст к `background` в каждой теме не ниже `1.25:1`. Это значение пары dark `primarySoft` на `background-dark`, и в отрисовке раунда 1 кольцо с этим контрастом читается как кольцо. У светлой `primarySoft` контраст `1.02:1`, поэтому она не подходит. Дорожка остаётся тише дуги `primary` и не спорит с ней. Значения выбирает `design-system-agent`.
+   Окончательные значения за `design-system-agent`. Спека требует только имена и условия для `moduleCircle` и `ringTrack`.
 
 ---
 
@@ -166,7 +174,7 @@
 Все цвета задаются парами `x` / `dark:x-dark`. Цвета SVG берутся из `useTheme().colors`. Что меняется в тёмной теме:
 - фон `background` → `background-dark`;
 - диск кружка: тень в светлой теме → рамка `border-dark` на `surface-dark` в тёмной (как у `Card`); pressed `surface-alt` → `surface-alt-dark`;
-- кольцо: дорожка `primarySoft` → dark `primarySoft`, дуга `primary` → dark `primary` (светлее, читается на тёмном фоне);
+- кольцо: дорожка `ringTrack` → `ring-track-dark` (v2), дуга `primary` → dark `primary` (светлее, читается на тёмном фоне);
 - текст внутри диска и название: `text` → `text-dark`;
 - окно: `surface` → `surface-dark` с верхней рамкой `border-dark`; затемнение `scrim` → `scrim-dark`;
 - `Button primary` в тёмной теме уже исправлен (`7252756`), здесь ничего не меняется.
@@ -237,10 +245,10 @@
 **Список и кружок**
 7. Список — `FlatList`. `numColumns` вычисляется по ширине из `onLayout` и `sizing.moduleCell` и не бывает меньше 3. Есть `key={numColumns}`. Неполная последняя строка дополнена распорками с `accessible={false}`.
 8. `ModuleCircle` — одна `Pressable` с `accessibilityRole="button"`, `accessibilityLabel` из `home.module.a11y` (плюрализация по `total_tasks`) и `accessibilityHint` из `home.module.a11yHint`. `ProgressRing` внутри неё `decorative`.
-9. Диаметр кольца — `sizing.moduleCircle`. Кольцо: дорожка `primarySoft`, дуга `primary`. Цвета берутся из `useTheme().colors`. Ни в кружке, ни в названии нет числа прогресса.
+9. Диаметр кольца — `sizing.moduleCircle`. Кольцо: дорожка `ringTrack` (v2), дуга `primary`. Цвета берутся из `useTheme().colors`. Ни в кружке, ни в названии нет числа прогресса.
 10. У пройденного модуля (фикстура (в)) отличие только в полном кольце: нет ни `success`, ни иконки, ни бейджа. Ни один стиль кружка не зависит от соотношения `done` и `total`.
-11. Внутри диска — `cover_text`, а при `null` — результат `coverText()` из `features/home/coverText.ts`: первая графема `title.trim()`, в верхнем регистре `ru`. Тест `coverText.test.ts` покрывает `cover_text` не `null`, `null` с кириллическим названием, `null` с названием, которое начинается с пробелов, и `null` с китайским названием.
-12. Название под кружком: `Text variant="caption"`, `text-center`, `numberOfLines={2}`.
+11. Внутри диска — `cover_text`, а при `null` — результат `coverText(title)` из `features/home/coverText.ts`: первая графема `title.trim()`, в верхнем регистре `ru`. Выбор между ними — одно выражение `cover_text ?? coverText(title)` в `ModuleCircle`, без других условий. Тест `coverText.test.ts` покрывает кириллическое название, название, которое начинается с пробелов, и китайское название (v2: случая «`cover_text` не `null`» в тесте функции нет, потому что функция в эту ветку не вызывается).
+12. Название под кружком: `Text variant="caption"`, `text-center`, `numberOfLines={2}`. Ширина названия равна ширине ячейки: на `ModuleCircle` нет `width: sizing.moduleCircle`, `Pressable` растянут на ячейку (v2).
 13. В состоянии pressed у диска `bg-surface-alt dark:bg-surface-alt-dark`. Outline фокуса в web не отключён.
 
 **Окно**
@@ -257,9 +265,9 @@
 20. Ровно один `Button variant="primary"` на каждое состояние экрана: в списке без окна их ноль, в окне один, в пустом состоянии один (внутри `EmptyState`).
 
 **Новые примитивы (проверяются в пакете `design-system-agent`, до экрана)**
-21. `ProgressRing`: пропсы по §Composition, п. 1. Доля `max > 0 ? clamp : 0`, при доле 0 дуги нет. Reduced motion учитывается. `decorative` скрывает кольцо от ассистивных технологий на всех трёх платформах. Без `decorative` — `progressbar` с `accessibilityValue`, у которого `min`, `max`, `now` и `text`. `accessibilityLabel` обязателен на уровне типов, если `decorative` не задан.
+21. `ProgressRing`: пропсы по §Composition, п. 1. Дорожка — `ringTrack` (v2). Доля `max > 0 ? clamp : 0`, при доле 0 дуги нет. Reduced motion учитывается. `decorative` скрывает кольцо от ассистивных технологий на всех трёх платформах. Без `decorative` — `progressbar` с `accessibilityValue`, у которого `min`, `max`, `now` и `text`. `accessibilityLabel` обязателен на уровне типов, если `decorative` не задан.
 22. `Sheet`: пропсы по §Composition, п. 2. `onRequestClose`, тап по затемнению и `IconButton` вызывают `onClose`. Затемнение `accessible={false}`. В web есть `role="dialog"`/`aria-modal`. Фокус возвращается на `returnFocusRef`. Нижняя панель на узком экране, центрированное окно на `≥ breakpoints.wide`. Reduced motion учитывается. `Platform.OS` вне `shared/platform/` не используется.
-23. Токены `sizing.{moduleCircle,moduleCell,progressRingStroke,progressRingGap,sheetMaxWidth}`, `breakpoints.wide`, `scrim`/`scrim-dark` есть в `tokens.ts` и `tailwind.config.js`.
+23. Токены `sizing.{moduleCircle,moduleCell,progressRingStroke,progressRingGap,sheetMaxWidth}`, `breakpoints.wide`, `scrim`/`scrim-dark`, `ringTrack`/`ring-track-dark` (v2, контраст к `background` ≥ `1.25:1` в обеих темах) есть в `tokens.ts` и `tailwind.config.js`.
 
 **Сквозное**
 24. В `ru.ts` есть все ключи из §Copy с этими текстами. В `index.tsx`, `features/home/**` и `app/module/[id].tsx` нет строк интерфейса вне `t()`. Старая литеральная строка из `index.tsx` удалена.

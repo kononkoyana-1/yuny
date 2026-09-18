@@ -1,4 +1,9 @@
-import type { ModuleCreateRequest, ModuleCreateResponse, ModuleParseResult } from "@yuny/shared";
+import type {
+  ModuleCreateRequest,
+  ModuleCreateResponse,
+  ModuleParseResult,
+  ModuleProgress,
+} from "@yuny/shared";
 
 /**
  * One file about to be uploaded to Storage. `extension` drives the object
@@ -39,4 +44,10 @@ export interface ModuleRepository {
   awaitParse(jobId: string, timeoutMs?: number): Promise<ModuleParseResult>;
   /** Restarts a parse job for a module whose previous parse failed for a reason not caused by the material itself. */
   retryParse(moduleId: string): Promise<JobRef>;
+  /**
+   * Modules for Главная (home.design.md §1) — one row per ready module from
+   * `public.module_progress`, newest first (`created_at desc`) and nothing
+   * else: no client-side sort, filter, or grouping.
+   */
+  listModules(): Promise<ModuleProgress[]>;
 }

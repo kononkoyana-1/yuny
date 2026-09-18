@@ -5,4 +5,5 @@
  */
 export const queryKeys = {
   profile: ["profile"] as const,
+  modules: ["modules"] as const,
 };

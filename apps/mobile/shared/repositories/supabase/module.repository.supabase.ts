@@ -3,7 +3,9 @@ import {
   ModuleCreateResponseSchema,
   ModuleParseRequestSchema,
   ModuleParseResultSchema,
+  ModuleProgressSchema,
 } from "@yuny/shared";
+import { z } from "zod";
 import { BackendError } from "@/shared/lib/backendError";
 import { requireUserId } from "@/shared/lib/auth";
 import { getSupabase } from "@/shared/lib/supabase";
@@ -54,5 +56,14 @@ export const supabaseModuleRepository: ModuleRepository = {
     const body = ModuleParseRequestSchema.parse({ module_id: moduleId });
     const data = await invokeEdge<unknown>("module-parse", body);
     return jobRefSchema("module_parse").parse(data);
+  },
+
+  async listModules() {
+    const { data, error } = await getSupabase()
+      .from("module_progress")
+      .select("module_id,title,topic,created_at,generation,total_tasks,done_tasks,cover_text")
+      .order("created_at", { ascending: false });
+    if (error) throw new BackendError("internal_error");
+    return z.array(ModuleProgressSchema).parse(data);
   },
 };

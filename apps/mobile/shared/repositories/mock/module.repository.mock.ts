@@ -1,11 +1,14 @@
 import {
   ModuleCreateResponseSchema,
   ModuleParseResultSchema,
+  ModuleProgressSchema,
   type ModuleCreateRequest,
 } from "@yuny/shared";
+import { z } from "zod";
 import { jobRefSchema } from "@/shared/lib/jobs";
 import type { ModuleRepository } from "../module.repository";
 import { delay } from "./delay";
+import { MOCK_MODULES_EMPTY, mockModules } from "./fixtures";
 
 /** Local id generator — the mock has no native `expo-crypto` dependency of its own. */
 function mockId(): string {
@@ -52,5 +55,10 @@ export const mockModuleRepository: ModuleRepository = {
     const jobId = mockId();
     jobs.set(jobId, { moduleId });
     return delay(jobRefSchema("module_parse").parse({ job_id: jobId, kind: "module_parse" }), 300);
+  },
+
+  async listModules() {
+    const rows = MOCK_MODULES_EMPTY ? [] : mockModules;
+    return delay(z.array(ModuleProgressSchema).parse(rows), 300);
   },
 };
