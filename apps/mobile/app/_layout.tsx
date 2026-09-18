@@ -1,4 +1,5 @@
 import "@/shared/config/global.css";
+import "@/shared/i18n";
 
 import { useEffect, type ReactNode } from "react";
 import { QueryClientProvider } from "@tanstack/react-query";

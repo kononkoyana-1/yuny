@@ -38,7 +38,16 @@
         }
       ],
       "expo-web-browser",
-      "expo-apple-authentication"
+      "expo-apple-authentication",
+      "expo-localization",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Чтобы выбрать фото материала из галереи.",
+          "cameraPermission": "Чтобы сфотографировать страницу учебника или конспект.",
+          "microphonePermission": false
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

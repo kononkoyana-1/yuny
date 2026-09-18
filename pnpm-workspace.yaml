@@ -13,3 +13,5 @@ minimumReleaseAgeExclude:
   - turbo@2.10.12
   - '@tanstack/query-core@5.102.4'
   - '@tanstack/react-query@5.102.4'
+  - expo-image-manipulator@57.0.19
+  - expo-image-picker@57.0.19

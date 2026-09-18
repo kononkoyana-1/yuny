@@ -1,4 +1,9 @@
-# Design Spec — upload · v1 · 2026-09-18
+# Design Spec — upload · v1.1 · 2026-09-18
+
+> **v1.1 (2026-09-18, после gate B раунд 2).** Уточнения, не меняющие принятого в раундах 1–2: они фиксируют решения владельца
+> и закрывают пробелы, которые нашёл ревью (m1–m6). Что уже сделано — помечено «сделано»; что остаётся разработчику — Acceptance 26–28.
+> Изменённые места: §2 строка `limits`; Layout, строка файла; §3 п. 2–5 и «Отображаемое имя»; §Copy (`upload.error.unreadable`,
+> `upload.file.unnamed`); Acceptance 17, 26–28.
 
 **Task:** Экран 02 «Загрузка» (issue #11) и экран ожидания разбора (issue #15) с ошибками по классам (issue #14) — один поток от выбора файлов до готового модуля.
 **Screen:** TZ.md §11 «02. Загрузка», вкладка `apps/mobile/app/(tabs)/upload.tsx`
@@ -54,7 +59,7 @@ selecting ──submit──► sending(current, total) ──► reading(jobId,
 | Фаза | Коды | FailureKind | Что видит пользователь | Действие |
 | --- | --- | --- | --- | --- |
 | sending (Storage upload) | любая ошибка загрузки | `send_failed` | ErrorState | «Попробовать ещё раз» — вся отправка заново (тот же `material_id`, тот же выбор). Вторичное «Изменить выбор» → `selecting`, выбор сохранён. |
-| sending (`module-create`) | `too_many_files`, `file_too_large`, `total_too_large`, `unsupported_type` | `limits` | Сразу `selecting`, выбор сохранён, баннер с той же фразой, что у клиентской проверки (§Copy `upload.error.*`) | — (пользователь правит выбор). Новый `material_id` при следующей отправке: сервер уже удалил папку. |
+| sending (`module-create`) | `too_many_files`, `file_too_large`, `total_too_large`, `unsupported_type` | `limits` | Сразу `selecting`, выбор сохранён, баннер: `too_many_files` → `upload.error.tooMany`, `total_too_large` → `upload.error.totalTooLarge`; `file_too_large`, `unsupported_type` → `upload.limits` (v1.1: сервер не называет файл, а строка лимитов верна без имени; решение владельца, сделано) | — (пользователь правит выбор). Новый `material_id` при следующей отправке: сервер уже удалил папку. |
 | sending (`module-create`) | `file_missing`, `network_error`, `internal_error`, `empty_response`, `module_create_failed`, `storage_unavailable`, `invalid_request`, любой неизвестный | `send_failed` | как выше | как выше; при `file_missing` — новый `material_id`. |
 | reading (job) | `not_language_material` | `material_rejected` | ErrorState | «Выбрать другой файл» → `selecting`, выбор **сохранён** (из трёх плохим может быть один — пользователь уберёт его сам). |
 | reading (job) | `pdf_too_many_pages` | `pdf_too_long` | ErrorState | как `material_rejected`. |
@@ -96,7 +101,7 @@ selecting ──submit──► sending(current, total) ──► reading(jobId,
    - Один `Card` (радиус `card`, отступ `md`), внутри строки файлов, между строками — разделитель `h-px bg-border dark:bg-border-dark`, вертикальный отступ строки `py-sm`.
    - **Строка файла**, `flex-row items-center gap-md`:
      - плашка типа: `rounded-md bg-primary-soft dark:bg-primary-soft-dark p-sm`, внутри `Icon` 22 цвета `colors.primary` (`image` для фото, `document` для PDF/DOCX), декоративная;
-     - текст `flex-1 gap-xs`: имя — `Text variant="body" className="font-semibold"`, `numberOfLines={1}`, `ellipsizeMode="middle"` (расширение остаётся видно); мета — `Text variant="caption" tone="muted"` — `upload.file.meta` (или `upload.file.preparing`, пока фото сжимается);
+     - текст `flex-1 gap-xs`: имя — `Text variant="body" className="font-semibold"`, `numberOfLines={1}`, `ellipsizeMode="middle"` (расширение остаётся видно). v1.1: в web react-native-web обрезает только в конце — так и оставить, обходной код не писать: тип файла и так стоит в мета-строке («PDF · 391 КБ»), а в `accessibilityLabel` строки идёт полное имя; мета — `Text variant="caption" tone="muted"` — `upload.file.meta` (или `upload.file.preparing`, пока фото сжимается);
      - `IconButton` (новый) с иконкой `close`, `accessibilityLabel` = `upload.file.remove`.
    - Когда выбрано 3 — под списком `Text variant="caption" tone="muted"` — `upload.selected.full`, все три `ActionTile` в `disabled`.
 6. **Футер** — `Button variant="primary"` `upload.submit`, во всю ширину. `disabled`, пока файлов 0 или хоть одно фото ещё сжимается. На время `submit` до перехода в `sending` — `loading`.
@@ -143,12 +148,13 @@ selecting ──submit──► sending(current, total) ──► reading(jobId,
 
 1. **Слоты.** Если выбрано больше, чем осталось мест, — берутся первые по порядку, баннер `upload.error.tooMany`.
 2. **Тип.** MIME из пикера; если пикер вернул пустой или `application/octet-stream` — по расширению (`.pdf`, `.docx`, `.jpg/.jpeg/.png/.heic/.heif`). `materialKind() === null` → файл не добавляется, баннер `upload.error.unsupported`.
-3. **Фото — сжатие.** Строка появляется сразу с мета `upload.file.preparing`; `ImageManipulator` ресайзит до `MATERIAL_LIMITS.imageMaxSide` по длинной стороне (только уменьшение) и **всегда** сохраняет в JPEG, качество 0.8. Итог: MIME `image/jpeg`, расширение `.jpg` — HEIC перестаёт быть проблемой на Android и Web. Ошибка открытия → строка убирается, баннер `upload.error.imageUnreadable`.
+3. **Фото — сжатие.** Строка появляется сразу с мета `upload.file.preparing`; `ImageManipulator` ресайзит до `MATERIAL_LIMITS.imageMaxSide` по длинной стороне (только уменьшение) и **всегда** сохраняет в JPEG, качество 0.8. Итог: MIME `image/jpeg`, расширение `.jpg` — HEIC перестаёт быть проблемой на Android и Web. Ошибка открытия → строка убирается, баннер `upload.error.imageUnreadable`. v1.1: у PDF/DOCX без `size`, байты которого не удалось дочитать, — баннер `upload.error.unreadable`, не `upload.error.unsupported` (сделано).
 4. **Размер одного файла** — проверяется **после** сжатия для фото (лимит 10 МБ относится к тому, что уйдёт на сервер; отказывать в 12-мегабайтном снимке, который сожмётся до 1 МБ, нельзя). PDF > `pdfMaxBytes`, DOCX > `docxMaxBytes`, фото > `imageMaxBytes` → не добавляется, баннер соответствующего `upload.error.*TooLarge`.
 5. **Сумма** > `maxTotalBytes` с учётом этого файла → не добавляется, баннер `upload.error.totalTooLarge`.
+   v1.1: сумма считается по **текущему** списку в store в тот момент, когда размер файла стал известен (PDF/DOCX — сразу, фото — после сжатия), а не по снимку списка на момент выбора. Так файлы, добавленные другим пикером, пока фото сжимается, попадают в сумму. Если фото после сжатия не помещается в 30 МБ вместе с тем, что уже в списке, убирается именно оно, баннер `upload.error.totalTooLarge`. Плитки источников на время сжатия **остаются активными** (см. Accessibility), блокировать их нельзя. Отправку это не задевает: «Создать модуль» и так `disabled`, пока хоть одно фото сжимается.
 6. **Разрешения.** Камера или галерея не разрешены → баннер `upload.error.cameraDenied` / `upload.error.galleryDenied`, выбор не меняется. Отмена пикера пользователем — не ошибка, ничего не показывается.
 
-**Отображаемое имя** (и поле `filename` в запросе): фото — `upload.file.photoName` с номером среди фото в выборе («Фото 1», «Фото 2»; после удаления нумерация пересчитывается), PDF/DOCX — исходное имя файла. **Размер** — байты итогового файла (для фото — после сжатия): < 1 МБ → `upload.size.kb` (целое), иначе `upload.size.mb` с одной цифрой после запятой; формат через `Intl.NumberFormat("ru")`.
+**Отображаемое имя** (и поле `filename` в запросе): фото — `upload.file.photoName` с номером среди фото в выборе («Фото 1», «Фото 2»; после удаления нумерация пересчитывается), PDF/DOCX — исходное имя файла; v1.1: если пикер не отдал `name` (или отдал пустую строку), имя — `upload.file.unnamed`, **никогда** не `uri`. То же имя идёт в баннеры `upload.error.*` с `{{name}}`, в `upload.file.remove` и в `filename` запроса. **Размер** — байты итогового файла (для фото — после сжатия): < 1 МБ → `upload.size.kb` (целое), иначе `upload.size.mb` с одной цифрой после запятой; формат через `Intl.NumberFormat("ru")`.
 
 ---
 
@@ -258,6 +264,8 @@ selecting ──submit──► sending(current, total) ──► reading(jobId,
 | `upload.error.docxTooLarge` | «{{name}}» больше 5 МБ. Сохраните документ без картинок или разделите его. |
 | `upload.error.totalTooLarge` | Вместе файлы больше 30 МБ. Уберите один или выберите файлы поменьше. |
 | `upload.error.imageUnreadable` | Не получилось открыть это фото. Попробуйте другое. |
+| `upload.error.unreadable` | Не получилось прочитать файл «{{name}}». Выберите его ещё раз или другой файл. *(v1.1, текст владельца, сделано)* |
+| `upload.file.unnamed` | Файл без названия *(v1.1)* |
 | `upload.error.cameraDenied` | Нет доступа к камере. Разрешите его в настройках телефона. |
 | `upload.error.galleryDenied` | Нет доступа к фото. Разрешите его в настройках телефона. |
 | `upload.wait.sending.title` | Отправляем файлы |
@@ -330,7 +338,7 @@ selecting ──submit──► sending(current, total) ──► reading(jobId,
 16. Состояние потока — в `features/upload/uploadFlow.store.ts`; промис ожидания запускается action'ом store; уход с вкладки и возврат показывает текущую фазу, а не пустой выбор.
 
 **Ошибки**
-17. `features/upload/errorRoute.ts` реализует таблицу §2 целиком, включая классификацию по фазе; есть unit-тест на каждую строку таблицы.
+17. `features/upload/errorRoute.ts` реализует таблицу §2 целиком, включая классификацию по фазе; есть unit-тест на каждую строку таблицы (Jest, `apps/mobile/jest.config.js`, `pnpm test`).
 18. `parse_failed` → `retryParse(moduleId)` без повторной загрузки; `parse_slow` → `awaitParse` с **тем же** `jobId`, `module-parse` не вызывается.
 19. `material_rejected` / `pdf_too_long` / `lost` возвращают в `selecting` с сохранённым выбором; `limits` — сразу `selecting` с баннером, без `ErrorState`.
 20. `send_failed` повторяет отправку с тем же `material_id` (кроме `file_missing`), вторичное `upload.fail.send.change` возвращает в `selecting`.
@@ -343,6 +351,11 @@ selecting ──submit──► sending(current, total) ──► reading(jobId,
 23. Каждый цветной класс в новых файлах имеет пару `dark:`; цвета для `Icon` — из `useTheme().colors`; ни одного hex-литерала.
 24. Все интерактивные элементы ≥ 44×44, у каждого `accessibilityRole` и `accessibilityLabel`; заголовки — `accessibilityRole="header"`; у текстовых контейнеров нет фиксированных высот.
 25. `pnpm typecheck` и `pnpm lint` чисты; handoff перечисляет проверку на iOS, Android и Web (TZ.md §17) — или честно говорит, где не проверено.
+
+**v1.1 — доделка после раунда 2**
+26. В `features/upload/selection.ts` нет ни одного `asset.name ?? asset.uri`: пустое или отсутствующее `name` у PDF/DOCX даёт `t("upload.file.unnamed")` — в строке, в баннерах, в `upload.file.remove` и в `filename`. `ru.ts` содержит `upload.file.unnamed` с текстом из §Copy.
+27. Проверка суммы (§3 п. 5) для PDF/DOCX и для фото после сжатия берёт список из store на момент проверки (например, через колбэк `getFiles()` вместо переданного снимка); фото, которое после сжатия не помещается, удаляется через `onRemove` с баннером `upload.error.totalTooLarge`. `ActionTile` на время сжатия не получают `disabled`.
+28. `selection.test.ts` покрывает оба пункта: (а) ассет без `name` → имя `upload.file.unnamed`; (б) фото сжимается, в это время в список попадает документ, после сжатия сумма > `maxTotalBytes` → фото удалено, баннер `upload.error.totalTooLarge`.
 
 ---
 
