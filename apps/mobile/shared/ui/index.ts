@@ -40,3 +40,9 @@ export type { ErrorStateProps } from "./ErrorState";
 
 export { Mascot } from "./Mascot";
 export type { MascotProps, MascotStage, MascotMood, MascotSize } from "./Mascot";
+
+export { ProgressRing } from "./ProgressRing";
+export type { ProgressRingProps } from "./ProgressRing";
+
+export { Sheet } from "./Sheet";
+export type { SheetProps } from "./Sheet";

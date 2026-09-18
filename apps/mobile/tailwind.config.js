@@ -39,6 +39,10 @@ module.exports = {
         "text-inverse-dark": "#17142A",
         // Raised-surface shadow; mirrors `shadowColor` in shared/config/tokens.ts.
         shadow: "#3C2D78",
+        // `Sheet`'s dimming layer; mirrors `colors.{light,dark}.scrim` in
+        // shared/config/tokens.ts — see there for why each alpha differs.
+        scrim: "#3C2D7899",
+        "scrim-dark": "#100E20CC",
       },
       spacing: {
         xs: "4px",
@@ -47,6 +51,26 @@ module.exports = {
         lg: "24px",
         xl: "32px",
         xxl: "48px",
+        // Component sizes, not gap/padding rhythm — mirrors `sizing` in
+        // shared/config/tokens.ts. Extending `spacing` (rather than `width`/
+        // `height` alone) is what makes both `w-*` and `h-*` pick these up,
+        // since Tailwind's default width/height scale reads from `spacing`.
+        "module-circle": "80px",
+        "module-cell": "112px",
+        "ring-stroke": "4px",
+        "ring-gap": "4px",
+      },
+      maxWidth: {
+        // `Sheet`'s panel width on `breakpoints.wide` and up; mirrors
+        // `sizing.sheetMaxWidth` in shared/config/tokens.ts.
+        sheet: "480px",
+      },
+      screens: {
+        // Mirrors `breakpoints.wide` in shared/config/tokens.ts. Numerically
+        // identical to Tailwind's built-in `md` (both 768px) — named
+        // separately so a `wide:` class reads as "the Home/Sheet breakpoint"
+        // rather than an arbitrary Tailwind size step.
+        wide: "768px",
       },
       borderRadius: {
         sm: "8px",

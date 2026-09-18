@@ -4,7 +4,7 @@ import { TabList, TabSlot, Tabs, TabTrigger } from "expo-router/ui";
 import { Icon, Text } from "@/shared/ui";
 import type { IconName } from "@/shared/ui";
 import { useTheme } from "@/shared/lib/useTheme";
-import { spacing, typography } from "@/shared/config/tokens";
+import { breakpoints, spacing, typography } from "@/shared/config/tokens";
 import type { Href } from "expo-router";
 
 /**
@@ -112,7 +112,7 @@ function TabBarButton({ label, icon, isWide, isFocused, ...pressableProps }: Tab
 export default function TabsLayout() {
   const { colors } = useTheme();
   const { width } = useWindowDimensions();
-  const isWide = width >= 768;
+  const isWide = width >= breakpoints.wide;
 
   return (
     /*

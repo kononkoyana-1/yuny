@@ -45,6 +45,16 @@ export const colors = {
      */
     textMuted: "#6E6890",
     textInverse: "#FFFFFF",
+    /**
+     * `Sheet`'s full-screen dimming layer (home.design.md §Composition, new
+     * primitives). Built from `shadowColor` — the same violet-tinted
+     * near-black already used for raised-surface shadows — rather than a
+     * plain black, so the scrim sits in the same colour family as the rest
+     * of the theme instead of reading as generic grey. 60% alpha (`#99`)
+     * lets `surface` separate from the page behind it with no shadow of its
+     * own, per the spec's requirement.
+     */
+    scrim: "#3C2D7899",
   },
   dark: {
     primary: "#9B8FE3",
@@ -68,6 +78,15 @@ export const colors = {
     text: "#F2EFF8",
     textMuted: "#A9A2C4",
     textInverse: "#17142A",
+    /**
+     * Dark-theme scrim. `surface-dark` (#221E3B) sits close to
+     * `background-dark` (#17142A), so separating the two without a shadow
+     * needs more contrast than the light scrim — 80% alpha (`#CC`) instead
+     * of 60%. Built from the darkest stop of `atmosphere.dark.sky`
+     * (#100E20), which is already this theme's "deepest" colour, rather
+     * than a fresh guess.
+     */
+    scrim: "#100E20CC",
   },
 } as const;
 
@@ -150,6 +169,38 @@ export const spacing = {
   lg: 24,
   xl: 32,
   xxl: 48,
+} as const;
+
+/**
+ * One-off pixel sizes that don't belong on the `spacing` scale (which is a
+ * gap/padding rhythm, not a component-dimension list). Introduced for
+ * `ProgressRing` and `Sheet` (home.design.md §Composition, new primitives).
+ */
+export const sizing = {
+  /**
+   * `ProgressRing`'s outer diameter inside `ModuleCircle`. At a 320pt-wide
+   * screen with `spacing.lg` side padding, three 80px circles leave 16px
+   * between each pair — above the `spacing.sm` (8px) floor the spec sets.
+   */
+  moduleCircle: 80,
+  /** Minimum grid-cell width `ModuleCircle`'s column count is computed from. */
+  moduleCell: 112,
+  /** `ProgressRing`'s default stroke width. */
+  progressRingStroke: 4,
+  /** Gap between `ProgressRing`'s inner edge and the disc it wraps. */
+  progressRingGap: 4,
+  /** `Sheet`'s panel width on `breakpoints.wide` and up. */
+  sheetMaxWidth: 480,
+} as const;
+
+/**
+ * Layout breakpoints, read via `useWindowDimensions` (not a `className`
+ * media-query variant) wherever a screen needs to branch its own layout
+ * logic rather than just its styling — see `(tabs)/_layout.tsx`'s sidebar
+ * switch, which this token now backs instead of a second `768` literal.
+ */
+export const breakpoints = {
+  wide: 768,
 } as const;
 
 export const radius = {
