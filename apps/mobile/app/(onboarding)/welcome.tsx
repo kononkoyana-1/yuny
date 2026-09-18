@@ -36,7 +36,7 @@ export default function Welcome() {
           `showStage={false}`: стадии роста больше нет, а пять точек под
           центральной картинкой читались бы как та самая карусель. */}
       <View className="flex-1 items-center justify-center">
-        <Mascot stage={1} mood="neutral" size="hero" showStage={false} />
+        <Mascot decorative stage={1} mood="neutral" size="hero" showStage={false} />
       </View>
 
       <View className="gap-md">

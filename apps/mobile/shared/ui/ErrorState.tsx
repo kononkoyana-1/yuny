@@ -18,7 +18,7 @@ export interface ErrorStateProps {
 /**
  * The mascot is `neutral`, not `thinking`: thinking is what it does while the
  * system is working, and by the time this shows, it has stopped. It is
- * decorative here — `accessible={false}` — so it is never announced by name
+ * decorative here — `Mascot`'s `decorative` prop — so it is never announced by name
  * ("Mascot, neutral, stage 1"); the caller's `title`/`detail` already say
  * what happened.
  *
@@ -46,9 +46,7 @@ export function ErrorState({
       accessibilityRole="alert"
       className={`items-center justify-center gap-md bg-background p-lg dark:bg-background-dark ${className}`}
     >
-      <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-        <Mascot stage={1} mood="neutral" size="medium" showStage={false} />
-      </View>
+      <Mascot decorative stage={1} mood="neutral" size="medium" showStage={false} />
 
       <View className="items-center gap-xs">
         <Text variant="heading" className="text-center">

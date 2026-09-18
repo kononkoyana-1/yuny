@@ -78,11 +78,9 @@ export function LoadingState({ message, detail, className = "" }: LoadingStatePr
       accessibilityLiveRegion="polite"
       className={`items-center justify-center gap-md bg-background p-lg dark:bg-background-dark ${className}`}
     >
-      <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-        <Mascot stage={1} mood="thinking" size="medium" showStage={false} />
-      </View>
+      <Mascot decorative stage={1} mood="thinking" size="medium" showStage={false} />
 
-      <View className="flex-row gap-xs" accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+      <View className="flex-row gap-xs" aria-hidden>
         {Array.from({ length: DOT_COUNT }, (_, i) => (
           <LoadingDot key={i} index={i} />
         ))}

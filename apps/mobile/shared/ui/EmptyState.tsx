@@ -29,7 +29,7 @@ export function EmptyState({
       className={`items-center justify-center gap-md bg-background p-lg dark:bg-background-dark ${className}`}
     >
       {showMascot ? (
-        <Mascot stage={1} mood="neutral" size="medium" showStage={false} />
+        <Mascot decorative stage={1} mood="neutral" size="medium" showStage={false} />
       ) : null}
       <Text variant="heading" className="text-center">
         {message}

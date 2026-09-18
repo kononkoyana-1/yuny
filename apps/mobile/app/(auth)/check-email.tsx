@@ -12,7 +12,7 @@ export default function CheckEmail() {
 
   return (
     <View className="flex-1 items-center justify-center gap-lg bg-background px-lg dark:bg-background-dark">
-      <Mascot stage={1} mood="resting" size="large" />
+      <Mascot decorative stage={1} mood="resting" size="large" />
 
       <View className="gap-sm">
         <Text variant="title" className="text-center">

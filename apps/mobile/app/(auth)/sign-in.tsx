@@ -50,7 +50,7 @@ export default function SignIn() {
         keyboardShouldPersistTaps="handled"
       >
         <View className="items-center gap-sm">
-          <Mascot stage={1} mood="neutral" size="medium" />
+          <Mascot decorative stage={1} mood="neutral" size="medium" />
           <Text variant="title" className="text-center">
             Welcome back.
           </Text>

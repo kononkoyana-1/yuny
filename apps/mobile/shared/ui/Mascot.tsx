@@ -99,7 +99,7 @@ function Sparkle({ progress, angle, distance }: SparkleProps) {
   );
 }
 
-export interface MascotProps {
+interface MascotBaseProps {
   stage: MascotStage;
   mood: MascotMood;
   size: MascotSize;
@@ -118,6 +118,34 @@ export interface MascotProps {
   className?: string;
 }
 
+export interface MascotProps extends MascotBaseProps {
+  /**
+   * Set when the mascot carries no information a screen reader user needs —
+   * a companion beside copy that already says everything, a spinner, an
+   * error illustration. Hidden from assistive tech on all three targets via
+   * the single `aria-hidden` prop: on native, RN's `View` translates it into
+   * `accessibilityElementsHidden` + `importantForAccessibility=
+   * "no-hide-descendants"`; on web, react-native-web 0.21 forwards it
+   * straight through as the DOM `aria-hidden` attribute (confirmed in
+   * `node_modules/react-native-web/dist/modules/createDOMProps` — the older
+   * `accessibilityHidden` prop it also accepts is deprecated there).
+   *
+   * Replaces the `<View accessibilityElementsHidden
+   * importantForAccessibility="no-hide-descendants">` wrapper pattern, which
+   * react-native-web 0.21 does not understand and so leaves the mascot
+   * readable on web.
+   */
+  decorative?: boolean;
+  /**
+   * Required when `decorative` is false — this component has no hardcoded
+   * label (there used to be an English `` `Mascot, ${mood}, stage ${stage}`
+   * `` fallback here — callers are Russian-only per `shared/i18n`, so the
+   * label has to come from the caller, which is the only place that already
+   * imports `t`). Ignored when `decorative` is true.
+   */
+  accessibilityLabel?: string;
+}
+
 export function Mascot({
   stage,
   mood,
@@ -125,6 +153,8 @@ export function Mascot({
   growthProgress,
   showStage = true,
   className = "",
+  decorative = false,
+  accessibilityLabel,
 }: MascotProps) {
   const reducedMotion = useReducedMotion();
   const dimension = SIZE_PX[size];
@@ -246,8 +276,9 @@ export function Mascot({
 
   return (
     <View
-      accessibilityRole="image"
-      accessibilityLabel={`Mascot, ${mood}, stage ${stage}`}
+      {...(decorative
+        ? { "aria-hidden": true }
+        : { accessibilityRole: "image" as const, accessibilityLabel })}
       className={`items-center ${className}`}
     >
       <Animated.View style={animatedStyle} className="relative">
