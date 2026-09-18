@@ -33,3 +33,28 @@ export type {
   ModuleParseResult,
   ModuleErrorCode,
 } from "./module";
+export {
+  LessonStatusSchema,
+  TaskTypeSchema,
+  LessonSchema,
+  ReadingTrueFalseContentSchema,
+  OpenQuestionsContentSchema,
+  TranslationContentSchema,
+  WordCardSchema,
+  WordCardsContentSchema,
+  TaskSchema,
+  LessonGenerateRequestSchema,
+  LessonGenerateResponseSchema,
+  LessonGenerateResultSchema,
+  LessonErrorCodeSchema,
+} from "./lesson";
+export type {
+  LessonStatus,
+  TaskType,
+  Lesson,
+  Task,
+  WordCard,
+  LessonGenerateResponse,
+  LessonGenerateResult,
+  LessonErrorCode,
+} from "./lesson";
