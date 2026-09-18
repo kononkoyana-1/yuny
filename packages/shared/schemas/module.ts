@@ -118,3 +118,22 @@ export type ModuleCreateResponse = z.infer<typeof ModuleCreateResponseSchema>;
 export type ModuleParseRequest = z.infer<typeof ModuleParseRequestSchema>;
 export type ModuleParseResult = z.infer<typeof ModuleParseResultSchema>;
 export type ModuleErrorCode = z.infer<typeof ModuleErrorCodeSchema>;
+
+/**
+ * Модуль на Главной — строка представления `public.module_progress` (TZ.md
+ * §10, §11 экран 01). Прогресс считает сервер: пройдено заданий (`done_tasks`)
+ * из всех в текущем комплекте (`total_tasks`). На Главной только готовые
+ * модули.
+ */
+export const ModuleProgressSchema = z.object({
+  module_id: z.uuid(),
+  title: z.string(),
+  topic: z.string().nullable(),
+  created_at: z.iso.datetime({ offset: true }),
+  /** Номер текущего комплекта заданий (TZ.md §10, «Сформировать новые задания»). */
+  generation: z.number().int().min(1),
+  total_tasks: z.number().int().min(0),
+  done_tasks: z.number().int().min(0),
+});
+
+export type ModuleProgress = z.infer<typeof ModuleProgressSchema>;

@@ -23,6 +23,7 @@ export {
   ModuleParseRequestSchema,
   ModuleParseResultSchema,
   ModuleErrorCodeSchema,
+  ModuleProgressSchema,
 } from "./module";
 export type {
   MaterialKind,
@@ -32,6 +33,7 @@ export type {
   ModuleParseRequest,
   ModuleParseResult,
   ModuleErrorCode,
+  ModuleProgress,
 } from "./module";
 export {
   LessonStatusSchema,

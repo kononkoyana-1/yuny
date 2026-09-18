@@ -194,6 +194,13 @@ export type Database = {
             foreignKeyName: "lessons_module_id_fkey"
             columns: ["module_id"]
             isOneToOne: false
+            referencedRelation: "module_progress"
+            referencedColumns: ["module_id"]
+          },
+          {
+            foreignKeyName: "lessons_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
             referencedRelation: "modules"
             referencedColumns: ["id"]
           },
@@ -274,6 +281,13 @@ export type Database = {
             foreignKeyName: "module_grammar_module_id_fkey"
             columns: ["module_id"]
             isOneToOne: false
+            referencedRelation: "module_progress"
+            referencedColumns: ["module_id"]
+          },
+          {
+            foreignKeyName: "module_grammar_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
             referencedRelation: "modules"
             referencedColumns: ["id"]
           },
@@ -314,6 +328,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "module_materials_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "module_progress"
+            referencedColumns: ["module_id"]
+          },
           {
             foreignKeyName: "module_materials_module_id_fkey"
             columns: ["module_id"]
@@ -370,6 +391,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "dictionary_entries"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "module_vocabulary_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "module_progress"
+            referencedColumns: ["module_id"]
           },
           {
             foreignKeyName: "module_vocabulary_module_id_fkey"
@@ -515,6 +543,13 @@ export type Database = {
             foreignKeyName: "task_submissions_module_id_fkey"
             columns: ["module_id"]
             isOneToOne: false
+            referencedRelation: "module_progress"
+            referencedColumns: ["module_id"]
+          },
+          {
+            foreignKeyName: "task_submissions_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
             referencedRelation: "modules"
             referencedColumns: ["id"]
           },
@@ -570,6 +605,13 @@ export type Database = {
             foreignKeyName: "tasks_module_id_fkey"
             columns: ["module_id"]
             isOneToOne: false
+            referencedRelation: "module_progress"
+            referencedColumns: ["module_id"]
+          },
+          {
+            foreignKeyName: "tasks_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
             referencedRelation: "modules"
             referencedColumns: ["id"]
           },
@@ -577,7 +619,19 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      module_progress: {
+        Row: {
+          created_at: string | null
+          done_tasks: number | null
+          generation: number | null
+          module_id: string | null
+          title: string | null
+          topic: string | null
+          total_tasks: number | null
+          user_id: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       dict_backfill_hsk_level: { Args: never; Returns: number }
