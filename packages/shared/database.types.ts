@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      dictionary_entries: {
+        Row: {
+          compact: string[]
+          created_at: string
+          headword: string
+          hsk_level: number | null
+          id: number
+          reading: string | null
+          reading_plain: string | null
+          senses: Json
+        }
+        Insert: {
+          compact?: string[]
+          created_at?: string
+          headword: string
+          hsk_level?: number | null
+          id?: number
+          reading?: string | null
+          reading_plain?: string | null
+          senses: Json
+        }
+        Update: {
+          compact?: string[]
+          created_at?: string
+          headword?: string
+          hsk_level?: number | null
+          id?: number
+          reading?: string | null
+          reading_plain?: string | null
+          senses?: Json
+        }
+        Relationships: []
+      }
       events: {
         Row: {
           created_at: string
@@ -65,6 +98,21 @@ export type Database = {
           improve?: string
           user_id?: string
           went_well?: string
+        }
+        Relationships: []
+      }
+      hsk_words: {
+        Row: {
+          level: number
+          word: string
+        }
+        Insert: {
+          level: number
+          word: string
+        }
+        Update: {
+          level?: number
+          word?: string
         }
         Relationships: []
       }
@@ -143,6 +191,184 @@ export type Database = {
         }
         Relationships: []
       }
+      module_grammar: {
+        Row: {
+          created_at: string
+          examples: string[]
+          explanation: string
+          id: string
+          module_id: string
+          point: string
+          position: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          examples?: string[]
+          explanation: string
+          id?: string
+          module_id: string
+          point: string
+          position: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          examples?: string[]
+          explanation?: string
+          id?: string
+          module_id?: string
+          point?: string
+          position?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "module_grammar_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "modules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      module_materials: {
+        Row: {
+          created_at: string
+          filename: string
+          id: string
+          mime_type: string
+          module_id: string
+          position: number
+          size_bytes: number
+          storage_path: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          filename: string
+          id?: string
+          mime_type: string
+          module_id: string
+          position: number
+          size_bytes: number
+          storage_path: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          filename?: string
+          id?: string
+          mime_type?: string
+          module_id?: string
+          position?: number
+          size_bytes?: number
+          storage_path?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "module_materials_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "modules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      module_vocabulary: {
+        Row: {
+          created_at: string
+          dictionary_entry_id: number | null
+          hsk_level: number | null
+          id: string
+          meaning_ru: string
+          module_id: string
+          position: number
+          reading: string | null
+          sense_hint: string
+          user_id: string
+          word: string
+        }
+        Insert: {
+          created_at?: string
+          dictionary_entry_id?: number | null
+          hsk_level?: number | null
+          id?: string
+          meaning_ru: string
+          module_id: string
+          position: number
+          reading?: string | null
+          sense_hint: string
+          user_id: string
+          word: string
+        }
+        Update: {
+          created_at?: string
+          dictionary_entry_id?: number | null
+          hsk_level?: number | null
+          id?: string
+          meaning_ru?: string
+          module_id?: string
+          position?: number
+          reading?: string | null
+          sense_hint?: string
+          user_id?: string
+          word?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "module_vocabulary_dictionary_entry_id_fkey"
+            columns: ["dictionary_entry_id"]
+            isOneToOne: false
+            referencedRelation: "dictionary_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "module_vocabulary_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "modules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      modules: {
+        Row: {
+          context: string | null
+          created_at: string
+          error_code: string | null
+          id: string
+          status: Database["public"]["Enums"]["module_status"]
+          title: string | null
+          topic: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          context?: string | null
+          created_at?: string
+          error_code?: string | null
+          id?: string
+          status?: Database["public"]["Enums"]["module_status"]
+          title?: string | null
+          topic?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          context?: string | null
+          created_at?: string
+          error_code?: string | null
+          id?: string
+          status?: Database["public"]["Enums"]["module_status"]
+          title?: string | null
+          topic?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
@@ -172,13 +398,30 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      dict_backfill_hsk_level: { Args: never; Returns: number }
+      dict_first_reading_plain: { Args: { p_reading: string }; Returns: string }
+      dict_like_prefix: { Args: { p_text: string }; Returns: string }
+      dict_pinyin_plain: { Args: { p_text: string }; Returns: string }
+      dict_reading: { Args: { p_reading: string }; Returns: string }
+      dictionary_search: {
+        Args: { p_limit?: number; p_offset?: number; p_query: string }
+        Returns: {
+          compact: string[]
+          headword: string
+          hsk_level: number
+          id: number
+          rank: number
+          reading: string
+          senses: Json
+        }[]
+      }
     }
     Enums: {
       job_kind: "module_parse" | "lesson_generate"
       job_status: "queued" | "running" | "done" | "failed"
       material_kind: "pdf" | "image" | "text" | "url"
       material_status: "queued" | "processing" | "ready" | "failed"
+      module_status: "parsing" | "ready" | "failed"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -310,6 +553,7 @@ export const Constants = {
       job_status: ["queued", "running", "done", "failed"],
       material_kind: ["pdf", "image", "text", "url"],
       material_status: ["queued", "processing", "ready", "failed"],
+      module_status: ["parsing", "ready", "failed"],
     },
   },
 } as const

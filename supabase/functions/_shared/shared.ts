@@ -218,11 +218,18 @@ const GEMINI_TYPES: Record<string, string> = {
   object: "OBJECT",
 };
 
+/**
+ * `maxItems` is deliberately absent. `gemini-3.5-flash` answers any schema
+ * carrying it with a bare `400 INVALID_ARGUMENT` — as a number or as a string,
+ * checked 2026-09-18 — while the same schema without it passes. Earlier
+ * models accepted it, so this broke silently on the model switch. Callers may
+ * still write `maxItems` (it documents intent); it is dropped here, and the
+ * caller caps the array in code after parsing.
+ */
 const GEMINI_SCHEMA_KEYS = new Set([
   "description",
   "enum",
   "format",
-  "maxItems",
   "maxLength",
   "maximum",
   "minItems",
@@ -262,8 +269,90 @@ function toGeminiSchema(schema: Record<string, unknown>): Record<string, unknown
   return out;
 }
 
-/** One part of a Gemini request — text, or an inlined document/image. */
-export type AiPart = { text: string } | { inlineData: { mimeType: string; data: string } };
+/**
+ * One part of a Gemini request — text, an inlined document/image, or a file
+ * already uploaded through the Files API (see `aiUploadFile`).
+ */
+export type AiPart =
+  | { text: string }
+  | { inlineData: { mimeType: string; data: string } }
+  | { fileData: { mimeType: string; fileUri: string } };
+
+const AI_FILES_UPLOAD = "https://generativelanguage.googleapis.com/upload/v1beta/files";
+const AI_FILES = "https://generativelanguage.googleapis.com/v1beta";
+
+/**
+ * Uploads one file through the Gemini Files API and returns a part that
+ * references it.
+ *
+ * Inline data is capped per *request*, not per file, and base64 grows the
+ * bytes by a third — so a 20 MB PDF that TZ.md §6 allows cannot travel
+ * inline at all. Callers inline what fits and upload the rest here. Files
+ * expire on Google's side after 48 hours; nothing needs cleaning up.
+ */
+export async function aiUploadFile(
+  bytes: Uint8Array<ArrayBuffer>,
+  mimeType: string,
+  displayName: string,
+): Promise<AiPart> {
+  const apiKey = Deno.env.get("GEMINI_API_KEY");
+  if (!apiKey) throw new HandlerError("ai_unavailable", 503);
+
+  const start = await fetch(AI_FILES_UPLOAD, {
+    method: "POST",
+    headers: {
+      "x-goog-api-key": apiKey,
+      "X-Goog-Upload-Protocol": "resumable",
+      "X-Goog-Upload-Command": "start",
+      "X-Goog-Upload-Header-Content-Length": String(bytes.byteLength),
+      "X-Goog-Upload-Header-Content-Type": mimeType,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ file: { display_name: displayName } }),
+  });
+  const uploadUrl = start.headers.get("x-goog-upload-url");
+  if (!start.ok || !uploadUrl) {
+    console.error("ai_upload_start_failed", start.status, (await start.text()).slice(0, 300));
+    throw new HandlerError("ai_unavailable", 503);
+  }
+
+  const finish = await fetch(uploadUrl, {
+    method: "POST",
+    headers: {
+      "Content-Length": String(bytes.byteLength),
+      "X-Goog-Upload-Offset": "0",
+      "X-Goog-Upload-Command": "upload, finalize",
+    },
+    body: bytes,
+  });
+  if (!finish.ok) {
+    console.error("ai_upload_failed", finish.status, (await finish.text()).slice(0, 300));
+    throw new HandlerError("ai_unavailable", 503);
+  }
+  let file = ((await finish.json()) as { file?: AiFile }).file;
+  if (!file?.uri || !file.name) throw new HandlerError("ai_unavailable", 503);
+
+  // A PDF is usually ACTIVE at once, but the API does not promise it, and a
+  // request naming a PROCESSING file is rejected. A short wait is cheaper than
+  // a failed parse.
+  for (let attempt = 0; file.state === "PROCESSING" && attempt < 10; attempt += 1) {
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+    const poll = await fetch(`${AI_FILES}/${file.name}`, { headers: { "x-goog-api-key": apiKey } });
+    if (poll.ok) file = (await poll.json()) as AiFile;
+  }
+  if (!file.uri || (file.state && file.state !== "ACTIVE")) {
+    console.error("ai_upload_not_active", file.name, file.state);
+    throw new HandlerError("ai_unavailable", 503);
+  }
+
+  return { fileData: { mimeType, fileUri: file.uri } };
+}
+
+interface AiFile {
+  name?: string;
+  uri?: string;
+  state?: "STATE_UNSPECIFIED" | "PROCESSING" | "ACTIVE" | "FAILED";
+}
 
 /**
  * The single AI call shape used by every function: a response schema the
