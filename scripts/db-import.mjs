@@ -41,11 +41,23 @@ function env() {
   if (!url) throw new Error("не нашёл EXPO_PUBLIC_SUPABASE_URL в apps/mobile/.env");
   if (!key) {
     throw new Error(
-      "нужен ключ service_role. Dashboard → Project Settings → API → service_role,\n" +
-        "положить строкой SUPABASE_SERVICE_ROLE_KEY=… в .env.local в корне репозитория.",
+      "нужен секретный ключ Supabase: Dashboard → Project Settings → API Keys →\n" +
+        "Secret keys (sb_secret_…) или Legacy → service_role. Положить строкой\n" +
+        "SUPABASE_SERVICE_ROLE_KEY=… в .env.local в корне репозитория.",
     );
   }
   return { url: url.replace(/\/$/, ""), key };
+}
+
+/**
+ * Два поколения ключей Supabase передаются по-разному. Новый секретный ключ
+ * (`sb_secret_…`) — не JWT: он идёт только в `apikey`, шлюз сам выпускает
+ * токен. Старый `service_role` — JWT, и его ждут ещё и в Authorization.
+ */
+function authHeaders(key) {
+  return key.startsWith("sb_")
+    ? { apikey: key }
+    : { apikey: key, Authorization: `Bearer ${key}` };
 }
 
 async function post(table, rows, { url, key }, attempts = 5) {
@@ -53,8 +65,7 @@ async function post(table, rows, { url, key }, attempts = 5) {
     const response = await fetch(`${url}/rest/v1/${table}`, {
       method: "POST",
       headers: {
-        apikey: key,
-        Authorization: `Bearer ${key}`,
+        ...authHeaders(key),
         "Content-Type": "application/json",
         Prefer: "resolution=ignore-duplicates,return=minimal",
       },
@@ -149,7 +160,7 @@ async function showSize(conn) {
  where n.nspname = 'public' and relname in ('dictionary_entries','hsk_words')`;
   const response = await fetch(`${conn.url}/rest/v1/rpc/exec_sql`, {
     method: "POST",
-    headers: { apikey: conn.key, Authorization: `Bearer ${conn.key}`, "Content-Type": "application/json" },
+    headers: { ...authHeaders(conn.key), "Content-Type": "application/json" },
     body: JSON.stringify({ query }),
   });
   console.log(response.ok ? await response.text() : "нет rpc exec_sql — смотреть размер через MCP");
