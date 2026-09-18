@@ -134,6 +134,11 @@ export const ModuleProgressSchema = z.object({
   generation: z.number().int().min(1),
   total_tasks: z.number().int().min(0),
   done_tasks: z.number().int().min(0),
+  /**
+   * Что стоит в центре кружка: первое слово материала в один-два иероглифа,
+   * иначе первый знак первого слова. Картинки разбор не даёт (TZ.md §7).
+   */
+  cover_text: z.string().nullable(),
 });
 
 export type ModuleProgress = z.infer<typeof ModuleProgressSchema>;

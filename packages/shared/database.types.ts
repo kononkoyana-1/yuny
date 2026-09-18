@@ -621,6 +621,7 @@ export type Database = {
     Views: {
       module_progress: {
         Row: {
+          cover_text: string | null
           created_at: string | null
           done_tasks: number | null
           generation: number | null
