@@ -60,17 +60,28 @@ function authHeaders(key) {
     : { apikey: key, Authorization: `Bearer ${key}` };
 }
 
-async function post(table, rows, { url, key }, attempts = 5) {
+async function post(table, rows, { url, key }, attempts = 10) {
   for (let attempt = 1; attempt <= attempts; attempt += 1) {
-    const response = await fetch(`${url}/rest/v1/${table}`, {
-      method: "POST",
-      headers: {
-        ...authHeaders(key),
-        "Content-Type": "application/json",
-        Prefer: "resolution=ignore-duplicates,return=minimal",
-      },
-      body: JSON.stringify(rows),
-    });
+    let response;
+    try {
+      response = await fetch(`${url}/rest/v1/${table}`, {
+        method: "POST",
+        headers: {
+          ...authHeaders(key),
+          "Content-Type": "application/json",
+          Prefer: "resolution=ignore-duplicates,return=minimal",
+        },
+        body: JSON.stringify(rows),
+      });
+    } catch (error) {
+      // Соединение до Supabase с этой машины встаёт не с первого раза: DNS
+      // отдаёт два адреса, и один из них молчит — половина попыток умирает на
+      // connect. Зато уже поднятое соединение undici переиспользует, и дальше
+      // пачки идут подряд. Поэтому сетевую ошибку повторяем, а не падаем.
+      if (attempt === attempts) throw error;
+      await new Promise((r) => setTimeout(r, 1500 * Math.min(attempt, 4)));
+      continue;
+    }
     if (response.ok) return;
     const body = await response.text();
     // 5xx и обрывы — это сеть или перегруз, их имеет смысл повторить. 4xx —
@@ -78,8 +89,27 @@ async function post(table, rows, { url, key }, attempts = 5) {
     if (response.status < 500 || attempt === attempts) {
       throw new Error(`${table}: ${response.status} ${body.slice(0, 400)}`);
     }
-    await new Promise((r) => setTimeout(r, 2000 * attempt));
+    await new Promise((r) => setTimeout(r, 2000 * Math.min(attempt, 4)));
   }
+}
+
+/**
+ * Проставить `dictionary_entries.hsk_level` по таблице `hsk_words`. Уровень
+ * нужен поиску как признак частотности: слово из HSK идёт в выдаче выше
+ * слова, которого нет ни в одном уровне. Шаг идемпотентный, поэтому вызывается
+ * в конце каждого прогона — и после первой заливки, и после дозаливки остатка.
+ */
+async function backfillHskLevel({ url, key }) {
+  const response = await fetch(`${url}/rest/v1/rpc/dict_backfill_hsk_level`, {
+    method: "POST",
+    headers: { ...authHeaders(key), "Content-Type": "application/json" },
+    body: "{}",
+  });
+  if (!response.ok) {
+    console.log(`  уровни HSK не проставлены: ${response.status} ${(await response.text()).slice(0, 200)}`);
+    return;
+  }
+  console.log(`  уровни HSK проставлены у ${Number(await response.text()).toLocaleString("ru")} статей`);
 }
 
 const bar = (done, total) => {
@@ -98,6 +128,7 @@ async function importHsk(conn) {
     bar(Math.min(i + BATCH, rows.length), rows.length);
   }
   console.log("\n  готово");
+  await backfillHskLevel(conn);
 }
 
 /** Пиньинь без тонов и пробелов: по нему ищет тот, кто набирает латиницей. */
@@ -148,6 +179,7 @@ async function importDict(conn, file, limit) {
   await flush();
   rl.close();
   console.log(`\n  готово: ${sent.toLocaleString("ru")} строк`);
+  await backfillHskLevel(conn);
 }
 
 async function showSize(conn) {
