@@ -1,16 +1,29 @@
-import { describe, expect, it } from "@jest/globals";
+import { describe, expect, it, jest } from "@jest/globals";
 import { MATERIAL_LIMITS } from "@yuny/shared";
 import { addPickedAssets, displayNameFor, photoNumber, type SelectedFile } from "./selection";
 import type { RawAsset } from "./sources";
 
 /**
  * Pure-function coverage for `selection.ts` (design review round 2, decision
- * 1): numbering and naming, and the order of §3's per-file checks. Every
- * asset here is a PDF or DOCX — none of these paths touch `compressImage`
- * (the only piece of this file that reaches a native module,
- * `expo-image-manipulator`), so the whole suite runs without mocking
- * anything native.
+ * 1): numbering and naming, and the order of §3's per-file checks. Most
+ * cases here are a PDF or DOCX and never touch `compressImage` (the only
+ * piece of this file that reaches a native module, `expo-image-manipulator`).
+ * The one suite that does (`addPickedAssets — live total across an async
+ * compression`, design review round 2, m6) mocks `react-native`'s
+ * `Image.getSize`, `expo-image-manipulator`, and `global.fetch` — the three
+ * native/DOM boundaries `compressImage` crosses — with a controllable
+ * `Image.getSize` so the test can insert a second file mid-compression
+ * deterministically rather than racing real timers.
  */
+
+jest.mock("react-native", () => ({
+  Image: { getSize: jest.fn() },
+}));
+
+jest.mock("expo-image-manipulator", () => ({
+  SaveFormat: { JPEG: "jpeg" },
+  ImageManipulator: { manipulate: jest.fn() },
+}));
 
 function makeFile(overrides: Partial<SelectedFile> = {}): SelectedFile {
   return {
@@ -38,8 +51,8 @@ function docxAsset(name: string, size: number): RawAsset {
   };
 }
 
-function callbacks() {
-  const files: SelectedFile[] = [];
+function callbacks(initial: SelectedFile[] = []) {
+  const files: SelectedFile[] = [...initial];
   return {
     files,
     cb: {
@@ -52,6 +65,7 @@ function callbacks() {
         const i = files.findIndex((f) => f.id === id);
         if (i >= 0) files.splice(i, 1);
       },
+      getFiles: () => files,
     },
   };
 }
@@ -133,13 +147,13 @@ describe("addPickedAssets — order of checks (§3)", () => {
   });
 
   it("total: a file under its own limit is still rejected once the running sum would cross maxTotalBytes", async () => {
-    const { files, cb } = callbacks();
     const existing = [
       makeFile({ id: "existing", kind: "pdf", sizeBytes: MATERIAL_LIMITS.maxTotalBytes - 1000 }),
     ];
+    const { files, cb } = callbacks(existing);
     const banner = await addPickedAssets([pdfAsset("small.pdf", 2000)], existing, cb, makeId());
     expect(banner).toEqual({ key: "upload.error.totalTooLarge" });
-    expect(files).toHaveLength(0); // the pre-existing file is untouched, nothing new was added
+    expect(files).toHaveLength(1); // only the pre-existing file — nothing new was added
   });
 
   it("accepts a file that clears every check, with no banner", async () => {
@@ -163,5 +177,94 @@ describe("addPickedAssets — order of checks (§3)", () => {
       makeId(),
     );
     expect(banner).toEqual({ key: "upload.error.pdfTooLarge", params: { name: "big.pdf" } });
+  });
+});
+
+describe("addPickedAssets — naming a file the picker gave no name for (v1.1, Acceptance 26)", () => {
+  it("names it upload.file.unnamed in the row, never the uri", async () => {
+    const { files, cb } = callbacks();
+    const banner = await addPickedAssets([docxAsset("", 1000)], [], cb, makeId());
+    expect(banner).toBeUndefined();
+    expect(files[0].originalName).toBe("Файл без названия");
+  });
+
+  it("uses upload.file.unnamed in an upload.error.* banner instead of the uri", async () => {
+    const { cb } = callbacks();
+    const tooLarge = MATERIAL_LIMITS.pdfMaxBytes + 1;
+    const banner = await addPickedAssets(
+      [{ uri: "file:///blob:abcd", name: undefined, mimeType: "application/pdf", size: tooLarge }],
+      [],
+      cb,
+      makeId(),
+    );
+    expect(banner).toEqual({ key: "upload.error.pdfTooLarge", params: { name: "Файл без названия" } });
+  });
+});
+
+describe("addPickedAssets — live total across an async compression (Acceptance 27–28, m6)", () => {
+  it("removes a photo that only overflows maxTotalBytes once a sibling added mid-compression is counted", async () => {
+    type GetSize = (uri: string, success: (w: number, h: number) => void, error: (e: unknown) => void) => void;
+    type ManipulateContext = { resize: jest.Mock; renderAsync: jest.Mock };
+    type Manipulate = (uri: string) => ManipulateContext;
+
+    const { Image } = jest.requireMock("react-native") as { Image: { getSize: jest.Mock<GetSize> } };
+    const { ImageManipulator } = jest.requireMock("expo-image-manipulator") as {
+      ImageManipulator: { manipulate: jest.Mock<Manipulate> };
+    };
+
+    // Individually every number below stays under its own type limit
+    // (`existing` doesn't go through a check at all — it is already in the
+    // list before this call starts, same as any other pre-existing file);
+    // it is only their sum, checked against the *live* list, that crosses
+    // `maxTotalBytes`.
+    const existing = makeFile({
+      id: "existing",
+      kind: "docx",
+      sizeBytes: MATERIAL_LIMITS.maxTotalBytes - 6000,
+    });
+    const docSize = 1000; // existing + doc = maxTotalBytes - 5000: fits alone, with room to spare.
+    const compressedSize = 5500; // existing + doc + compressed = maxTotalBytes + 500: over.
+
+    const getSizeControl: { release: (() => void) | null } = { release: null };
+    Image.getSize.mockImplementation((_uri: string, success: (w: number, h: number) => void) => {
+      getSizeControl.release = () => success(100, 100);
+    });
+    type SaveAsync = () => Promise<{ uri: string }>;
+    type RenderAsync = () => Promise<{ saveAsync: jest.Mock<SaveAsync> }>;
+    const saveAsync = jest.fn<SaveAsync>().mockResolvedValue({ uri: "file:///compressed.jpg" });
+    const renderAsync: jest.Mock<RenderAsync> = jest.fn<RenderAsync>().mockResolvedValue({ saveAsync });
+    ImageManipulator.manipulate.mockReturnValue({
+      resize: jest.fn().mockReturnThis(),
+      renderAsync,
+    });
+    type Fetch = (uri: string) => Promise<{ arrayBuffer: () => Promise<ArrayBuffer> }>;
+    (global as { fetch?: Fetch }).fetch = jest
+      .fn<Fetch>()
+      .mockResolvedValue({ arrayBuffer: async () => new ArrayBuffer(compressedSize) });
+
+    const { files, cb } = callbacks([existing]);
+
+    // Starts compressing; stays pending until `releaseGetSize()` is called below.
+    const photoPromise = addPickedAssets(
+      [{ uri: "file:///photo.jpg", name: "photo.jpg", mimeType: "image/jpeg" }],
+      [existing],
+      cb,
+      makeId(),
+    );
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(files).toHaveLength(2); // existing + the preparing placeholder
+
+    // A document arrives — and finishes — while the photo is still compressing.
+    const docBanner = await addPickedAssets([pdfAsset("doc.pdf", docSize)], files, cb, makeId());
+    expect(docBanner).toBeUndefined();
+    expect(files).toHaveLength(3);
+
+    getSizeControl.release?.();
+    const photoBanner = await photoPromise;
+
+    expect(photoBanner).toEqual({ key: "upload.error.totalTooLarge" });
+    expect(files).toHaveLength(2);
+    expect(files.map((f) => f.kind)).toEqual(["docx", "pdf"]);
   });
 });

@@ -31,6 +31,7 @@ export const ru = {
     },
     file: {
       photoName: "Фото {{n}}",
+      unnamed: "Файл без названия",
       kind: {
         image: "Фото",
         pdf: "PDF",

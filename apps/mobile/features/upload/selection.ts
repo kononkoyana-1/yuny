@@ -32,6 +32,14 @@ export interface AddFilesCallbacks {
   onUpdate(id: string, patch: Partial<SelectedFile>): void;
   /** A row failed a check only resolvable after it was added (photo size, post-compression total). */
   onRemove(id: string): void;
+  /**
+   * The live list at the moment of the call — not a snapshot taken when the
+   * batch started. A photo's compression is async, so by the time its size
+   * is known, a sibling pick (e.g. a document added from a second, faster
+   * source) may already be in the store; the running-total check (§3 point
+   * 5) has to see that (design review round 2, m6).
+   */
+  getFiles(): SelectedFile[];
 }
 
 /** 1-based position among photos only — PDFs/DOCXs interleaved in the list do not affect the count. */
@@ -66,6 +74,17 @@ function totalBytes(files: SelectedFile[]): number {
 }
 
 /**
+ * The picker's own name, or `upload.file.unnamed` when it gave none (or an
+ * empty string) — never the URI (design spec §3 "Отображаемое имя", v1.1).
+ * This is the name used everywhere a file is named: the row, `upload.error.*`
+ * banners' `{{name}}`, `upload.file.remove`, and the `filename` sent to the
+ * server.
+ */
+function resolveName(asset: RawAsset): string {
+  return asset.name && asset.name.trim() !== "" ? asset.name : t("upload.file.unnamed");
+}
+
+/**
  * MIME from the picker when it gave one; falls back to sniffing the
  * extension when it did not (empty or `application/octet-stream`) — §3
  * point 2. `null` means "not a type this product accepts".
@@ -73,7 +92,9 @@ function totalBytes(files: SelectedFile[]): number {
 function resolveMimeType(asset: RawAsset): string | null {
   if (asset.mimeType && asset.mimeType !== "application/octet-stream") return asset.mimeType;
 
-  const source = asset.name ?? asset.uri;
+  // Extension sniffing only, never a display name — the URI is a fine
+  // fallback here even though it never is for what the user sees.
+  const source = asset.name || asset.uri;
   const ext = source.split(".").pop()?.toLowerCase();
   switch (ext) {
     case "pdf":
@@ -151,13 +172,11 @@ export async function addPickedAssets(
     banner = { key: "upload.error.tooMany" };
   }
 
-  const accepted: SelectedFile[] = [...existingFiles];
-
   for (const asset of taken) {
     const mimeType = resolveMimeType(asset);
     const kind = mimeType ? materialKind(mimeType) : null;
     if (!mimeType || !kind) {
-      banner = { key: "upload.error.unsupported", params: { name: asset.name ?? asset.uri } };
+      banner = { key: "upload.error.unsupported", params: { name: resolveName(asset) } };
       continue;
     }
 
@@ -174,35 +193,34 @@ export async function addPickedAssets(
         preparing: true,
       };
       callbacks.onAdd(placeholder);
-      accepted.push(placeholder);
-      const idx = accepted.length - 1;
 
       let compressed: { uri: string; sizeBytes: number };
       try {
         compressed = await compressImage(asset.uri);
       } catch {
         callbacks.onRemove(id);
-        accepted.splice(idx, 1);
         banner = { key: "upload.error.imageUnreadable" };
         continue;
       }
 
       if (compressed.sizeBytes > MATERIAL_LIMITS.imageMaxBytes) {
         callbacks.onRemove(id);
-        accepted.splice(idx, 1);
         banner = { key: "upload.error.imageTooLarge" };
         continue;
       }
 
-      const candidateTotal = totalBytes(accepted) - accepted[idx].sizeBytes + compressed.sizeBytes;
+      // The live list at this instant, not the batch's opening snapshot: a
+      // sibling file may have been added by another in-flight pick while
+      // this photo was compressing (§3 point 5; design review round 2, m6).
+      // The placeholder is already in it at `sizeBytes: 0`, so adding the
+      // compressed size is all that's needed.
+      const candidateTotal = totalBytes(callbacks.getFiles()) + compressed.sizeBytes;
       if (candidateTotal > MATERIAL_LIMITS.maxTotalBytes) {
         callbacks.onRemove(id);
-        accepted.splice(idx, 1);
         banner = { key: "upload.error.totalTooLarge" };
         continue;
       }
 
-      accepted[idx] = { ...accepted[idx], uri: compressed.uri, sizeBytes: compressed.sizeBytes, preparing: false };
       callbacks.onUpdate(id, { uri: compressed.uri, sizeBytes: compressed.sizeBytes, preparing: false });
       continue;
     }
@@ -218,13 +236,13 @@ export async function addPickedAssets(
         // type is fine, the bytes just didn't read — so this uses the
         // dedicated `unreadable` copy instead (design review round 2,
         // owner decision 3).
-        banner = { key: "upload.error.unreadable", params: { name: asset.name ?? asset.uri } };
+        banner = { key: "upload.error.unreadable", params: { name: resolveName(asset) } };
         continue;
       }
     }
 
     const limit = kind === "pdf" ? MATERIAL_LIMITS.pdfMaxBytes : MATERIAL_LIMITS.docxMaxBytes;
-    const name = asset.name ?? asset.uri;
+    const name = resolveName(asset);
     if (sizeBytes > limit) {
       banner = {
         key: kind === "pdf" ? "upload.error.pdfTooLarge" : "upload.error.docxTooLarge",
@@ -233,7 +251,8 @@ export async function addPickedAssets(
       continue;
     }
 
-    if (totalBytes(accepted) + sizeBytes > MATERIAL_LIMITS.maxTotalBytes) {
+    // Live list, same reasoning as the photo branch above (m6).
+    if (totalBytes(callbacks.getFiles()) + sizeBytes > MATERIAL_LIMITS.maxTotalBytes) {
       banner = { key: "upload.error.totalTooLarge" };
       continue;
     }
@@ -248,7 +267,6 @@ export async function addPickedAssets(
       sizeBytes,
       preparing: false,
     };
-    accepted.push(file);
     callbacks.onAdd(file);
   }
 

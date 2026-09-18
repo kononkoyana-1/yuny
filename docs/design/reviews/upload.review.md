@@ -152,3 +152,15 @@ headless Chromium 390×844, светлая и тёмная тема. Прошё�
 3. **Вне пакета, `Mascot`.** `accessibilityLabel` необязателен в типах. Недекоративный маскот без подписи получит `role=image` без имени. Сейчас таких вызовов нет: все 7 передают `decorative`. Надёжнее сделать дискриминированный union.
 
 **Verdict:** APPROVED — раунд 2 из 2, по спеке v1. Доделка m5/m6 — по v1.1, Acceptance 26–28.
+
+## Раунд 3 (v1.1, п.26–28) · 2026-09-18 · APPROVED
+
+Глубина: только код и тесты, по незакоммиченному `git diff` (4 файла); скриншотов не было. Сам прогнал `pnpm test` (44 из 44 зелёные), `pnpm typecheck` и `pnpm lint` (оба завершились с кодом 0).
+
+- **26 — пройден.** В `selection.ts` не осталось ни одного `asset.name ?? asset.uri`. `resolveName` (`selection.ts:83`) возвращает `t("upload.file.unnamed")`, если имени нет или оно пустое. Её вызывают баннеры `unsupported` (:179), `unreadable` (:239), `pdf/docxTooLarge` (:245) и `originalName` строки (:266). От `originalName` через `displayNameFor` имя попадает в строку, в `upload.file.remove` и в `filename` (`uploadFlow.store.ts:257`). В `ru.ts` есть `upload.file.unnamed` «Файл без названия», текст совпадает с §Copy. `asset.name || asset.uri` на :97 нужен только чтобы угадать расширение, пользователю он не показывается. Это допустимо.
+- **27 — пройден.** Сумма для PDF/DOCX (:255) и для фото после сжатия (:217) считается по `callbacks.getFiles()`. В store это `get().files` (`uploadFlow.store.ts:173`). Placeholder фото в этот момент лежит в списке с `sizeBytes: 0`, поэтому двойного счёта нет. Фото, которое не помещается, убирается через `onRemove` и даёт баннер `totalTooLarge`. `ActionTile` по-прежнему получают `disabled={full}` (`upload.tsx:99,107,115`): от сжатия он не зависит.
+- **28 — пройден.** Тесты: (а) ассет без имени — `unnamed` и в строке, и в баннере; (б) пока фото сжимается, через управляемый `Image.getSize` в список добавляется документ. После сжатия фото удаляется, баннер `upload.error.totalTooLarge`.
+
+Замечаний нет.
+
+**Verdict:** APPROVED — m5 и m6 закрыты по спеке v1.1.

@@ -170,6 +170,7 @@ async function handlePickOutcome(
       onUpdate: (id, patch) =>
         set((s) => ({ files: s.files.map((f) => (f.id === id ? { ...f, ...patch } : f)) })),
       onRemove: (id) => set((s) => ({ files: s.files.filter((f) => f.id !== id) })),
+      getFiles: () => get().files,
     },
     () => Crypto.randomUUID(),
   );
