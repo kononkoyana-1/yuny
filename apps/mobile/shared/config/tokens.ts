@@ -72,16 +72,25 @@ export const colors = {
 } as const;
 
 /**
- * Primary-action gradient. Both stops must clear WCAG AA against white,
- * because the label sits on top of the whole sweep: #6B5AC9 is 5.34:1 and
+ * Primary-action gradient. Both stops must clear WCAG AA against the label
+ * colour that sits on top of the whole sweep.
+ *
+ * Light theme label is `text-inverse` (#FFFFFF): #5E4BBA is 6.58:1 and
  * #7566CE is 4.62:1.
  *
+ * Dark theme label is `text-inverse-dark` (#17142A — dark text, reused from
+ * the badge/pill "inverse" role for a light-tinted background). The first
+ * stop was #7E6FD8, which gave only 4.40:1 against that dark label — under
+ * the 4.5 floor. Lightened to #8273D9 (4.62:1); the second stop (#9384E4,
+ * 5.69:1) already cleared AA and is unchanged.
+ *
  * The visual reference used #8B7BE8 → #A78BFA, which measures 3.44:1 and
- * 2.72:1 — copying it verbatim would have shipped an unreadable button.
+ * 2.72:1 (light theme) — copying it verbatim would have shipped an
+ * unreadable button.
  */
 export const gradients = {
   primary: ["#5E4BBA", "#7566CE"] as const,
-  primaryDark: ["#7E6FD8", "#9384E4"] as const,
+  primaryDark: ["#8273D9", "#9384E4"] as const,
   /**
    * Full-bleed backdrop for the entry screen — a barely-there vertical wash
    * that lifts the top of the page. Both stops sit within a shade of
