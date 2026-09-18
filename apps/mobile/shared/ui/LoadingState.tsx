@@ -66,17 +66,21 @@ function LoadingDot({ index }: { index: number }) {
 export interface LoadingStateProps {
   /** Human-readable explanation of what is happening, e.g. "Analyzing your goal…" */
   message: string;
+  /** Optional second line under `message`, muted tone — e.g. which phase, or which file. Same live region as `message`, so a change here is announced too. */
+  detail?: string;
   className?: string;
 }
 
-export function LoadingState({ message, className = "" }: LoadingStateProps) {
+export function LoadingState({ message, detail, className = "" }: LoadingStateProps) {
   return (
     <View
       accessibilityRole="alert"
       accessibilityLiveRegion="polite"
       className={`items-center justify-center gap-md bg-background p-lg dark:bg-background-dark ${className}`}
     >
-      <Mascot stage={1} mood="thinking" size="medium" showStage={false} />
+      <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+        <Mascot stage={1} mood="thinking" size="medium" showStage={false} />
+      </View>
 
       <View className="flex-row gap-xs" accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
         {Array.from({ length: DOT_COUNT }, (_, i) => (
@@ -84,9 +88,16 @@ export function LoadingState({ message, className = "" }: LoadingStateProps) {
         ))}
       </View>
 
-      <Text variant="body" className="text-center font-semibold">
-        {message}
-      </Text>
+      <View className="items-center gap-xs">
+        <Text variant="body" className="text-center font-semibold">
+          {message}
+        </Text>
+        {detail ? (
+          <Text variant="body" tone="muted" className="text-center">
+            {detail}
+          </Text>
+        ) : null}
+      </View>
     </View>
   );
 }

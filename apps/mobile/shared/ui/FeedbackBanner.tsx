@@ -21,7 +21,8 @@ export function FeedbackBanner({
 }: FeedbackBannerProps) {
   return (
     <View
-      accessibilityRole="text"
+      accessibilityRole="alert"
+      accessibilityLiveRegion="polite"
       className={`rounded-md border px-md py-sm ${CONTAINER_CLASS[tone]} ${className}`}
     >
       <Text variant="body">{message}</Text>

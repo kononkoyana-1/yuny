@@ -13,6 +13,12 @@ export type { ButtonProps, ButtonVariant } from "./Button";
 export { Card } from "./Card";
 export type { CardProps } from "./Card";
 
+export { ActionTile } from "./ActionTile";
+export type { ActionTileProps } from "./ActionTile";
+
+export { IconButton } from "./IconButton";
+export type { IconButtonProps } from "./IconButton";
+
 export { Input, TextArea } from "./Input";
 export type { InputProps } from "./Input";
 

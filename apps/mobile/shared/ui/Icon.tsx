@@ -1,8 +1,12 @@
 import BellSvg from "@/assets/bell.svg";
 import BellUnreadSvg from "@/assets/bell-notification-social-media.svg";
 import BookSvg from "@/assets/book-alt.svg";
+import CameraSvg from "@/assets/camera.svg";
+import CloseSvg from "@/assets/close.svg";
 import CyborgSvg from "@/assets/cyborg.svg";
+import DocumentSvg from "@/assets/document.svg";
 import HomeSvg from "@/assets/home.svg";
+import ImageSvg from "@/assets/image.svg";
 import SettingsSvg from "@/assets/settings.svg";
 import UploadSvg from "@/assets/upload.svg";
 
@@ -30,6 +34,14 @@ const GLYPHS = {
   bellUnread: BellUnreadSvg,
   /** Marks material a model wrote, as opposed to material from a book. */
   ai: CyborgSvg,
+  /** Upload source: take a photo. */
+  camera: CameraSvg,
+  /** Upload source: pick a photo, and the type badge on an already-added photo row. */
+  image: ImageSvg,
+  /** Upload source: pick a file, and the type badge on an already-added PDF/DOCX row. */
+  document: DocumentSvg,
+  /** Bare-icon dismiss/remove action — always paired with a visible `accessibilityLabel` on its Pressable, never used alone. */
+  close: CloseSvg,
 } as const;
 
 export type IconName = keyof typeof GLYPHS;

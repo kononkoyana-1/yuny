@@ -118,8 +118,12 @@ export function ErrorBoundary({ error, retry }: { error: Error; retry: () => voi
   return (
     <SafeAreaProvider>
       <ErrorState
+        title="Что-то пошло не так"
+        detail="Ваш прогресс сохранён."
         onRetry={retry}
+        retryLabel="Повторить"
         onContinueAnyway={() => router.replace("/")}
+        continueLabel="На главную"
         className="flex-1 justify-center bg-background dark:bg-background-dark"
       />
     </SafeAreaProvider>

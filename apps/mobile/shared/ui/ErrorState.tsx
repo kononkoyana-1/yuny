@@ -4,30 +4,41 @@ import { Button } from "./Button";
 import { Mascot } from "./Mascot";
 
 export interface ErrorStateProps {
-  /** Human-facing message only — never a raw error code, stack trace, or API/LLM detail. */
-  message?: string;
+  /** Heading. Human-facing only — never a raw error code, stack trace, or API/LLM detail. */
+  title: string;
+  /** Body copy under the title, muted tone. Omit the prop — not pass an empty string — to show no explanation at all. */
+  detail?: string;
   onRetry?: () => void;
+  retryLabel?: string;
   onContinueAnyway?: () => void;
+  continueLabel?: string;
   className?: string;
 }
 
 /**
  * The mascot is `neutral`, not `thinking`: thinking is what it does while the
- * system is working, and by the time this shows, it has stopped.
+ * system is working, and by the time this shows, it has stopped. It is
+ * decorative here — `accessible={false}` — so it is never announced by name
+ * ("Mascot, neutral, stage 1"); the caller's `title`/`detail` already say
+ * what happened.
  *
- * The reassurance line is the substance of this screen. A learner who hits an
- * error mid-lesson does not know whether their work survived, and that — not
- * the failure itself — is what they need answered. Every write goes through an
- * Edge Function that has either committed or not, so the claim holds.
+ * There used to be a single hardcoded reassurance line here ("Your progress
+ * is saved. This was on our side."). That claim is not always true — a
+ * rejected upload is the caller's material, not a server fault — so the
+ * text is now entirely the caller's: `title` and `detail` carry whatever is
+ * actually true for that failure, and there is no English-literal fallback.
  *
  * "Try again" is `secondary` rather than the gradient: an error screen is not
  * a place the product should be steering anyone forward with its loudest
  * control.
  */
 export function ErrorState({
-  message = "Something went wrong",
+  title,
+  detail,
   onRetry,
+  retryLabel,
   onContinueAnyway,
+  continueLabel,
   className = "",
 }: ErrorStateProps) {
   return (
@@ -35,25 +46,27 @@ export function ErrorState({
       accessibilityRole="alert"
       className={`items-center justify-center gap-md bg-background p-lg dark:bg-background-dark ${className}`}
     >
-      <Mascot stage={1} mood="neutral" size="medium" showStage={false} />
+      <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+        <Mascot stage={1} mood="neutral" size="medium" showStage={false} />
+      </View>
 
       <View className="items-center gap-xs">
         <Text variant="heading" className="text-center">
-          {message}
+          {title}
         </Text>
-        <Text variant="body" tone="muted" className="text-center">
-          Your progress is saved. This was on our side.
-        </Text>
+        {detail ? (
+          <Text variant="body" tone="muted" className="text-center">
+            {detail}
+          </Text>
+        ) : null}
       </View>
 
       <View className="w-full gap-sm">
-        {onRetry ? <Button label="Try again" variant="secondary" onPress={onRetry} /> : null}
-        {onContinueAnyway ? (
-          <Button
-            label="Continue with another activity"
-            variant="ghost"
-            onPress={onContinueAnyway}
-          />
+        {onRetry && retryLabel ? (
+          <Button label={retryLabel} variant="secondary" onPress={onRetry} />
+        ) : null}
+        {onContinueAnyway && continueLabel ? (
+          <Button label={continueLabel} variant="ghost" onPress={onContinueAnyway} />
         ) : null}
       </View>
     </View>
