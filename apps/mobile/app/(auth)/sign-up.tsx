@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, View } from "react-native";
 import { useRouter } from "expo-router";
+import { t } from "@/shared/i18n";
 import { Button, FeedbackBanner, Input, Text } from "@/shared/ui";
 import { authErrorCopy } from "@/features/auth/errorCopy";
 import { signUpWithEmail } from "@/shared/lib/auth";
@@ -54,9 +55,9 @@ export default function SignUp() {
         keyboardShouldPersistTaps="handled"
       >
         <View className="gap-sm">
-          <Text variant="title">Create your account</Text>
+          <Text variant="title">{t("auth.signUp.title")}</Text>
           <Text variant="body" tone="muted">
-            Your goal, your progress, and your mascot stay tied to it.
+            {t("auth.signUp.subtitle")}
           </Text>
         </View>
 
@@ -66,16 +67,16 @@ export default function SignUp() {
           <Input
             value={displayName}
             onChangeText={setDisplayName}
-            placeholder="Your name"
-            accessibilityLabel="Your name"
+            placeholder={t("auth.signUp.name")}
+            accessibilityLabel={t("auth.signUp.name")}
             autoComplete="name"
             textContentType="name"
           />
           <Input
             value={email}
             onChangeText={setEmail}
-            placeholder="Email"
-            accessibilityLabel="Email"
+            placeholder={t("auth.email")}
+            accessibilityLabel={t("auth.email")}
             autoCapitalize="none"
             autoComplete="email"
             keyboardType="email-address"
@@ -84,8 +85,8 @@ export default function SignUp() {
           <Input
             value={password}
             onChangeText={setPassword}
-            placeholder={`Password (${MIN_PASSWORD_LENGTH}+ characters)`}
-            accessibilityLabel="Password"
+            placeholder={t("auth.signUp.password", { count: MIN_PASSWORD_LENGTH })}
+            accessibilityLabel={t("auth.password")}
             autoCapitalize="none"
             autoComplete="new-password"
             textContentType="newPassword"
@@ -94,7 +95,7 @@ export default function SignUp() {
         </View>
 
         <Button
-          label="Create account"
+          label={t("auth.signUp.submit")}
           variant="primary"
           disabled={!canSubmit || pending}
           loading={pending}
@@ -103,12 +104,12 @@ export default function SignUp() {
 
         <Pressable
           accessibilityRole="link"
-          accessibilityLabel="Back to sign in"
+          accessibilityLabel={t("auth.signUp.toSignInA11y")}
           onPress={() => router.back()}
           className="min-h-[44px] items-center justify-center"
         >
           <Text variant="body" className="text-primary dark:text-primary-dark">
-            Already have an account? Sign in
+            {t("auth.signUp.toSignIn")}
           </Text>
         </Pressable>
       </ScrollView>

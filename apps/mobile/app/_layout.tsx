@@ -1,5 +1,5 @@
 import "@/shared/config/global.css";
-import "@/shared/i18n";
+import { t } from "@/shared/i18n";
 
 import { useEffect, type ReactNode } from "react";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -39,7 +39,7 @@ function AuthGate({ children }: { children: ReactNode }) {
   if (status === "loading") {
     return (
       <LoadingState
-        message="Getting things ready…"
+        message={t("auth.loading")}
         className="flex-1 bg-background dark:bg-background-dark"
       />
     );
@@ -72,7 +72,7 @@ export default function RootLayout() {
     return (
       <SafeAreaProvider>
         <LoadingState
-          message="Getting things ready…"
+          message={t("auth.loading")}
           className="flex-1 bg-background dark:bg-background-dark"
         />
       </SafeAreaProvider>

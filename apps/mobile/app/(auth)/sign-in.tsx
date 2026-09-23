@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, View } from "react-native";
 import { useRouter } from "expo-router";
+import { t } from "@/shared/i18n";
 import { Button, FeedbackBanner, Input, Mascot, Text } from "@/shared/ui";
 import { authErrorCopy } from "@/features/auth/errorCopy";
 import {
@@ -52,10 +53,10 @@ export default function SignIn() {
         <View className="items-center gap-sm">
           <Mascot decorative stage={1} mood="neutral" size="medium" />
           <Text variant="title" className="text-center">
-            Welcome back.
+            {t("auth.signIn.title")}
           </Text>
           <Text variant="body" tone="muted" className="text-center">
-            Sign in to pick up where you left off.
+            {t("auth.signIn.subtitle")}
           </Text>
         </View>
 
@@ -65,8 +66,8 @@ export default function SignIn() {
           <Input
             value={email}
             onChangeText={setEmail}
-            placeholder="Email"
-            accessibilityLabel="Email"
+            placeholder={t("auth.email")}
+            accessibilityLabel={t("auth.email")}
             autoCapitalize="none"
             autoComplete="email"
             keyboardType="email-address"
@@ -75,8 +76,8 @@ export default function SignIn() {
           <Input
             value={password}
             onChangeText={setPassword}
-            placeholder="Password"
-            accessibilityLabel="Password"
+            placeholder={t("auth.password")}
+            accessibilityLabel={t("auth.password")}
             autoCapitalize="none"
             autoComplete="current-password"
             textContentType="password"
@@ -85,7 +86,7 @@ export default function SignIn() {
         </View>
 
         <Button
-          label="Sign in"
+          label={t("auth.signIn.submit")}
           variant="primary"
           disabled={!canSubmit || pending !== null}
           loading={pending === "email"}
@@ -95,11 +96,11 @@ export default function SignIn() {
         {GOOGLE_SIGN_IN_AVAILABLE || APPLE_SIGN_IN_AVAILABLE ? (
           <View className="gap-sm">
             <Text variant="caption" tone="muted" className="text-center">
-              or
+              {t("auth.or")}
             </Text>
             {GOOGLE_SIGN_IN_AVAILABLE ? (
               <Button
-                label="Continue with Google"
+                label={t("auth.signIn.google")}
                 variant="secondary"
                 disabled={pending !== null}
                 loading={pending === "google"}
@@ -108,7 +109,7 @@ export default function SignIn() {
             ) : null}
             {APPLE_SIGN_IN_AVAILABLE ? (
               <Button
-                label="Continue with Apple"
+                label={t("auth.signIn.apple")}
                 variant="secondary"
                 disabled={pending !== null}
                 loading={pending === "apple"}
@@ -120,12 +121,12 @@ export default function SignIn() {
 
         <Pressable
           accessibilityRole="link"
-          accessibilityLabel="Create an account"
+          accessibilityLabel={t("auth.signIn.toSignUpA11y")}
           onPress={() => router.push("/sign-up")}
           className="min-h-[44px] items-center justify-center"
         >
           <Text variant="body" className="text-primary dark:text-primary-dark">
-            New here? Create an account
+            {t("auth.signIn.toSignUp")}
           </Text>
         </Pressable>
       </ScrollView>

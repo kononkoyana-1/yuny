@@ -1,5 +1,6 @@
 import { View } from "react-native";
 import { useRouter } from "expo-router";
+import { t } from "@/shared/i18n";
 import { Button, Mascot, Text } from "@/shared/ui";
 
 /**
@@ -16,16 +17,15 @@ export default function CheckEmail() {
 
       <View className="gap-sm">
         <Text variant="title" className="text-center">
-          Check your email
+          {t("auth.checkEmail.title")}
         </Text>
         <Text variant="body" tone="muted" className="text-center">
-          We sent you a link to confirm your address. Open it, then come back
-          and sign in.
+          {t("auth.checkEmail.detail")}
         </Text>
       </View>
 
       <Button
-        label="Back to sign in"
+        label={t("auth.checkEmail.back")}
         variant="primary"
         className="w-full"
         onPress={() => router.replace("/sign-in")}
