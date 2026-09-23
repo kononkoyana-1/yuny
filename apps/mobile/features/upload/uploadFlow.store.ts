@@ -1,10 +1,8 @@
 import { create, type StoreApi } from "zustand";
 import { uuid } from "@/shared/lib/uuid";
-import { MATERIAL_LIMITS, type ModuleParseResult } from "@yuny/shared";
-import { moduleRepository } from "@/shared/repositories";
+import { MATERIAL_LIMITS, type WordsExtractRequest, type WordsExtractResult } from "@yuny/shared";
+import { moduleRepository, wordsRepository } from "@/shared/repositories";
 import { BackendError } from "@/shared/lib/backendError";
-import { queryClient } from "@/shared/api/queryClient";
-import { queryKeys } from "@/shared/api/queryKeys";
 import { addPickedAssets, displayNameFor, type SelectedFile, type BannerMessage } from "./selection";
 import { pickFromCamera, pickFromFiles, pickFromGallery, type PickOutcome } from "./sources";
 import { errorRoute, needsFreshMaterialId, type ErrorPhase, type FailureKind } from "./errorRoute";
@@ -12,7 +10,11 @@ import { errorRoute, needsFreshMaterialId, type ErrorPhase, type FailureKind } f
 /**
  * The one state machine for screen 02 + the parse-wait screen (design spec
  * §1): `selecting → sending → reading → success`, with `failed` reachable
- * from `sending`/`reading` per §2's routing table. Lives in a Zustand store,
+ * from `sending`/`reading` per §2's routing table.
+ *
+ * Since 2026-09-23 the file is read for words only (`words-extract`), not
+ * turned into a module: Главная is hidden, and `success` carries the word
+ * list the screen offers to save into a folder. Lives in a Zustand store,
  * not component state, on purpose — a user can switch tabs mid-parse and
  * the `awaitParse` promise below keeps running because it belongs to this
  * module, not to a mounted screen's `useEffect` (Acceptance #16).
@@ -31,10 +33,11 @@ export interface UploadFlowState {
   current: number;
   total: number;
   jobId: string | null;
-  moduleId: string | null;
+  /** The `words-extract` request as last sent — a retry resends it without re-uploading. */
+  request: WordsExtractRequest | null;
   startedAt: number | null;
   failureKind: FailureKind | null;
-  result: ModuleParseResult | null;
+  result: WordsExtractResult | null;
 }
 
 export interface UploadFlowActions {
@@ -67,7 +70,7 @@ const initialState: UploadFlowState = {
   current: 0,
   total: 0,
   jobId: null,
-  moduleId: null,
+  request: null,
   startedAt: null,
   failureKind: null,
   result: null,
@@ -100,7 +103,7 @@ function failInto(
   phase: ErrorPhase,
   code: string,
   files: SelectedFile[],
-  extra: { materialId: string | null; jobId?: string | null; moduleId?: string | null },
+  extra: { materialId: string | null; jobId?: string | null; request?: WordsExtractRequest | null },
 ) {
   const kind = errorRoute(phase, code);
   const freshId = needsFreshMaterialId(kind, code);
@@ -110,7 +113,7 @@ function failInto(
     files,
     materialId: freshId ? null : extra.materialId,
     jobId: extra.jobId ?? null,
-    moduleId: extra.moduleId ?? null,
+    request: freshId ? null : (extra.request ?? null),
     startedAt: null,
     bannerKey: undefined,
     bannerParams: undefined,
@@ -118,20 +121,20 @@ function failInto(
 }
 
 /**
- * Subscribes to one parse job and resolves the store into `success` or
- * `failed`. Guarded by `jobId` so a stale call (superseded by a later
- * `checkAgain`/`retryParse`) cannot clobber newer state after it settles.
+ * Subscribes to one `words_extract` job and resolves the store into
+ * `success` or `failed`. Guarded by `jobId` so a stale call (superseded by a
+ * later `checkAgain`/`retryParse`) cannot clobber newer state after it settles.
  */
-async function runAwaitParse(
+async function runAwaitWords(
   set: SetFn,
   get: GetFn,
   jobId: string,
   files: SelectedFile[],
   materialId: string | null,
-  moduleId: string | null,
+  request: WordsExtractRequest,
 ) {
   try {
-    const result = await moduleRepository.awaitParse(jobId, 120_000);
+    const result = await wordsRepository.awaitWords(jobId, 120_000);
     if (get().jobId !== jobId) return;
     set({
       phase: "success",
@@ -139,16 +142,12 @@ async function runAwaitParse(
       files: [],
       materialId: null,
       jobId: null,
-      moduleId: null,
+      request: null,
       startedAt: null,
     });
-    // Fires at the moment of success, not on the "На главную" button
-    // (home.design.md §1): a user can reach Главная through the tab bar
-    // instead, and the new module must already be there when they do.
-    void queryClient.invalidateQueries({ queryKey: queryKeys.modules });
   } catch (err) {
     if (get().jobId !== jobId) return;
-    failInto(set, "job", codeOf(err), files, { materialId, jobId, moduleId });
+    failInto(set, "job", codeOf(err), files, { materialId, jobId, request });
   }
 }
 
@@ -254,17 +253,19 @@ export const useUploadFlowStore = create<UploadFlowStore>((set, get) => ({
       }
     }
 
+    const request: WordsExtractRequest = {
+      material_id: materialId,
+      files: files.map((file, i) => ({
+        path: paths[i],
+        filename: displayNameFor(files, file),
+        mime_type: file.mimeType,
+        size_bytes: file.sizeBytes,
+      })),
+    };
+
     let created;
     try {
-      created = await moduleRepository.createModule({
-        material_id: materialId,
-        files: files.map((file, i) => ({
-          path: paths[i],
-          filename: displayNameFor(files, file),
-          mime_type: file.mimeType,
-          size_bytes: file.sizeBytes,
-        })),
-      });
+      created = await wordsRepository.extract(request);
     } catch (err) {
       const code = codeOf(err);
       const kind = errorRoute("create", code);
@@ -289,44 +290,44 @@ export const useUploadFlowStore = create<UploadFlowStore>((set, get) => ({
       files,
       materialId,
       jobId: created.job_id,
-      moduleId: created.module_id,
+      request,
       startedAt: Date.now(),
     });
 
-    await runAwaitParse(set, get, created.job_id, files, materialId, created.module_id);
+    await runAwaitWords(set, get, created.job_id, files, materialId, request);
   },
 
   async retryParse() {
     const state = get();
-    if (state.phase !== "failed" || state.failureKind !== "parse_failed" || !state.moduleId) return;
-    const { files, materialId, moduleId } = state;
+    if (state.phase !== "failed" || state.failureKind !== "parse_failed" || !state.request) return;
+    const { files, materialId, request } = state;
 
     // Leave `failed` synchronously, before the `await` below — otherwise a
-    // second tap lands while the first `module-parse` call is still in
-    // flight, passes the guard above (phase is still `failed`), and fires a
-    // second retry. The module is already `parsing` by then, so the second
-    // call gets `module_not_retryable` and routes to `lost`, discarding the
-    // first, healthy retry (review round 2, B2). `jobId: null` here is a
-    // placeholder the `WaitingScreen` doesn't read; `runAwaitParse`'s own
-    // `jobId` guard only starts caring once it is set below.
-    set({ phase: "reading", files, materialId, moduleId, jobId: null, startedAt: Date.now(), failureKind: null });
+    // second tap lands while the first call is still in flight and passes the
+    // guard above (review round 2, B2). `jobId: null` is a placeholder the
+    // `WaitingScreen` doesn't read.
+    set({ phase: "reading", files, materialId, request, jobId: null, startedAt: Date.now(), failureKind: null });
 
     try {
-      const ref = await moduleRepository.retryParse(moduleId);
+      // Same `material_id`: after a failed job `words-extract` starts a new one
+      // over the files still in Storage — nothing is uploaded again.
+      const ref = await wordsRepository.extract(request);
       set({ jobId: ref.job_id });
-      await runAwaitParse(set, get, ref.job_id, files, materialId, moduleId);
+      await runAwaitWords(set, get, ref.job_id, files, materialId, request);
     } catch (err) {
-      failInto(set, "retry", codeOf(err), files, { materialId, moduleId });
+      failInto(set, "retry", codeOf(err), files, { materialId, request });
     }
   },
 
   async checkAgain() {
     const state = get();
-    if (state.phase !== "failed" || state.failureKind !== "parse_slow" || !state.jobId) return;
-    const { files, materialId, jobId, moduleId } = state;
+    if (state.phase !== "failed" || state.failureKind !== "parse_slow" || !state.jobId || !state.request) {
+      return;
+    }
+    const { files, materialId, jobId, request } = state;
 
-    set({ phase: "reading", files, materialId, moduleId, jobId, startedAt: Date.now(), failureKind: null });
-    await runAwaitParse(set, get, jobId, files, materialId, moduleId);
+    set({ phase: "reading", files, materialId, request, jobId, startedAt: Date.now(), failureKind: null });
+    await runAwaitWords(set, get, jobId, files, materialId, request);
   },
 
   async retrySend() {
@@ -355,7 +356,7 @@ export const useUploadFlowStore = create<UploadFlowStore>((set, get) => ({
       bannerParams: undefined,
       submitting: false,
       jobId: null,
-      moduleId: null,
+      request: null,
       startedAt: null,
       failureKind: null,
     });

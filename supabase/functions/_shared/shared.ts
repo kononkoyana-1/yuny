@@ -121,7 +121,7 @@ export function requireUuid(body: Record<string, unknown>, key: string): string 
 
 // ------------------------------------------------------------------- jobs
 
-export type JobKind = "module_parse" | "lesson_generate";
+export type JobKind = "module_parse" | "lesson_generate" | "words_extract";
 
 export async function createJob(
   admin: SupabaseClient,

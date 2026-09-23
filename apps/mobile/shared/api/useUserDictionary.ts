@@ -75,3 +75,13 @@ export function useRemoveFromFolder() {
     onSettled: invalidate,
   });
 }
+
+/** Список слов в одну папку — сохранение слов из файла. Отдаёт, сколько добавилось. */
+export function useSaveWords() {
+  const invalidate = useInvalidateUserDictionary();
+  return useMutation({
+    mutationFn: ({ folderId, words }: { folderId: string; words: SaveWordInput[] }) =>
+      userDictionaryRepository.addItems(folderId, words),
+    onSettled: invalidate,
+  });
+}

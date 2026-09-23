@@ -10,6 +10,7 @@ function item(folder: string, headword: string, reading: string | null, glosses:
     folder_id: folder,
     headword,
     reading,
+    translation: null,
     created_at: "2026-09-23T00:00:00.000Z",
     entry: {
       id: n,
@@ -66,6 +67,20 @@ describe("searchSaved", () => {
   it("finds Russian in the article's senses", () => {
     expect(found("Звонить")).toEqual(["打电话"]);
     expect(found("кошка")).toEqual([]);
+  });
+
+  it("finds Russian in the word's own translation from a file", () => {
+    const own = groupSavedWords([{ ...item("c", "扫码", "sǎomǎ"), entry: null, translation: "отсканировать QR-код" }]);
+    expect(searchSaved(own, "qr").map((w) => w.headword)).toEqual([]);
+    expect(searchSaved(own, "сканир").map((w) => w.headword)).toEqual(["扫码"]);
+  });
+
+  it("keeps the first own translation of a word kept in several folders", () => {
+    const own = groupSavedWords([
+      { ...item("a", "买", "mǎi"), translation: null },
+      { ...item("b", "买", "mǎi"), translation: "покупать" },
+    ]);
+    expect(own[0].translation).toBe("покупать");
   });
 
   it("returns nothing for an empty or letterless query", () => {

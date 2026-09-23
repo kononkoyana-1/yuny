@@ -12,6 +12,8 @@ export interface SavedWord {
   reading: string | null;
   /** Статья словаря или `null`, если после перезаливки её больше нет. */
   entry: SavedEntry | null;
+  /** Свой перевод слова (из файла или от модели), если он есть хоть в одной папке. */
+  translation: string | null;
   items: UserDictionaryItem[];
 }
 
@@ -29,12 +31,14 @@ export function groupSavedWords(items: UserDictionaryItem[]): SavedWord[] {
     if (word) {
       word.items.push(item);
       word.entry ??= item.entry;
+      word.translation ??= item.translation;
     } else {
       byKey.set(key, {
         key,
         headword: item.headword,
         reading: item.reading,
         entry: item.entry,
+        translation: item.translation,
         items: [item],
       });
     }
@@ -52,7 +56,7 @@ export function folderCounts(items: UserDictionaryItem[]): Map<string, number> {
 /**
  * Поиск по своему словарю тем же полем, что и по БКРС: иероглиф ищется по
  * началу и внутри слова, пиньинь — по началу любого из чтений без тонов,
- * русский — по значениям статьи. Весь свой словарь уже на клиенте, поэтому
+ * русский — по своему переводу и значениям статьи. Весь свой словарь уже на клиенте, поэтому
  * ищется здесь, без запроса.
  */
 export function searchSaved(words: SavedWord[], query: string): SavedWord[] {
@@ -69,7 +73,9 @@ export function searchSaved(words: SavedWord[], query: string): SavedWord[] {
   }
 
   const needle = trimmed.toLocaleLowerCase("ru");
-  return words.filter((w) =>
-    (w.entry?.senses ?? []).some((s) => s.gloss.toLocaleLowerCase("ru").includes(needle)),
+  return words.filter(
+    (w) =>
+      (w.translation?.toLocaleLowerCase("ru").includes(needle) ?? false) ||
+      (w.entry?.senses ?? []).some((s) => s.gloss.toLocaleLowerCase("ru").includes(needle)),
   );
 }

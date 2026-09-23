@@ -120,6 +120,33 @@ export const mockDictionary: Omit<DictionaryEntry, "rank">[] = [
     hsk_level: 4,
   },
   {
+    id: 201,
+    headword: "商店",
+    reading: "shāngdiàn",
+    senses: [{ nest: null, num: null, gloss: "магазин, лавка" }],
+    compact: ["магазин, лавка"],
+    hsk_level: 1,
+  },
+  {
+    id: 202,
+    headword: "买",
+    reading: "mǎi",
+    senses: [
+      { nest: null, num: "1", gloss: "покупать, купить" },
+      { nest: null, num: "2", gloss: "подкупать" },
+    ],
+    compact: ["покупать, купить", "подкупать"],
+    hsk_level: 1,
+  },
+  {
+    id: 203,
+    headword: "多少钱",
+    reading: "duōshao qián",
+    senses: [{ nest: null, num: null, gloss: "сколько стоит?, почём?" }],
+    compact: ["сколько стоит?, почём?"],
+    hsk_level: 1,
+  },
+  {
     id: 110,
     headword: "上海",
     reading: "Shànghǎi",

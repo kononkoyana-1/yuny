@@ -36,6 +36,7 @@ function item(folderId: string, headword: string, createdAt: string): UserDictio
     folder_id: folderId,
     headword,
     reading: entry?.reading ?? null,
+    translation: null,
     created_at: createdAt,
     entry,
   };
@@ -90,23 +91,32 @@ export const mockUserDictionaryRepository: UserDictionaryRepository = {
   },
 
   async addItem(folderId, word) {
+    await this.addItems(folderId, [word]);
+  },
+
+  async addItems(folderId, words) {
     await delay(undefined, 200);
-    const exists = items.some(
-      (i) => i.folder_id === folderId && i.headword === word.headword && i.reading === word.reading,
-    );
-    if (exists) return;
-    const entry = word.entryId === null ? null : entryFor(word.headword);
-    items = [
-      {
-        id: uuid(),
-        folder_id: folderId,
-        headword: word.headword,
-        reading: word.reading,
-        created_at: new Date().toISOString(),
-        entry,
-      },
-      ...items,
-    ];
+    let added = 0;
+    for (const word of words) {
+      const exists = items.some(
+        (i) => i.folder_id === folderId && i.headword === word.headword && i.reading === word.reading,
+      );
+      if (exists) continue;
+      items = [
+        {
+          id: uuid(),
+          folder_id: folderId,
+          headword: word.headword,
+          reading: word.reading,
+          translation: word.translation ?? null,
+          created_at: new Date().toISOString(),
+          entry: word.entryId === null ? null : entryFor(word.headword),
+        },
+        ...items,
+      ];
+      added += 1;
+    }
+    return added;
   },
 
   async removeItem(itemId) {

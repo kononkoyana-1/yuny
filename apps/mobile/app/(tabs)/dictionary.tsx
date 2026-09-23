@@ -110,6 +110,7 @@ export default function DictionaryTab() {
                     key={rowKey}
                     ref={refFor(rowKey)}
                     word={word.entry ?? { ...word, senses: [], compact: [] }}
+                    translation={word.translation}
                     onPress={() => open(rowKey, word)}
                   />
                 );
@@ -165,7 +166,6 @@ export default function DictionaryTab() {
             onChangeText={setInput}
             placeholder={t("dictionary.search.placeholder")}
             accessibilityLabel={t("dictionary.search.a11y")}
-            accessibilityRole="search"
             autoCapitalize="none"
             autoCorrect={false}
             returnKeyType="search"

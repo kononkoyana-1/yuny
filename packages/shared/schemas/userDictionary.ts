@@ -40,6 +40,11 @@ export const UserDictionaryItemSchema = z.object({
   folder_id: z.uuid(),
   headword: z.string().min(1),
   reading: z.string().nullable(),
+  /**
+   * Свой перевод слова: из файла, откуда слово пришло, или от модели, если
+   * статьи нет. `null` у слов, сохранённых из поиска, — у них есть статья.
+   */
+  translation: z.string().nullable(),
   created_at: z.string(),
   entry: SavedEntrySchema.nullable(),
 });

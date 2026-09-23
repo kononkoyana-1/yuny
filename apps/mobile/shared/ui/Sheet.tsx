@@ -49,6 +49,7 @@ export function Sheet({
   const isWide = width >= breakpoints.wide;
 
   const panelRef = useRef<View>(null);
+  const wasVisible = useRef(false);
   const scrimOpacity = useSharedValue(0);
   const panelProgress = useSharedValue(0);
 
@@ -74,9 +75,19 @@ export function Sheet({
       scrimOpacity.value = withTiming(0, { duration: 150 });
       panelProgress.value = withTiming(0, { duration: 150 });
     }
-    returnFocusTo(returnFocusRef);
+    // Only on an actual close. This effect also runs while the sheet has
+    // never been open — on mount, and whenever the caller hands in a new
+    // `returnFocusRef` — and returning focus then pulled it out of whatever
+    // the user was typing in (docs/design/reviews/dictionary.review.md B1).
+    if (wasVisible.current) returnFocusTo(returnFocusRef);
     return undefined;
   }, [visible, reducedMotion, scrimOpacity, panelProgress, returnFocusRef]);
+
+  // Written after the effect above has read it, so that effect sees the
+  // previous render's value.
+  useEffect(() => {
+    wasVisible.current = visible;
+  }, [visible]);
 
   useEffect(() => {
     if (!visible) return undefined;

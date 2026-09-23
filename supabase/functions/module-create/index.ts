@@ -20,34 +20,8 @@ import {
   requireUuid,
   runJobInBackground,
 } from "../_shared/shared.ts";
-import { checkLimits, type StoredFile } from "../_shared/materials.ts";
 import { parseModule } from "../_shared/moduleParse.ts";
-
-const BUCKET = "materials";
-
-interface RequestedFile {
-  path: string;
-  filename: string;
-}
-
-function requireFiles(body: Record<string, unknown>, folder: string): RequestedFile[] {
-  const raw = body.files;
-  if (!Array.isArray(raw) || raw.length === 0) throw new HandlerError("invalid_request", 400);
-
-  return raw.map((item) => {
-    const file = item as Record<string, unknown>;
-    const path = typeof file.path === "string" ? file.path : "";
-    const filename = typeof file.filename === "string" ? file.filename.trim() : "";
-    // Путь обязан лежать прямо в папке этой загрузки: ни чужого префикса, ни
-    // подпапок, ни `..`. Политика Storage и так не дала бы прочесть чужое, но
-    // сервер ходит в Storage ключом service role, мимо политик.
-    const name = path.startsWith(folder) ? path.slice(folder.length) : "";
-    if (!name || name.includes("/") || name.includes("..") || !filename) {
-      throw new HandlerError("invalid_request", 400);
-    }
-    return { path, filename };
-  });
-}
+import { requireFiles, storedFiles } from "../_shared/uploadedFiles.ts";
 
 Deno.serve(
   handler(async ({ userId, admin, body }) => {
@@ -79,38 +53,7 @@ Deno.serve(
       if (job) return json({ job_id: job.id, kind: "module_parse", module_id: existing.module_id });
     }
 
-    // Что на самом деле лежит в папке загрузки. Размер и тип — отсюда.
-    const { data: objects, error: listError } = await admin.storage
-      .from(BUCKET)
-      .list(folder.slice(0, -1), { limit: 100 });
-    if (listError) throw new HandlerError("storage_unavailable", 503);
-
-    const discardFolder = async () => {
-      const all = (objects ?? []).map((o) => `${folder}${o.name}`);
-      if (all.length > 0) await admin.storage.from(BUCKET).remove(all);
-    };
-
-    const stored: StoredFile[] = [];
-    for (const file of requested) {
-      const object = objects?.find((o) => `${folder}${o.name}` === file.path);
-      if (!object) {
-        await discardFolder();
-        throw new HandlerError("file_missing", 422);
-      }
-      const meta = (object.metadata ?? {}) as { size?: number; mimetype?: string };
-      stored.push({
-        path: file.path,
-        filename: file.filename,
-        mimeType: meta.mimetype ?? "",
-        sizeBytes: meta.size ?? 0,
-      });
-    }
-
-    const limitError = checkLimits(stored);
-    if (limitError) {
-      await discardFolder();
-      throw new HandlerError(limitError, 422);
-    }
+    const stored = await storedFiles(admin, folder, requested);
 
     const { data: module, error: moduleError } = await admin
       .from("modules")

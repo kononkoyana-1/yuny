@@ -191,7 +191,7 @@ export function shortTitle(title: string): string {
 
 // ------------------------------------------------------------------ разбор
 
-interface MaterialRow {
+export interface MaterialRow {
   storage_path: string;
   filename: string;
   mime_type: string;
@@ -199,7 +199,7 @@ interface MaterialRow {
 }
 
 /** Материал не годится для модуля — удаляем модуль и файлы, повторять нечего. */
-class RejectedMaterial extends HandlerError {
+export class RejectedMaterial extends HandlerError {
   constructor(code: string) {
     super(code, 422);
   }
@@ -306,7 +306,7 @@ export async function parseModule(
 }
 
 /** Файлы материала — в части запроса к Gemini, в порядке частей материала. */
-async function materialParts(admin: SupabaseClient, materials: MaterialRow[]): Promise<AiPart[]> {
+export async function materialParts(admin: SupabaseClient, materials: MaterialRow[]): Promise<AiPart[]> {
   const files: { row: MaterialRow; bytes: Uint8Array<ArrayBuffer> }[] = [];
   const texts = new Map<number, string>();
 

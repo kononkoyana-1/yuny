@@ -13,6 +13,8 @@ export interface EntryRowProps {
   onPress: () => void;
   /** Слово уже лежит в какой-то из папок своего словаря. */
   saved?: boolean;
+  /** Свой перевод слова из файла — показывается вместо значений статьи. */
+  translation?: string | null;
 }
 
 /**
@@ -21,11 +23,11 @@ export interface EntryRowProps {
  * словаря (TZ.md §4), хотя в ответе он есть.
  */
 export const EntryRow = forwardRef<View, EntryRowProps>(function EntryRow(
-  { word, onPress, saved = false },
+  { word, onPress, saved = false, translation = null },
   ref,
 ) {
   const [pressed, setPressed] = useState(false);
-  const summary = entrySummary(word);
+  const summary = translation ?? entrySummary(word);
   const savedLabel = saved ? t("dictionary.entry.saved") : null;
 
   return (

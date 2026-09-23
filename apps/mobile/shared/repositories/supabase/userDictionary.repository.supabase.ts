@@ -12,9 +12,12 @@ import type { UserDictionaryRepository } from "../userDictionary.repository";
 
 const FOLDER_COLUMNS = "id,name,created_at";
 const ITEM_COLUMNS =
-  "id,folder_id,headword,reading,created_at,entry:dictionary_entries(id,headword,reading,senses,compact)";
+  "id,folder_id,headword,reading,translation,created_at,entry:dictionary_entries(id,headword,reading,senses,compact)";
 
-/** Postgres `unique_violation`. */
+/** Уникальность слова в папке — `user_dictionary_items_folder_word_key`, `nulls not distinct`. */
+const ITEM_KEY = "folder_id,headword,reading";
+
+/** Postgres `unique_violation` — у папок это занятое название. */
 const UNIQUE_VIOLATION = "23505";
 
 /**
@@ -75,15 +78,28 @@ export const supabaseUserDictionaryRepository: UserDictionaryRepository = {
   },
 
   async addItem(folderId, word) {
+    await this.addItems(folderId, [word]);
+  },
+
+  async addItems(folderId, words) {
     await requireUserId();
-    const { error } = await getSupabase().from("user_dictionary_items").insert({
-      folder_id: folderId,
-      headword: word.headword,
-      reading: word.reading,
-      dictionary_entry_id: word.entryId,
-    });
-    // Слово уже в этой папке — результат тот, которого и хотели.
-    if (error && error.code !== UNIQUE_VIOLATION) throw failure(error);
+    if (words.length === 0) return 0;
+    const { data, error } = await getSupabase()
+      .from("user_dictionary_items")
+      .upsert(
+        words.map((word) => ({
+          folder_id: folderId,
+          headword: word.headword,
+          reading: word.reading,
+          translation: word.translation ?? null,
+          dictionary_entry_id: word.entryId,
+        })),
+        // Слово уже в этой папке — пропускаем его, остальные вставляются.
+        { onConflict: ITEM_KEY, ignoreDuplicates: true },
+      )
+      .select("id");
+    if (error) throw failure(error);
+    return data.length;
   },
 
   async removeItem(itemId) {

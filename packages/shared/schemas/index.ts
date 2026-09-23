@@ -21,6 +21,20 @@ export {
 } from "./userDictionary";
 export type { UserDictionaryFolder, SavedEntry, UserDictionaryItem } from "./userDictionary";
 export {
+  WordsExtractRequestSchema,
+  WordsExtractResponseSchema,
+  TranslationSourceSchema,
+  ExtractedWordSchema,
+  WordsExtractResultSchema,
+} from "./words";
+export type {
+  WordsExtractRequest,
+  WordsExtractResponse,
+  TranslationSource,
+  ExtractedWord,
+  WordsExtractResult,
+} from "./words";
+export {
   MATERIAL_LIMITS,
   MATERIAL_MIME_TYPES,
   materialKind,

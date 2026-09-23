@@ -1,7 +1,13 @@
 import type { SavedEntry, UserDictionaryFolder, UserDictionaryItem } from "@yuny/shared";
 
-/** Что нужно, чтобы положить слово в папку: ключ слова и ссылка на статью. */
-export type SaveWordInput = Pick<SavedEntry, "headword" | "reading"> & { entryId: number | null };
+/**
+ * Что нужно, чтобы положить слово в папку: ключ слова, ссылка на статью и,
+ * если слово пришло из файла, его перевод оттуда.
+ */
+export type SaveWordInput = Pick<SavedEntry, "headword" | "reading"> & {
+  entryId: number | null;
+  translation?: string | null;
+};
 
 /**
  * Свой словарь (TZ.md §11 экран 04): папки и слова в них. Клиент пишет в
@@ -27,5 +33,10 @@ export interface UserDictionaryRepository {
   listItems(): Promise<UserDictionaryItem[]>;
   /** Кладёт слово в папку. Если оно там уже есть — ничего не делает. */
   addItem(folderId: string, word: SaveWordInput): Promise<void>;
+  /**
+   * Кладёт в папку сразу список слов — одной вставкой. Слова, которые там уже
+   * лежат, пропускаются. Возвращает, сколько слов добавилось.
+   */
+  addItems(folderId: string, words: SaveWordInput[]): Promise<number>;
   removeItem(itemId: string): Promise<void>;
 }

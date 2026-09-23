@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { ScrollView, View } from "react-native";
-import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   ActionTile,
@@ -12,7 +11,6 @@ import {
   Icon,
   IconButton,
   LoadingState,
-  Mascot,
   Text,
 } from "@/shared/ui";
 import { useTheme } from "@/shared/lib/useTheme";
@@ -21,6 +19,7 @@ import { MATERIAL_LIMITS } from "@yuny/shared";
 import { useUploadFlowStore } from "@/features/upload/uploadFlow.store";
 import { displayNameFor, metaFor, type SelectedFile } from "@/features/upload/selection";
 import { formatFileSize } from "@/features/upload/format";
+import { WordsReview } from "@/features/upload/WordsReview";
 
 /**
  * Screen 02 «Загрузка» + the parse-wait screen (`docs/design/specs/upload.design.md`).
@@ -203,56 +202,16 @@ function WaitingScreen() {
   );
 }
 
+/**
+ * Слова, найденные в файле (редакция 2026-09-23). «Готово» в любом виде —
+ * сохранили, или человек решил загрузить другой файл — сбрасывает поток.
+ */
 function SuccessScreen() {
-  const router = useRouter();
   const result = useUploadFlowStore((s) => s.result);
   const reset = useUploadFlowStore((s) => s.reset);
 
   if (!result) return null;
-
-  const words = t("upload.done.words", { count: result.vocabulary_count });
-  const grammar = t("upload.done.grammar", { count: result.grammar_count });
-  const summary =
-    result.grammar_count > 0
-      ? t("upload.done.summary", { words, grammar })
-      : t("upload.done.summaryWordsOnly", { words });
-
-  return (
-    <View className="flex-1 items-center justify-center gap-lg bg-background px-lg dark:bg-background-dark">
-      {/*
-        Decorative here, same as inside `LoadingState`/`ErrorState`: the
-        summary text below already says everything a screen reader user
-        needs, so the mascot carries no information of its own. `decorative`
-        renders `aria-hidden` directly (native and web alike) instead of the
-        `accessibilityElementsHidden`/`importantForAccessibility` wrapper,
-        which react-native-web 0.21 does not translate to `aria-hidden` and
-        so left the mascot readable on web (review round 2, B3).
-      */}
-      <Mascot decorative stage={1} mood="celebrating" size="medium" showStage={false} />
-      <View className="items-center gap-xs">
-        <Text variant="title" className="text-center" accessibilityRole="header">
-          {t("upload.done.title")}
-        </Text>
-        <Text variant="body" className="text-center">
-          {summary}
-        </Text>
-        <Text variant="body" tone="muted" className="text-center">
-          {t("upload.done.next")}
-        </Text>
-      </View>
-      <View className="w-full gap-sm">
-        <Button
-          label={t("upload.done.primary")}
-          variant="primary"
-          onPress={() => {
-            reset();
-            router.navigate("/");
-          }}
-        />
-        <Button label={t("upload.done.secondary")} variant="ghost" onPress={reset} />
-      </View>
-    </View>
-  );
+  return <WordsReview result={result} onDone={reset} />;
 }
 
 function FailedScreen() {

@@ -37,7 +37,8 @@ const CREATE_LIMIT_CODES = new Set([
 ]);
 
 const JOB_SLOW_CODES = new Set(["timeout", "realtime_unavailable"]);
-const RETRY_LOST_CODES = new Set(["module_not_found", "module_not_retryable"]);
+/** `file_missing` on a retry: the files are gone, so there is nothing left to read again. */
+const RETRY_LOST_CODES = new Set(["module_not_found", "module_not_retryable", "file_missing"]);
 
 /**
  * Classifies a failure by the phase it happened in and the backend's

@@ -12,6 +12,19 @@ client selects this backend with `EXPO_PUBLIC_DATA_SOURCE=supabase`; with
 (`module-create`, `module-parse`, `lesson-generate`, `task-submit`,
 `module-regenerate`, `profile-update`) приезжают в фазах 2-6.
 
+## Слова из файла
+
+С 2026-09-23 Главная скрыта, и загрузка файла нужна только ради слов для
+своего словаря. `words-extract` принимает те же пути в Storage, что
+`module-create`, но модуль не создаёт: фоновая задача `words_extract`
+выписывает слова через Gemini, сверяет их со словарём и возвращает в
+результате задачи название файла и слова с переводом и его источником —
+`file` (перевод написан в файле), `dictionary` (в файле только иероглифы),
+`ai` (слова нет в БКРС). Файлы удаляются после разбора; остаются, только если
+упал сам разбор, — тогда повторный вызов с тем же `material_id` разбирает их
+заново. Сохраняет слова в папку уже клиент, одной вставкой в
+`user_dictionary_items` (миграция `…_words_from_files.sql`).
+
 ## Словарь
 
 Поиск живёт в базе: `public.dictionary_search(query, limit, offset)` сама

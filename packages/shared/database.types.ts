@@ -649,6 +649,7 @@ export type Database = {
           headword: string
           id: string
           reading: string | null
+          translation: string | null
           user_id: string
         }
         Insert: {
@@ -658,6 +659,7 @@ export type Database = {
           headword: string
           id?: string
           reading?: string | null
+          translation?: string | null
           user_id?: string
         }
         Update: {
@@ -667,6 +669,7 @@ export type Database = {
           headword?: string
           id?: string
           reading?: string | null
+          translation?: string | null
           user_id?: string
         }
         Relationships: [
@@ -723,7 +726,7 @@ export type Database = {
       }
     }
     Enums: {
-      job_kind: "module_parse" | "lesson_generate"
+      job_kind: "module_parse" | "lesson_generate" | "words_extract"
       job_status: "queued" | "running" | "done" | "failed"
       lesson_status: "pending" | "generating" | "ready" | "failed"
       material_kind: "pdf" | "image" | "text" | "url"
@@ -861,7 +864,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      job_kind: ["module_parse", "lesson_generate"],
+      job_kind: ["module_parse", "lesson_generate", "words_extract"],
       job_status: ["queued", "running", "done", "failed"],
       lesson_status: ["pending", "generating", "ready", "failed"],
       material_kind: ["pdf", "image", "text", "url"],

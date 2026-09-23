@@ -3,7 +3,7 @@ import { BackendError } from "./backendError";
 import { getSupabase } from "./supabase";
 
 /** Async job kinds (TZ.md §13). */
-export type JobKind = "module_parse" | "lesson_generate";
+export type JobKind = "module_parse" | "lesson_generate" | "words_extract";
 
 interface JobRow {
   status: "queued" | "running" | "done" | "failed";

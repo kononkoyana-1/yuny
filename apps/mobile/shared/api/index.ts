@@ -12,4 +12,5 @@ export {
   useDeleteFolder,
   useAddToFolder,
   useRemoveFromFolder,
+  useSaveWords,
 } from "./useUserDictionary";

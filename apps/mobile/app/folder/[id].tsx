@@ -126,6 +126,7 @@ export default function FolderScreen() {
           <EntryRow
             ref={refFor(word.key)}
             word={word.entry ?? { ...word, senses: [], compact: [] }}
+            translation={word.translation}
             onPress={() => {
               setFocusKey(word.key);
               setOpenWord(word);

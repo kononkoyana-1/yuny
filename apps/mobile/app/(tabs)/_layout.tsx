@@ -8,7 +8,8 @@ import { breakpoints, spacing, typography } from "@/shared/config/tokens";
 import type { Href } from "expo-router";
 
 /**
- * Four tabs — Главная / Загрузка / Словарь / Настройки (TZ.md §11). The
+ * Three visible tabs — Загрузка / Словарь / Настройки. Главная (TZ.md §11)
+ * is hidden since 2026-09-23; see the hidden `index` trigger below. The
  * lesson is deliberately not part of this navigator: it lives at
  * `app/lesson/` as a separate full-screen flow, so a task fills the screen
  * with nothing competing for the exit.
@@ -35,7 +36,6 @@ import type { Href } from "expo-router";
  *    NativeWind does handle, so classes are fine there.
  */
 const TAB_ITEMS: { name: string; href: Href; label: string; icon: IconName }[] = [
-  { name: "index", href: "/", label: "Главная", icon: "home" },
   { name: "upload", href: "/upload", label: "Загрузка", icon: "upload" },
   { name: "dictionary", href: "/dictionary", label: "Словарь", icon: "dictionary" },
   { name: "settings", href: "/settings", label: "Настройки", icon: "settings" },
@@ -159,6 +159,14 @@ export default function TabsLayout() {
               }),
         }}
       >
+        {/*
+          Главная скрыта (2026-09-23), но маршрут `/` остаётся экраном этого
+          навигатора: `Tabs` знает только те экраны, у которых есть триггер в
+          `TabList`, и без него переход на `/` (после входа, из ErrorBoundary)
+          уходил бы в «не найдено». Триггер без кнопки — `index.tsx` сам
+          перенаправит на «Загрузку».
+        */}
+        <TabTrigger name="index" href="/" style={{ display: "none" }} />
         {TAB_ITEMS.map((tab) => (
           <TabTrigger key={tab.name} name={tab.name} href={tab.href} asChild>
             <TabBarButton label={tab.label} icon={tab.icon} isWide={isWide} />

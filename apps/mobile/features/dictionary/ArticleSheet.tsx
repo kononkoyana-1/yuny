@@ -11,6 +11,7 @@ import {
 } from "@/shared/api";
 import { BackendError } from "@/shared/lib/backendError";
 import { t } from "@/shared/i18n";
+import { CheckMark } from "./CheckMark";
 import { EntryArticle } from "./EntryArticle";
 import { wordKey } from "./saved";
 
@@ -20,6 +21,8 @@ export interface SheetWord {
   reading: string | null;
   /** `null` — у слова из папки, чья статья пропала после перезаливки словаря. */
   entry: SavedEntry | null;
+  /** Свой перевод слова из файла, если оно сохранено с ним. */
+  translation?: string | null;
 }
 
 export interface ArticleSheetProps {
@@ -71,6 +74,11 @@ function ArticleSheetBody({ word, onClose }: { word: SheetWord; onClose: () => v
               {word.reading}
             </Text>
           ) : null}
+          {word.translation ? (
+            <Text variant="body" className="pt-xs">
+              {t("dictionary.article.ownTranslation", { translation: word.translation })}
+            </Text>
+          ) : null}
         </View>
         <IconButton icon="close" accessibilityLabel={t("dictionary.article.close")} onPress={onClose} />
       </View>
@@ -95,7 +103,7 @@ function ArticleSheetBody({ word, onClose }: { word: SheetWord; onClose: () => v
             <EntryArticle entry={word.entry} />
           ) : (
             <Text variant="body" tone="muted">
-              {t("dictionary.article.missing")}
+              {t(word.translation ? "dictionary.article.noEntry" : "dictionary.article.missing")}
             </Text>
           )}
         </>
@@ -156,14 +164,21 @@ function FolderPicker({ word, onDone }: { word: SheetWord; onDone: () => void })
     }
   }
 
+  // Первое сохранение у нового пользователя: папок ещё нет, и выбирать не из
+  // чего. Тогда лист — это одно поле названия и одна кнопка, которая и
+  // создаёт папку, и кладёт в неё слово (dictionary.review.md B3).
+  const firstFolder = folders.data?.length === 0;
+
   return (
     <View className="gap-lg">
       <View className="gap-xs">
         <Text variant="heading" accessibilityRole="header">
-          {t("dictionary.picker.title", { word: word.headword })}
+          {t(firstFolder ? "dictionary.picker.firstTitle" : "dictionary.picker.title", {
+            word: word.headword,
+          })}
         </Text>
         <Text variant="body" tone="muted">
-          {t("dictionary.picker.hint")}
+          {t(firstFolder ? "dictionary.picker.firstHint" : "dictionary.picker.hint")}
         </Text>
       </View>
 
@@ -194,13 +209,13 @@ function FolderPicker({ word, onDone }: { word: SheetWord; onDone: () => void })
             setNewName(next);
             setError(null);
           }}
-          placeholder={t("dictionary.picker.newFolder")}
-          accessibilityLabel={t("dictionary.picker.newFolder")}
+          placeholder={firstFolder ? t("dictionary.folderName.placeholder") : t("dictionary.picker.newFolder")}
+          accessibilityLabel={t("dictionary.picker.newFolderLabel")}
           maxLength={60}
           returnKeyType="done"
           onSubmitEditing={() => void createAndAdd()}
         />
-        {newName.trim() !== "" ? (
+        {!firstFolder && newName.trim() !== "" ? (
           <Button
             label={t("dictionary.picker.create")}
             variant="secondary"
@@ -212,7 +227,20 @@ function FolderPicker({ word, onDone }: { word: SheetWord; onDone: () => void })
 
       {error ? <FeedbackBanner message={error} /> : null}
 
-      <Button label={t("dictionary.picker.done")} variant="primary" onPress={onDone} />
+      {firstFolder ? (
+        <View className="gap-sm">
+          <Button
+            label={t("dictionary.picker.create")}
+            variant="primary"
+            disabled={!FolderNameSchema.safeParse(newName).success}
+            loading={create.isPending}
+            onPress={() => void createAndAdd()}
+          />
+          <Button label={t("dictionary.picker.cancel")} variant="ghost" onPress={onDone} />
+        </View>
+      ) : (
+        <Button label={t("dictionary.picker.done")} variant="primary" onPress={onDone} />
+      )}
     </View>
   );
 }
@@ -240,20 +268,7 @@ function FolderCheckbox({
       onPress={onPress}
       className={`min-h-[44px] flex-row items-center gap-md rounded-md px-sm ${busy ? "opacity-50" : ""}`}
     >
-      <View
-        className={`h-[22px] w-[22px] items-center justify-center rounded-sm border-2 ${
-          checked
-            ? "border-primary bg-primary dark:border-primary-dark dark:bg-primary-dark"
-            : "border-border dark:border-border-dark"
-        }`}
-        aria-hidden
-      >
-        {checked ? (
-          <Text variant="caption" tone="inverse" className="font-bold">
-            ✓
-          </Text>
-        ) : null}
-      </View>
+      <CheckMark checked={checked} />
       <Text variant="body" className="flex-1">
         {name}
       </Text>
