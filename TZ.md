@@ -35,7 +35,7 @@
 | Слой | Технология |
 | ----- | ----- |
 | Язык | TypeScript, `strict: true` |
-| Платформа | Expo + React Native + React Native Web |
+| Платформа | Expo + React Native + React Native Web. Цель сборки — только web (решение от 2026-09-23): iOS и Android не собираются и не проверяются |
 | Роутинг | `expo-router` (file-based, typed routes) |
 | Server state | TanStack Query |
 | Client state | Zustand — только эфемерный UI-стейт |
@@ -371,7 +371,7 @@ RLS: всё пользовательское — только владельцу
 - [ ] `tsc --noEmit` — чисто;
 - [ ] `eslint` — чисто;
 - [ ] `deno check --all` по Edge Functions — чисто (из `supabase/functions`, с `DENO_NO_PACKAGE_JSON=1`);
-- [ ] работает на iOS, Android и Web — проверено запуском, не предположением;
+- [ ] работает в web — проверено запуском в браузере, не предположением (решение от 2026-09-23: iOS и Android не делаем, продукт — кроссплатформенная веб-версия);
 - [ ] реализованы loading, empty и error состояния;
 - [ ] ровно один primary action на экране;
 - [ ] светлая и тёмная темы;
