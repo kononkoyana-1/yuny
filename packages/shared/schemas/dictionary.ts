@@ -13,14 +13,18 @@ export const DictionaryQueryKindSchema = z.enum(["hanzi", "pinyin", "russian"]);
 
 /**
  * Одно значение статьи. `nest` — римское гнездо части речи у частотных знаков,
- * `num` — номер значения внутри гнезда, `header` — пометы и заголовок гнезда.
- * У большинства статей заполнен только `gloss`: гнёзда есть примерно у 4%.
+ * `num` — номер значения внутри гнезда. `header: true` — строка не значение, а
+ * заголовок гнезда: часть речи и чтение («гл. dǎ»). Так её пишет
+ * `scripts/dict-parse.mjs`. Строку здесь не отвергаем: из-за флажка вёрстки
+ * терять всю выдачу поиска незачем, а `"true"` и так понимает `isHeader` в
+ * `supabase/functions/_shared/wordCards.ts`. У большинства статей
+ * заполнен только `gloss`: гнёзда есть примерно у 4%.
  */
 export const DictionarySenseSchema = z.object({
   nest: z.string().nullable(),
   num: z.string().nullable(),
   gloss: z.string(),
-  header: z.string().nullish(),
+  header: z.union([z.boolean(), z.string()]).nullish(),
 });
 
 export const DictionaryEntrySchema = z.object({

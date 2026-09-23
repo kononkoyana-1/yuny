@@ -6,4 +6,5 @@
 export const queryKeys = {
   profile: ["profile"] as const,
   modules: ["modules"] as const,
+  dictionarySearch: (query: string) => ["dictionary", "search", query] as const,
 };
