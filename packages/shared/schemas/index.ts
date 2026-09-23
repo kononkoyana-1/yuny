@@ -14,6 +14,13 @@ export type {
   DictionarySearchResponse,
 } from "./dictionary";
 export {
+  FolderNameSchema,
+  UserDictionaryFolderSchema,
+  SavedEntrySchema,
+  UserDictionaryItemSchema,
+} from "./userDictionary";
+export type { UserDictionaryFolder, SavedEntry, UserDictionaryItem } from "./userDictionary";
+export {
   MATERIAL_LIMITS,
   MATERIAL_MIME_TYPES,
   materialKind,

@@ -1,9 +1,11 @@
+import type { Ref } from "react";
 import {
   Pressable,
   ActivityIndicator,
   useColorScheme,
   type PressableProps,
   type StyleProp,
+  type View,
   type ViewStyle,
 } from "react-native";
 import { gradients } from "@/shared/config/tokens";
@@ -39,6 +41,12 @@ export interface ButtonProps extends Omit<PressableProps, "children" | "style"> 
    * letting it fail at runtime on one platform.
    */
   style?: StyleProp<ViewStyle>;
+  /**
+   * Reaches the `Pressable` through `...props` — in React 19 `ref` is an
+   * ordinary prop of a function component. Lets a `Sheet` return focus to the
+   * button that opened it.
+   */
+  ref?: Ref<View>;
 }
 
 export function Button({

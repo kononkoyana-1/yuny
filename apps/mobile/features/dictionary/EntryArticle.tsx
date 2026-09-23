@@ -1,5 +1,5 @@
 import { View } from "react-native";
-import type { DictionaryEntry } from "@yuny/shared";
+import type { SavedEntry } from "@yuny/shared";
 import { Text } from "@/shared/ui";
 import { articleNests } from "./article";
 
@@ -8,7 +8,7 @@ import { articleNests } from "./article";
  * цифрой и заголовком (часть речи, чтение), под ними нумерованные значения.
  * Уровень HSK сюда не выводится (TZ.md §4).
  */
-export function EntryArticle({ entry }: { entry: DictionaryEntry }) {
+export function EntryArticle({ entry }: { entry: SavedEntry }) {
   const nests = articleNests(entry.senses);
 
   return (

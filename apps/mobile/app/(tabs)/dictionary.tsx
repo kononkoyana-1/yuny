@@ -1,34 +1,27 @@
-import { useState, type RefObject } from "react";
+import { useMemo, useState } from "react";
 import { FlatList, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import type { DictionaryEntry } from "@yuny/shared";
-import {
-  Button,
-  EmptyState,
-  ErrorState,
-  IconButton,
-  Input,
-  LoadingState,
-  Sheet,
-  Text,
-} from "@/shared/ui";
-import { useDictionarySearch } from "@/shared/api";
+import { Button, EmptyState, ErrorState, IconButton, Input, LoadingState, Text } from "@/shared/ui";
+import { useDictionarySearch, useSavedItems } from "@/shared/api";
 import { useDebouncedValue } from "@/shared/lib/useDebouncedValue";
 import { spacing } from "@/shared/config/tokens";
 import { t } from "@/shared/i18n";
-import { EntryArticle } from "@/features/dictionary/EntryArticle";
+import { ArticleSheet, type SheetWord } from "@/features/dictionary/ArticleSheet";
 import { EntryRow } from "@/features/dictionary/EntryRow";
+import { MyDictionary } from "@/features/dictionary/MyDictionary";
+import { groupSavedWords, searchSaved, wordKey } from "@/features/dictionary/saved";
+import { useRowRefs } from "@/features/dictionary/useRowRefs";
 
 /** Пауза после последней буквы, прежде чем запрос уйдёт на сервер. */
 const SEARCH_DEBOUNCE_MS = 300;
 
 /**
- * Экран 04 — Словарь (TZ.md §11), часть «поиск и статья» (#37). Одно поле:
- * иероглиф, пиньинь и русский перевод ищутся одним запросом, вид запроса
- * определяет сервер. Строка выдачи открывает полную статью БКРС в `Sheet`.
- * Уровень HSK на экране не показывается (TZ.md §4).
- *
- * Свой словарь с папками (#38) добавится на этот же экран.
+ * Экран 04 — Словарь (TZ.md §11). Одно поле: иероглиф, пиньинь и русский
+ * перевод ищутся одним запросом, вид запроса определяет сервер (#37). Пока
+ * поле пустое, на экране свой словарь — папки со словами (#38); с запросом —
+ * сначала совпадения из своего словаря, под ними выдача БКРС. Строка
+ * открывает статью в листе, оттуда слово раскладывается по папкам. Уровень
+ * HSK на экране не показывается (TZ.md §4).
  */
 export default function DictionaryTab() {
   const insets = useSafeAreaInsets();
@@ -46,36 +39,31 @@ export default function DictionaryTab() {
     isFetchingNextPage,
     isFetchNextPageError,
   } = useDictionarySearch(query);
+  const saved = useSavedItems();
 
-  const [openEntry, setOpenEntry] = useState<DictionaryEntry | null>(null);
+  const [openWord, setOpenWord] = useState<SheetWord | null>(null);
   // Та же схема, что на Главной: строка, к которой вернуть фокус, живёт
-  // отдельно от открытой статьи — `onClose` обнуляет `openEntry` в том же
+  // отдельно от открытого слова — `onClose` обнуляет `openWord` в том же
   // рендере, в котором `Sheet` читает `returnFocusRef`.
-  const [focusEntryId, setFocusEntryId] = useState<number | null>(null);
-  const [rowRefs] = useState(() => new Map<number, RefObject<View | null>>());
-  function refFor(id: number): RefObject<View | null> {
-    let ref = rowRefs.get(id);
-    if (!ref) {
-      ref = { current: null };
-      rowRefs.set(id, ref);
-    }
-    return ref;
+  const [focusKey, setFocusKey] = useState<string | null>(null);
+  const refFor = useRowRefs();
+
+  function open(rowKey: string, word: SheetWord) {
+    setFocusKey(rowKey);
+    setOpenWord(word);
   }
 
-  function openArticle(entry: DictionaryEntry) {
-    setFocusEntryId(entry.id);
-    setOpenEntry(entry);
-  }
+  const savedWords = useMemo(() => groupSavedWords(saved.data ?? []), [saved.data]);
+  const savedKeys = useMemo(() => new Set(savedWords.map((w) => w.key)), [savedWords]);
+  const ownMatches = useMemo(() => searchSaved(savedWords, query), [savedWords, query]);
 
   const items = data?.pages.flatMap((page) => page.items) ?? [];
   const kind = data?.pages[0]?.kind;
 
   function renderBody() {
-    // Пустое поле — приглашение, а не пустая выдача. Проверяется первым:
-    // выключенный запрос тоже в состоянии `pending`.
-    if (query === "") {
-      return <EmptyState className="flex-1" message={t("dictionary.idle")} />;
-    }
+    // Пустое поле — свой словарь. Проверяется первым: выключенный запрос
+    // тоже в состоянии `pending`.
+    if (query === "") return <MyDictionary />;
     if (isPending) {
       return <LoadingState className="flex-1" message={t("dictionary.loading")} />;
     }
@@ -90,7 +78,7 @@ export default function DictionaryTab() {
         />
       );
     }
-    if (items.length === 0 && kind) {
+    if (items.length === 0 && ownMatches.length === 0 && kind) {
       return <EmptyState className="flex-1" message={t(`dictionary.empty.${kind}`)} />;
     }
 
@@ -109,9 +97,42 @@ export default function DictionaryTab() {
         onEndReached={() => {
           if (hasNextPage && !isFetchingNextPage && !isFetchNextPageError) void fetchNextPage();
         }}
-        renderItem={({ item }) => (
-          <EntryRow ref={refFor(item.id)} entry={item} onPress={openArticle} />
-        )}
+        ListHeaderComponent={
+          ownMatches.length > 0 ? (
+            <View className="gap-sm pb-lg">
+              <Text variant="heading" accessibilityRole="header">
+                {t("dictionary.mine.found")}
+              </Text>
+              {ownMatches.map((word) => {
+                const rowKey = `saved:${word.key}`;
+                return (
+                  <EntryRow
+                    key={rowKey}
+                    ref={refFor(rowKey)}
+                    word={word.entry ?? { ...word, senses: [], compact: [] }}
+                    onPress={() => open(rowKey, word)}
+                  />
+                );
+              })}
+              {items.length > 0 ? (
+                <Text variant="heading" accessibilityRole="header" className="pt-md">
+                  {t("dictionary.mine.bkrs")}
+                </Text>
+              ) : null}
+            </View>
+          ) : null
+        }
+        renderItem={({ item }) => {
+          const rowKey = `bkrs:${item.id}`;
+          return (
+            <EntryRow
+              ref={refFor(rowKey)}
+              word={item}
+              saved={savedKeys.has(wordKey(item.headword, item.reading))}
+              onPress={() => open(rowKey, { headword: item.headword, reading: item.reading, entry: item })}
+            />
+          );
+        }}
         ListFooterComponent={
           isFetchingNextPage ? (
             <Text variant="caption" tone="muted" className="py-md text-center">
@@ -163,35 +184,11 @@ export default function DictionaryTab() {
 
       {renderBody()}
 
-      <Sheet
-        visible={openEntry !== null}
-        onClose={() => setOpenEntry(null)}
-        accessibilityLabel={openEntry?.headword ?? ""}
-        returnFocusRef={focusEntryId !== null ? refFor(focusEntryId) : undefined}
-      >
-        {openEntry ? (
-          <View className="gap-lg">
-            <View className="flex-row items-start gap-md">
-              <View className="flex-1 gap-xs">
-                <Text variant="display" accessibilityRole="header">
-                  {openEntry.headword}
-                </Text>
-                {openEntry.reading ? (
-                  <Text variant="heading" tone="muted">
-                    {openEntry.reading}
-                  </Text>
-                ) : null}
-              </View>
-              <IconButton
-                icon="close"
-                accessibilityLabel={t("dictionary.article.close")}
-                onPress={() => setOpenEntry(null)}
-              />
-            </View>
-            <EntryArticle entry={openEntry} />
-          </View>
-        ) : null}
-      </Sheet>
+      <ArticleSheet
+        word={openWord}
+        onClose={() => setOpenWord(null)}
+        returnFocusRef={focusKey !== null ? refFor(focusKey) : undefined}
+      />
     </View>
   );
 }
