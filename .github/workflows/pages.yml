@@ -1,0 +1,74 @@
+# Web build of apps/mobile on GitHub Pages, on every push to master.
+#
+# Data source: `mock` unless the repository variable EXPO_PUBLIC_DATA_SOURCE
+# says `supabase` (Settings → Secrets and variables → Actions → Variables).
+# With `supabase`, also set the variables EXPO_PUBLIC_SUPABASE_URL and
+# EXPO_PUBLIC_SUPABASE_ANON_KEY — both are public by design (RLS guards the
+# data), which is why they are variables, not secrets.
+name: Deploy web to GitHub Pages
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# One deployment at a time; a newer push replaces a queued one, but a
+# deployment already in progress finishes.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Version comes from `packageManager` in the root package.json.
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Export the web build
+        working-directory: apps/mobile
+        env:
+          EXPO_BASE_URL: /${{ github.event.repository.name }}
+          EXPO_WEB_OUTPUT: single
+          EXPO_PUBLIC_DATA_SOURCE: ${{ vars.EXPO_PUBLIC_DATA_SOURCE || 'mock' }}
+          EXPO_PUBLIC_SUPABASE_URL: ${{ vars.EXPO_PUBLIC_SUPABASE_URL }}
+          EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ vars.EXPO_PUBLIC_SUPABASE_ANON_KEY }}
+          EXPO_PUBLIC_GOOGLE_SIGN_IN: ${{ vars.EXPO_PUBLIC_GOOGLE_SIGN_IN || 'disabled' }}
+        run: npx expo export --platform web --output-dir dist --clear
+
+      # Deep links (/yuny/folder/<id>) reach Pages as 404s; the SPA shell
+      # answers them and the router reads the URL. `.nojekyll` keeps the
+      # `_expo/` folder from being dropped as a Jekyll-private path.
+      - name: SPA fallback
+        working-directory: apps/mobile/dist
+        run: |
+          cp index.html 404.html
+          touch .nojekyll
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: apps/mobile/dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
