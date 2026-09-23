@@ -9,7 +9,10 @@
  *    (`uri_allow_list`) — иначе ссылка из письма подтверждения и вход через
  *    OAuth не вернут человека на сайт. Существующие адреса не трогаются, Site
  *    URL тоже: им может пользоваться локальная разработка.
- * 2. Печатает публичный ключ проекта (publishable, или legacy anon, если
+ * 2. Сообщает, включён ли в проекте вход через Google (`google_enabled` в
+ *    `$GITHUB_OUTPUT`): сборка показывает кнопку «Войти через Google», только
+ *    когда провайдер настроен, иначе нажатие упало бы с ошибкой.
+ * 3. Печатает публичный ключ проекта (publishable, или legacy anon, если
  *    publishable нет) в `$GITHUB_OUTPUT` как `publishable_key`. Ключ публичен
  *    по устройству — данные закрывает RLS, — но в репозитории его всё равно не
  *    держим: он приходит из проекта при каждой сборке.
@@ -49,7 +52,12 @@ if (allowed.includes(pattern)) {
   console.log(`добавлен адрес возврата: ${pattern}`);
 }
 
-// 2. Публичный ключ.
+// 2. Google.
+const google = auth.external_google_enabled === true;
+if (process.env.GITHUB_OUTPUT) appendFileSync(process.env.GITHUB_OUTPUT, `google_enabled=${google}\n`);
+console.log(`вход через Google: ${google ? "включён" : "не настроен (Authentication → Sign In / Providers → Google)"}`);
+
+// 3. Публичный ключ.
 const keys = await api("GET", "/api-keys");
 const key =
   keys.find((k) => k.type === "publishable")?.api_key ??
