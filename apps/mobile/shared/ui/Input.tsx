@@ -1,9 +1,14 @@
-import { useState } from "react";
+import { useState, type Ref } from "react";
 import { TextInput, type TextInputProps } from "react-native";
 import { useTheme } from "@/shared/lib/useTheme";
 
 export interface InputProps extends TextInputProps {
   className?: string;
+  /**
+   * Reaches the `TextInput` through `...props` (React 19: `ref` is an
+   * ordinary prop), so a `Sheet` can put focus in the field on open.
+   */
+  ref?: Ref<TextInput>;
 }
 
 /**

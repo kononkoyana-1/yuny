@@ -1,5 +1,6 @@
 import { View } from "react-native";
 import { Text } from "@/shared/ui";
+import { sizing } from "@/shared/config/tokens";
 
 /**
  * Квадрат галочки — только картинка. Роль `checkbox`, подпись и
@@ -9,7 +10,8 @@ import { Text } from "@/shared/ui";
 export function CheckMark({ checked }: { checked: boolean }) {
   return (
     <View
-      className={`h-[22px] w-[22px] items-center justify-center rounded-sm border-2 ${
+      style={{ width: sizing.checkbox, height: sizing.checkbox }}
+      className={`items-center justify-center rounded-sm border-2 ${
         checked
           ? "border-primary bg-primary dark:border-primary-dark dark:bg-primary-dark"
           : "border-border dark:border-border-dark"

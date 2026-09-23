@@ -1,5 +1,5 @@
-import { useState, type RefObject } from "react";
-import { View } from "react-native";
+import { useRef, useState, type RefObject } from "react";
+import { View, type TextInput } from "react-native";
 import { FolderNameSchema } from "@yuny/shared";
 import { Button, FeedbackBanner, Input, Sheet, Text } from "@/shared/ui";
 import { BackendError } from "@/shared/lib/backendError";
@@ -37,16 +37,24 @@ export function FolderNameSheet({
   onSubmit,
   returnFocusRef,
 }: FolderNameSheetProps) {
+  const inputRef = useRef<TextInput>(null);
   return (
     <Sheet
       visible={visible}
       onClose={onClose}
       accessibilityLabel={t(`dictionary.folderName.${mode}Title`)}
       returnFocusRef={returnFocusRef}
+      initialFocusRef={inputRef}
     >
       {/* Форма пересоздаётся на каждое открытие: поле и ошибка не переживают закрытия листа. */}
       {visible ? (
-        <FolderNameForm mode={mode} initialName={initialName} onClose={onClose} onSubmit={onSubmit} />
+        <FolderNameForm
+          mode={mode}
+          initialName={initialName}
+          onClose={onClose}
+          onSubmit={onSubmit}
+          inputRef={inputRef}
+        />
       ) : null}
     </Sheet>
   );
@@ -57,7 +65,11 @@ function FolderNameForm({
   initialName,
   onClose,
   onSubmit,
-}: Pick<FolderNameSheetProps, "mode" | "onClose" | "onSubmit"> & { initialName: string }) {
+  inputRef,
+}: Pick<FolderNameSheetProps, "mode" | "onClose" | "onSubmit"> & {
+  initialName: string;
+  inputRef: RefObject<TextInput | null>;
+}) {
   const [name, setName] = useState(initialName);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -85,6 +97,7 @@ function FolderNameForm({
       </Text>
       <View className="gap-xs">
         <Input
+          ref={inputRef}
           value={name}
           onChangeText={(next) => {
             setName(next);
@@ -93,7 +106,6 @@ function FolderNameForm({
           placeholder={t("dictionary.folderName.placeholder")}
           accessibilityLabel={t("dictionary.folderName.label")}
           maxLength={MAX_NAME}
-          autoFocus
           returnKeyType="done"
           onSubmitEditing={() => void submit()}
         />

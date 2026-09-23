@@ -1,5 +1,5 @@
-import { useMemo, useState } from "react";
-import { FlatList, View } from "react-native";
+import { useMemo, useRef, useState } from "react";
+import { FlatList, View, type TextInput } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Button, EmptyState, ErrorState, IconButton, Input, LoadingState, Text } from "@/shared/ui";
 import { useDictionarySearch, useSavedItems } from "@/shared/api";
@@ -26,6 +26,7 @@ const SEARCH_DEBOUNCE_MS = 300;
 export default function DictionaryTab() {
   const insets = useSafeAreaInsets();
   const [input, setInput] = useState("");
+  const inputRef = useRef<TextInput>(null);
   const query = useDebouncedValue(input.trim(), SEARCH_DEBOUNCE_MS);
 
   const {
@@ -99,7 +100,9 @@ export default function DictionaryTab() {
         }}
         ListHeaderComponent={
           ownMatches.length > 0 ? (
-            <View className="gap-sm pb-lg">
+            // Под заголовком «Словарь БКРС» — тот же `sm`, что под «В моём
+            // словаре»: заголовок прилипает к своим строкам (review m7).
+            <View className={`gap-sm ${items.length > 0 ? "pb-sm" : "pb-lg"}`}>
               <Text variant="heading" accessibilityRole="header">
                 {t("dictionary.mine.found")}
               </Text>
@@ -161,6 +164,7 @@ export default function DictionaryTab() {
         </Text>
         <View className="flex-row items-center gap-sm">
           <Input
+            ref={inputRef}
             className="flex-1"
             value={input}
             onChangeText={setInput}
@@ -176,7 +180,12 @@ export default function DictionaryTab() {
             <IconButton
               icon="close"
               accessibilityLabel={t("dictionary.search.clear")}
-              onPress={() => setInput("")}
+              onPress={() => {
+                setInput("");
+                // Кнопка очистки сейчас исчезнет вместе с фокусом на ней —
+                // ведём фокус туда, где человек продолжит: в поле.
+                inputRef.current?.focus();
+              }}
             />
           ) : null}
         </View>

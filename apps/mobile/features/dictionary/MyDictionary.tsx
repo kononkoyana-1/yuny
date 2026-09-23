@@ -2,7 +2,7 @@ import { useRef, useState } from "react";
 import { Pressable, ScrollView, View } from "react-native";
 import { useRouter } from "expo-router";
 import type { UserDictionaryFolder } from "@yuny/shared";
-import { Button, ErrorState, LoadingState, Mascot, Text } from "@/shared/ui";
+import { Button, EmptyState, ErrorState, LoadingState, Text } from "@/shared/ui";
 import { useCreateFolder, useFolders, useSavedItems } from "@/shared/api";
 import { t } from "@/shared/i18n";
 import { FolderNameSheet } from "./FolderNameSheet";
@@ -51,12 +51,11 @@ export function MyDictionary() {
       </Text>
 
       {folders.data.length === 0 ? (
-        <View className="items-center gap-md py-lg">
-          <Mascot decorative stage={1} mood="neutral" size="medium" showStage={false} />
-          <Text variant="body" tone="muted" className="text-center">
-            {t("dictionary.mine.empty")}
-          </Text>
-        </View>
+        // Тот же `EmptyState`, что у пустой выдачи и пустой папки
+        // (dictionary.review.md m4). Кнопка — ниже, общая для обоих случаев:
+        // у `EmptyState` нет ref на свою кнопку, а лист новой папки должен
+        // вернуть фокус туда, откуда его открыли.
+        <EmptyState className="py-lg" message={t("dictionary.mine.empty")} />
       ) : (
         <View className="gap-sm">
           {folders.data.map((folder) => (

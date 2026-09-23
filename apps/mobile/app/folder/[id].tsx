@@ -56,8 +56,15 @@ export default function FolderScreen() {
   }
 
   const header = (
-    <View className="flex-row items-center px-sm pt-md">
-      <Button label={t("dictionary.folder.back")} variant="ghost" onPress={goBack} />
+    // Без своего отступа: у кнопки-призрака он уже `lg`, и текст «Назад»
+    // встаёт на одну линию с заголовком и строками (review m8).
+    <View className="flex-row items-center pt-md">
+      <Button
+        label={t("dictionary.folder.back")}
+        accessibilityLabel={t("dictionary.folder.backA11y")}
+        variant="ghost"
+        onPress={goBack}
+      />
     </View>
   );
 
@@ -107,6 +114,8 @@ export default function FolderScreen() {
                 ref={deleteRef}
                 label={t("dictionary.folder.delete")}
                 variant="ghost"
+                // `md` вместо `lg`: на 390 обе кнопки помещаются в одну строку.
+                className="px-md"
                 onPress={() => {
                   setDeleteError(false);
                   setConfirmingDelete(true);

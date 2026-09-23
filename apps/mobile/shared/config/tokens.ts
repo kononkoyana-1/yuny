@@ -208,6 +208,11 @@ export const sizing = {
   progressRingGap: 4,
   /** `Sheet`'s panel width on `breakpoints.wide` and up. */
   sheetMaxWidth: 480,
+  /**
+   * Side of the tick box (`features/dictionary/CheckMark`). The tap target is
+   * the whole row it sits in, never the box itself, so it can stay below 44.
+   */
+  checkbox: 22,
 } as const;
 
 /**

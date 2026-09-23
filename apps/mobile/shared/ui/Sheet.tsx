@@ -23,6 +23,13 @@ export interface SheetProps {
   children: ReactNode;
   /** Focus returns here (native a11y focus / web `.focus()`) when the sheet closes. */
   returnFocusRef?: RefObject<View | null>;
+  /**
+   * Where focus goes when the sheet opens, instead of the panel — for a sheet
+   * whose whole point is one field. `autoFocus` on that field cannot do this:
+   * the panel takes focus a tick after mount and would steal it back
+   * (dictionary.review.md m2).
+   */
+  initialFocusRef?: RefObject<{ focus(): void } | null>;
   className?: string;
 }
 
@@ -41,6 +48,7 @@ export function Sheet({
   accessibilityLabel,
   children,
   returnFocusRef,
+  initialFocusRef,
   className = "",
 }: SheetProps) {
   const { width, height } = useWindowDimensions();
@@ -64,7 +72,10 @@ export function Sheet({
       }
       // Wait one tick so the panel has mounted before assistive tech is
       // told to focus it.
-      const id = setTimeout(() => focusSheetPanel(panelRef), 0);
+      const id = setTimeout(() => {
+        if (initialFocusRef?.current) initialFocusRef.current.focus();
+        else focusSheetPanel(panelRef);
+      }, 0);
       return () => clearTimeout(id);
     }
 
@@ -81,7 +92,7 @@ export function Sheet({
     // the user was typing in (docs/design/reviews/dictionary.review.md B1).
     if (wasVisible.current) returnFocusTo(returnFocusRef);
     return undefined;
-  }, [visible, reducedMotion, scrimOpacity, panelProgress, returnFocusRef]);
+  }, [visible, reducedMotion, scrimOpacity, panelProgress, returnFocusRef, initialFocusRef]);
 
   // Written after the effect above has read it, so that effect sees the
   // previous render's value.
@@ -107,6 +118,13 @@ export function Sheet({
       transparent
       animationType="none"
       onRequestClose={onClose}
+      // Second, final return of focus. On the web the Modal stays in the DOM
+      // until its own exit animation ends, and its focus trap pulls focus
+      // back inside — so the return from the effect above can land and be
+      // taken away again, leaving focus on <body> (dictionary.review.md m1).
+      // `onDismiss` fires once the Modal is really gone. On native it is
+      // iOS-only, which is why the effect keeps its own call.
+      onDismiss={() => returnFocusTo(returnFocusRef)}
       statusBarTranslucent
       // Names the *outer* dialog — react-native-web's own `ModalContent`
       // already sets `role="dialog"`/`aria-modal` on this element (see

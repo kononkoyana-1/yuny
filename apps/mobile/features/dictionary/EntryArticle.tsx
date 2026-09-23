@@ -1,6 +1,7 @@
 import { View } from "react-native";
 import type { SavedEntry } from "@yuny/shared";
 import { Text } from "@/shared/ui";
+import { spacing } from "@/shared/config/tokens";
 import { articleNests } from "./article";
 
 /**
@@ -23,7 +24,7 @@ export function EntryArticle({ entry }: { entry: SavedEntry }) {
           {nest.senses.map((sense, senseIndex) => (
             <View key={senseIndex} className="flex-row gap-sm">
               {sense.num !== null ? (
-                <Text variant="body" tone="muted" className="min-w-[24px]">
+                <Text variant="body" tone="muted" style={{ minWidth: spacing.lg }}>
                   {`${sense.num})`}
                 </Text>
               ) : null}
