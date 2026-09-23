@@ -18,5 +18,5 @@
  */
 module.exports = {
   preset: "jest-expo",
-  testMatch: ["<rootDir>/features/**/*.test.ts"],
+  testMatch: ["<rootDir>/features/**/*.test.ts", "<rootDir>/shared/**/*.test.ts"],
 };

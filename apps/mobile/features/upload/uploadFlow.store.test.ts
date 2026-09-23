@@ -11,8 +11,8 @@ import { useUploadFlowStore } from "./uploadFlow.store";
  * runs on fake, instant promises rather than the real mock repository's
  * artificial network delay.
  */
-jest.mock("expo-crypto", () => ({
-  randomUUID: () => "00000000-0000-4000-8000-000000000000",
+jest.mock("@/shared/lib/uuid", () => ({
+  uuid: () => "00000000-0000-4000-8000-000000000000",
 }));
 
 // `mock`-prefixed per babel-plugin-jest-hoist's out-of-scope-variable rule —

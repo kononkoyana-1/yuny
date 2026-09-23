@@ -1,5 +1,5 @@
 import { create, type StoreApi } from "zustand";
-import * as Crypto from "expo-crypto";
+import { uuid } from "@/shared/lib/uuid";
 import { MATERIAL_LIMITS, type ModuleParseResult } from "@yuny/shared";
 import { moduleRepository } from "@/shared/repositories";
 import { BackendError } from "@/shared/lib/backendError";
@@ -178,7 +178,7 @@ async function handlePickOutcome(
       onRemove: (id) => set((s) => ({ files: s.files.filter((f) => f.id !== id) })),
       getFiles: () => get().files,
     },
-    () => Crypto.randomUUID(),
+    uuid,
   );
   set({ bannerKey: banner?.key, bannerParams: banner?.params });
 }
@@ -219,7 +219,7 @@ export const useUploadFlowStore = create<UploadFlowStore>((set, get) => ({
 
     set({ submitting: true });
 
-    const materialId = state.materialId ?? Crypto.randomUUID();
+    const materialId = state.materialId ?? uuid();
     const files = state.files;
 
     set({
