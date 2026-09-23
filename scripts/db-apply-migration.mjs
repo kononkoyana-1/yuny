@@ -45,7 +45,7 @@ const token = (process.env.SUPABASE_ACCESS_TOKEN ??
  * Один запрос к Management API. Канал до `api.supabase.com` рвётся на установке
  * соединения — повторяем, как и всё, что ходит в сеть с этой машины.
  */
-export async function query(sql, attempts = 8) {
+export async function query(sql, attempts = 8, { readOnly = false } = {}) {
   for (let attempt = 1; ; attempt += 1) {
     try {
       const response = await fetch(
@@ -57,7 +57,9 @@ export async function query(sql, attempts = 8) {
           // `default_transaction_read_only=on`, поэтому любой DDL падал бы с
           // 25006. Права на запись у роли есть — не хватает только снятого
           // флага, и снимается он на саму транзакцию.
-          body: JSON.stringify({ query: `set transaction read write;\n${sql}` }),
+          body: JSON.stringify({
+            query: `set transaction ${readOnly ? "read only" : "read write"};\n${sql}`,
+          }),
         },
       );
       if (response.ok) return response.json();
@@ -80,7 +82,10 @@ function sqlLiteral(value) {
 async function main(args) {
   const inlineIdx = args.indexOf("--sql");
   if (inlineIdx !== -1) {
-    console.log(JSON.stringify(await query(args[inlineIdx + 1]), null, 2));
+    // `--read-only` — для диагностики из CI (`.github/workflows/db-query.yml`):
+    // транзакция только на чтение, запрос не может ничего изменить.
+    const readOnly = args.includes("--read-only");
+    console.log(JSON.stringify(await query(args[inlineIdx + 1], 8, { readOnly }), null, 2));
     return;
   }
 

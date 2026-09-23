@@ -1,0 +1,29 @@
+# Read-only SQL against the Supabase project, for diagnostics: Actions →
+# «DB query (read-only)» → Run workflow, paste the query. The transaction is
+# `read only`, so nothing can be changed from here. Uses the same
+# SUPABASE_ACCESS_TOKEN secret as the Pages deploy.
+name: DB query (read-only)
+
+on:
+  workflow_dispatch:
+    inputs:
+      sql:
+        description: SQL to run (read-only)
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  query:
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_PROJECT_REF: ixtfifglohppaimvyvui
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SQL: ${{ inputs.sql }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node scripts/db-apply-migration.mjs --sql "$SQL" --read-only
