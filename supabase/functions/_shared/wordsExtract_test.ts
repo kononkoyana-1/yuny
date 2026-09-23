@@ -3,7 +3,13 @@
  */
 import { assertEquals } from "jsr:@std/assert@1";
 
-import { MAX_EXTRACTED, normalizeWords, resolveWord, type WordRow } from "./wordsExtract.ts";
+import {
+  MAX_EXTRACTED,
+  normalizeWords,
+  resolveWord,
+  translationText,
+  type WordRow,
+} from "./wordsExtract.ts";
 
 const raw = (word: string, reading = "", file = "", ai = "значение") => ({
   word,
@@ -63,4 +69,20 @@ Deno.test("слова нет в словаре — перевод из файл�
 
 Deno.test("ни статьи, ни перевода — слова нет", () => {
   assertEquals(resolveWord(row("网红", null, null, null), []), null);
+});
+
+Deno.test("знак вопроса и прочие символы на месте перевода — не перевод, предлагает словарь", () => {
+  for (const junk of ["?", "??", " ? ", "—", "-", "…", "...", "___", "?!", "(?)", "买"]) {
+    assertEquals(translationText(junk), null, `«${junk}»`);
+  }
+  const [row] = normalizeWords([raw("行", "xíng", "?", "идти")]);
+  assertEquals(row.fileTranslation, null);
+  const word = resolveWord(row, [行[0]]);
+  assertEquals([word?.translation, word?.source], ["идти; годиться; ладно", "dictionary"]);
+});
+
+Deno.test("перевод с буквами остаётся переводом, даже со знаком вопроса", () => {
+  assertEquals(translationText("что?"), "что?");
+  assertEquals(translationText("what"), "what");
+  assertEquals(translationText("  магазин  "), "магазин");
 });
