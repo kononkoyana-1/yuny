@@ -31,8 +31,12 @@ import dns from "node:dns";
 dns.setDefaultResultOrder("ipv4first");
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const PROJECT_REF = readFileSync(path.join(ROOT, "apps", "mobile", ".env"), "utf8")
-  .match(/EXPO_PUBLIC_SUPABASE_URL=https:\/\/([a-z]+)\.supabase\.co/)[1];
+// В CI (`.github/workflows/pages.yml`) проект задан переменной окружения:
+// `apps/mobile/.env` там нет.
+const PROJECT_REF =
+  process.env.SUPABASE_PROJECT_REF ??
+  readFileSync(path.join(ROOT, "apps", "mobile", ".env"), "utf8")
+    .match(/EXPO_PUBLIC_SUPABASE_URL=https:\/\/([a-z]+)\.supabase\.co/)[1];
 
 const token = (process.env.SUPABASE_ACCESS_TOKEN ??
   readFileSync(path.join(os.homedir(), ".supabase", "access-token"), "utf8")).trim();
@@ -87,6 +91,14 @@ async function main(args) {
     return;
   }
 
+  await applyFile(file);
+}
+
+/**
+ * Применяет один файл миграции и пишет его в журнал. Ничего не проверяет —
+ * «применён ли уже» решает вызывающий (`db-apply-pending.mjs`).
+ */
+export async function applyFile(file) {
   const sql = readFileSync(path.resolve(ROOT, file), "utf8");
   const base = path.basename(file, ".sql");
   const matched = base.match(/^(\d{14})_(.+)$/);

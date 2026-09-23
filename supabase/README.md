@@ -12,6 +12,19 @@ client selects this backend with `EXPO_PUBLIC_DATA_SOURCE=supabase`; with
 (`module-create`, `module-parse`, `lesson-generate`, `task-submit`,
 `module-regenerate`, `profile-update`) приезжают в фазах 2-6.
 
+## Деплой из CI
+
+С 2026-09-24 проект приводится к `master` при каждом пуше в него
+(`.github/workflows/pages.yml`, job `backend`): применяются миграции, которых
+нет в журнале (`scripts/db-apply-pending.mjs` — по порядку версий, а при
+расхождении журнала с файлами останавливается, ничего не применив),
+деплоятся все Edge Functions (`supabase functions deploy --use-api`), адрес
+сайта на GitHub Pages добавляется в разрешённые адреса возврата Auth, и
+публичный ключ проекта уходит в web-сборку (`scripts/supabase-web-setup.mjs`).
+Нужен один секрет репозитория — `SUPABASE_ACCESS_TOKEN`, личный токен
+аккаунта Supabase. Ручной `db-apply-migration.mjs` остаётся для разовых
+запросов и локальной работы.
+
 ## Слова из файла
 
 С 2026-09-23 Главная скрыта, и загрузка файла нужна только ради слов для

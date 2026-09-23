@@ -24,6 +24,13 @@ export const APPLE_SIGN_IN_AVAILABLE = Platform.OS === "ios";
 export const GOOGLE_SIGN_IN_AVAILABLE =
   process.env.EXPO_PUBLIC_GOOGLE_SIGN_IN === "enabled";
 
+/**
+ * The deployed web app's own address (`https://…/yuny/`), or `undefined`
+ * outside the Pages build. `Linking.createURL` does not know the site's
+ * base path, so auth redirects on the deployed site use this instead.
+ */
+const SITE_URL = process.env.EXPO_PUBLIC_SITE_URL || undefined;
+
 /** Turns Supabase's auth errors into the same `{ code }` shape as the backend. */
 function authFailure(message: string | undefined): BackendError {
   const text = (message ?? "").toLowerCase();
@@ -57,8 +64,15 @@ export async function signUpWithEmail(
   const { data, error } = await getSupabase().auth.signUp({
     email,
     password,
-    // Read by the `handle_new_user` trigger to seed `profiles.display_name`.
-    options: { data: { display_name: displayName } },
+    options: {
+      // Read by the `handle_new_user` trigger to seed `profiles.display_name`.
+      data: { display_name: displayName },
+      // Where the confirmation email's link lands. Without it Supabase uses
+      // the project's Site URL, which is not the deployed site. Set only by
+      // the Pages build (`.github/workflows/pages.yml`), whose address is also
+      // added to the project's allowed redirects there.
+      ...(SITE_URL ? { emailRedirectTo: SITE_URL } : {}),
+    },
   });
   if (error) throw authFailure(error.message);
   return Boolean(data.session);
@@ -70,7 +84,7 @@ export async function signInWithGoogle(): Promise<void> {
   // the URL (`detectSessionInUrl`); native has no such hook, so it returns to
   // a path that only `openAuthSessionAsync` ever sees.
   const redirectTo =
-    Platform.OS === "web" ? Linking.createURL("/") : Linking.createURL("/auth-callback");
+    Platform.OS === "web" ? (SITE_URL ?? Linking.createURL("/")) : Linking.createURL("/auth-callback");
 
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "google",
