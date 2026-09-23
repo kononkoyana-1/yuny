@@ -1,4 +1,4 @@
-import type { SavedEntry, TranslationSource, UserDictionaryItem } from "@yuny/shared";
+import type { SavedEntry, SavedTranslationSource, UserDictionaryItem } from "@yuny/shared";
 import { shortMeaning } from "./article";
 import { pinyinPlain, queryKind, readingsPlain } from "@/shared/lib/dictionaryText";
 
@@ -16,7 +16,7 @@ export interface SavedWord {
   /** Сохранённое значение слова — из той строки, где оно есть. */
   translation: string | null;
   /** Откуда `translation`; `null` у слов, сохранённых до хранения источника. */
-  translationSource: TranslationSource | null;
+  translationSource: SavedTranslationSource | null;
   items: UserDictionaryItem[];
 }
 
@@ -91,23 +91,25 @@ export function searchSaved(words: SavedWord[], query: string): SavedWord[] {
  * Строка над статьёй, которая называет сохранённое значение слова и его
  * источник, или `null`, если показывать нечего:
  *
- *   * из файла и от модели — всегда: это не то, что написано в статье;
+ *   * из файла, от модели и поправленное учеником — всегда: это не то, что
+ *     написано в статье;
  *   * копия статьи — только когда самой статьи больше нет, иначе она
  *     повторяла бы статью под собой;
  *   * без источника (сохранено раньше) — если отличается от статьи.
  */
-export type TranslationLineKind = "file" | "ai" | "dictionary" | "saved";
+export type TranslationLineKind = "file" | "ai" | "user" | "dictionary" | "saved";
 
 export function translationLine(word: {
   entry: SavedEntry | null;
   translation?: string | null;
-  translationSource?: TranslationSource | null;
+  translationSource?: SavedTranslationSource | null;
 }): { kind: TranslationLineKind; text: string } | null {
   const text = word.translation;
   if (!text) return null;
   switch (word.translationSource) {
     case "file":
     case "ai":
+    case "user":
       return { kind: word.translationSource, text };
     case "dictionary":
       return word.entry ? null : { kind: "dictionary", text };

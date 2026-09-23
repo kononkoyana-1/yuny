@@ -24,6 +24,7 @@ export {
   WordsExtractRequestSchema,
   WordsExtractResponseSchema,
   TranslationSourceSchema,
+  SavedTranslationSourceSchema,
   ExtractedWordSchema,
   WordsExtractResultSchema,
 } from "./words";
@@ -31,6 +32,7 @@ export type {
   WordsExtractRequest,
   WordsExtractResponse,
   TranslationSource,
+  SavedTranslationSource,
   ExtractedWord,
   WordsExtractResult,
 } from "./words";

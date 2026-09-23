@@ -26,6 +26,12 @@ export const WordsExtractResponseSchema = z.object({
  */
 export const TranslationSourceSchema = z.enum(["file", "dictionary", "ai"]);
 
+/**
+ * Источник значения у сохранённого слова: те же три, что у разбора, и
+ * `user` — ученик поправил перевод сам перед сохранением.
+ */
+export const SavedTranslationSourceSchema = z.enum(["file", "dictionary", "ai", "user"]);
+
 export const ExtractedWordSchema = z.object({
   word: z.string().min(1),
   reading: z.string().nullable(),
@@ -44,5 +50,6 @@ export const WordsExtractResultSchema = z.object({
 export type WordsExtractRequest = z.infer<typeof WordsExtractRequestSchema>;
 export type WordsExtractResponse = z.infer<typeof WordsExtractResponseSchema>;
 export type TranslationSource = z.infer<typeof TranslationSourceSchema>;
+export type SavedTranslationSource = z.infer<typeof SavedTranslationSourceSchema>;
 export type ExtractedWord = z.infer<typeof ExtractedWordSchema>;
 export type WordsExtractResult = z.infer<typeof WordsExtractResultSchema>;

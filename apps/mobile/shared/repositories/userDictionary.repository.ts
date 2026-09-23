@@ -1,6 +1,6 @@
 import type {
   SavedEntry,
-  TranslationSource,
+  SavedTranslationSource,
   UserDictionaryFolder,
   UserDictionaryItem,
 } from "@yuny/shared";
@@ -13,7 +13,7 @@ export type SaveWordInput = Pick<SavedEntry, "headword" | "reading"> & {
   entryId: number | null;
   translation?: string | null;
   /** Откуда `translation` — решает, как статья его подпишет. */
-  translationSource?: TranslationSource | null;
+  translationSource?: SavedTranslationSource | null;
 };
 
 /**

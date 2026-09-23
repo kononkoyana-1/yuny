@@ -1,8 +1,8 @@
-import { useEffect, useRef, useState } from "react";
-import { FlatList, Pressable, ScrollView, View } from "react-native";
+import { useEffect, useRef, useState, type RefObject } from "react";
+import { FlatList, Pressable, ScrollView, View, type TextInput } from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { FolderNameSchema, type ExtractedWord, type WordsExtractResult } from "@yuny/shared";
+import { FolderNameSchema, type WordsExtractResult } from "@yuny/shared";
 import { Button, FeedbackBanner, Input, Mascot, Sheet, Text } from "@/shared/ui";
 import { useCreateFolder, useFolders, useSaveWords, useSavedItems } from "@/shared/api";
 import { BackendError } from "@/shared/lib/backendError";
@@ -11,7 +11,9 @@ import { t } from "@/shared/i18n";
 import { returnFocusTo } from "@/shared/platform/sheetA11y";
 import { CheckMark, CheckRow } from "@/features/dictionary/CheckMark";
 import { folderCounts } from "@/features/dictionary/saved";
+import { useRowRefs } from "@/features/dictionary/useRowRefs";
 import type { SaveWordInput } from "@/shared/repositories";
+import { applyEdits, cleanTranslation, savedSource, type ReviewWord } from "./edits";
 
 interface SavedOutcome {
   folderId: string;
@@ -22,7 +24,9 @@ interface SavedOutcome {
 
 /**
  * Итог разбора файла (редакция 2026-09-23): слова с переводами, все отмечены.
- * Снятая галочка убирает слово из сохранения — править перевод здесь нельзя.
+ * Снятая галочка убирает слово из сохранения; «Изменить» открывает лист, где
+ * перевод можно поправить руками — такой перевод сохраняется как «Ваш
+ * перевод» (решение владельца, 2026-09-23).
  * «Сохранить» открывает лист: новая папка с названием, которое предложил
  * разбор, или одна из тех, что уже есть. После сохранения — итог и переход в
  * папку.
@@ -31,10 +35,15 @@ export function WordsReview({ result, onDone }: { result: WordsExtractResult; on
   const [unchecked, setUnchecked] = useState<Set<string>>(() => new Set());
   const [choosing, setChoosing] = useState(false);
   const [saved, setSaved] = useState<SavedOutcome | null>(null);
+  const [edits, setEdits] = useState<Map<string, string>>(() => new Map());
+  const [editing, setEditing] = useState<ReviewWord | null>(null);
+  const [focusWord, setFocusWord] = useState<string | null>(null);
+  const editRefFor = useRowRefs();
   const saveRef = useRef<View>(null);
   const insets = useSafeAreaInsets();
 
-  const chosen = result.words.filter((w) => !unchecked.has(w.word));
+  const words = applyEdits(result.words, edits);
+  const chosen = words.filter((w) => !unchecked.has(w.word));
 
   if (saved) return <SavedScreen outcome={saved} onDone={onDone} />;
 
@@ -52,7 +61,7 @@ export function WordsReview({ result, onDone }: { result: WordsExtractResult; on
   return (
     <View className="flex-1 bg-background dark:bg-background-dark" style={{ paddingTop: insets.top }}>
       <FlatList
-        data={result.words}
+        data={words}
         keyExtractor={(w) => w.word}
         contentContainerClassName="px-lg pb-lg"
         ItemSeparatorComponent={() => <View style={{ height: spacing.sm }} />}
@@ -82,7 +91,16 @@ export function WordsReview({ result, onDone }: { result: WordsExtractResult; on
           </View>
         }
         renderItem={({ item }) => (
-          <WordRow word={item} checked={!unchecked.has(item.word)} onPress={() => toggle(item.word)} />
+          <WordRow
+            word={item}
+            checked={!unchecked.has(item.word)}
+            onPress={() => toggle(item.word)}
+            editRef={editRefFor(item.word)}
+            onEdit={() => {
+              setFocusWord(item.word);
+              setEditing(item);
+            }}
+          />
         )}
       />
 
@@ -96,6 +114,25 @@ export function WordsReview({ result, onDone }: { result: WordsExtractResult; on
         />
         <Button label={t("upload.words.another")} variant="ghost" onPress={onDone} />
       </View>
+
+      <EditTranslationSheet
+        word={editing}
+        original={result.words.find((w) => w.word === editing?.word)?.translation ?? null}
+        onClose={() => setEditing(null)}
+        onSave={(word, translation) => {
+          setEdits((prev) => new Map(prev).set(word, translation));
+          setEditing(null);
+        }}
+        onRevert={(word) => {
+          setEdits((prev) => {
+            const next = new Map(prev);
+            next.delete(word);
+            return next;
+          });
+          setEditing(null);
+        }}
+        returnFocusRef={focusWord !== null ? editRefFor(focusWord) : undefined}
+      />
 
       <Sheet
         visible={choosing}
@@ -122,54 +159,191 @@ export function WordsReview({ result, onDone }: { result: WordsExtractResult; on
 /**
  * Подпись источника. Слово без статьи БКРС помечено «нет в словаре», откуда
  * бы ни был перевод — из файла или от модели (upload-words.review.md B1).
+ * Поправленный руками перевод — «Ваш перевод».
  */
-function sourceLabel(word: ExtractedWord): string {
+function sourceLabel(word: ReviewWord): string {
+  if (word.edited) return t("upload.words.source.user");
   if (word.source === "file" && word.entry_id === null) return t("upload.words.source.fileNoEntry");
   return t(`upload.words.source.${word.source}`);
 }
 
-function WordRow({ word, checked, onPress }: { word: ExtractedWord; checked: boolean; onPress: () => void }) {
+function WordRow({
+  word,
+  checked,
+  onPress,
+  onEdit,
+  editRef,
+}: {
+  word: ReviewWord;
+  checked: boolean;
+  onPress: () => void;
+  onEdit: () => void;
+  editRef: RefObject<View | null>;
+}) {
   const source = sourceLabel(word);
   // Без чтения — без пустого места в подписи: «слово, , перевод» (review m6).
   const label = [word.word, word.reading, word.translation].filter(Boolean).join(", ") + `. ${source}`;
   return (
-    <CheckRow
-      checked={checked}
-      onToggle={onPress}
-      accessibilityLabel={label}
-      className="flex-row items-start gap-md rounded-md bg-surface px-md py-sm dark:bg-surface-dark"
-    >
-      <View className="pt-xs">
-        <CheckMark checked={checked} />
-      </View>
-      <View className={`flex-1 gap-xs ${checked ? "" : "opacity-50"}`}>
-        <View className="flex-row flex-wrap items-baseline gap-x-sm">
-          <Text variant="title">{word.word}</Text>
-          {word.reading ? (
-            <Text variant="body" tone="muted">
-              {word.reading}
-            </Text>
-          ) : null}
+    // Галочка и «Изменить» — два отдельных элемента в одной строке: кнопка
+    // внутри `checkbox` — недопустимое дерево для скринридера.
+    <View className="flex-row items-start rounded-md bg-surface dark:bg-surface-dark">
+      <CheckRow
+        checked={checked}
+        onToggle={onPress}
+        accessibilityLabel={label}
+        className="flex-1 flex-row items-start gap-md py-sm pl-md"
+      >
+        <View className="pt-xs">
+          <CheckMark checked={checked} />
         </View>
-        <Text variant="body">{word.translation}</Text>
-        <Text variant="caption" tone={word.entry_id === null ? "brand" : "muted"}>
-          {source}
+        <View className={`flex-1 gap-xs ${checked ? "" : "opacity-50"}`}>
+          <View className="flex-row flex-wrap items-baseline gap-x-sm">
+            <Text variant="title">{word.word}</Text>
+            {word.reading ? (
+              <Text variant="body" tone="muted">
+                {word.reading}
+              </Text>
+            ) : null}
+          </View>
+          <Text variant="body">{word.translation}</Text>
+          <Text variant="caption" tone={!word.edited && word.entry_id === null ? "brand" : "muted"}>
+            {source}
+          </Text>
+        </View>
+      </CheckRow>
+      <Pressable
+        ref={editRef}
+        accessibilityRole="button"
+        accessibilityLabel={t("upload.words.edit.a11y", { word: word.word })}
+        onPress={onEdit}
+        className="min-h-[44px] min-w-[44px] justify-center px-md py-sm"
+      >
+        <Text variant="caption" tone="brand" className="font-semibold">
+          {t("upload.words.edit.action")}
         </Text>
-      </View>
-    </CheckRow>
+      </Pressable>
+    </View>
   );
 }
 
-function toSaveInput(word: ExtractedWord): SaveWordInput {
+/**
+ * Лист правки перевода одного слова: поле с текущим переводом, «Сохранить»,
+ * «Вернуть исходный» — если перевод уже правили — и «Отмена».
+ */
+function EditTranslationSheet({
+  word,
+  original,
+  onClose,
+  onSave,
+  onRevert,
+  returnFocusRef,
+}: {
+  word: ReviewWord | null;
+  original: string | null;
+  onClose: () => void;
+  onSave: (word: string, translation: string) => void;
+  onRevert: (word: string) => void;
+  returnFocusRef?: RefObject<View | null>;
+}) {
+  const inputRef = useRef<TextInput>(null);
+  return (
+    <Sheet
+      visible={word !== null}
+      onClose={onClose}
+      accessibilityLabel={word ? t("upload.words.edit.title", { word: word.word }) : ""}
+      returnFocusRef={returnFocusRef}
+      initialFocusRef={inputRef}
+    >
+      {/* `key` — новое поле на каждое слово, а не остатки ввода от прошлого. */}
+      {word ? (
+        <EditTranslationForm
+          key={word.word}
+          word={word}
+          original={original}
+          inputRef={inputRef}
+          onClose={onClose}
+          onSave={onSave}
+          onRevert={onRevert}
+        />
+      ) : null}
+    </Sheet>
+  );
+}
+
+function EditTranslationForm({
+  word,
+  original,
+  inputRef,
+  onClose,
+  onSave,
+  onRevert,
+}: {
+  word: ReviewWord;
+  original: string | null;
+  inputRef: RefObject<TextInput | null>;
+  onClose: () => void;
+  onSave: (word: string, translation: string) => void;
+  onRevert: (word: string) => void;
+}) {
+  const [text, setText] = useState(word.translation);
+  const clean = cleanTranslation(text);
+
+  function save() {
+    if (clean) onSave(word.word, clean);
+  }
+
+  return (
+    <View className="gap-lg">
+      <View className="gap-xs">
+        <Text variant="heading" accessibilityRole="header">
+          {t("upload.words.edit.title", { word: word.word })}
+        </Text>
+        {word.reading ? (
+          <Text variant="body" tone="muted">
+            {word.reading}
+          </Text>
+        ) : null}
+      </View>
+      <Input
+        ref={inputRef}
+        value={text}
+        onChangeText={setText}
+        accessibilityLabel={t("upload.words.edit.label")}
+        placeholder={t("upload.words.edit.placeholder")}
+        maxLength={300}
+        returnKeyType="done"
+        onSubmitEditing={save}
+      />
+      <View className="gap-sm">
+        <Button
+          label={t("upload.words.edit.save")}
+          variant="primary"
+          disabled={clean === null}
+          onPress={save}
+        />
+        {word.edited && original ? (
+          <Button
+            label={t("upload.words.edit.revert", { translation: original })}
+            variant="secondary"
+            onPress={() => onRevert(word.word)}
+          />
+        ) : null}
+        <Button label={t("upload.words.edit.cancel")} variant="ghost" onPress={onClose} />
+      </View>
+    </View>
+  );
+}
+
+function toSaveInput(word: ReviewWord): SaveWordInput {
   return {
     headword: word.word,
     reading: word.reading,
     entryId: word.entry_id,
     // Значение едет вместе со словом всегда (#36), в том числе предложенное
     // словарём: если статью удалят при перезаливке, слово не останется пустым.
-    // Источник — чтобы статья подписала его честно.
+    // Источник — чтобы статья подписала его честно; поправленное — `user`.
     translation: word.translation,
-    translationSource: word.source,
+    translationSource: savedSource(word),
   };
 }
 
@@ -180,7 +354,7 @@ function WhereToSave({
   onSaved,
 }: {
   title: string;
-  words: ExtractedWord[];
+  words: ReviewWord[];
   onCancel: () => void;
   onSaved: (outcome: SavedOutcome) => void;
 }) {

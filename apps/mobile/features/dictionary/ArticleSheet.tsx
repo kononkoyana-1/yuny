@@ -3,7 +3,7 @@ import { View, type TextInput } from "react-native";
 import {
   FolderNameSchema,
   type SavedEntry,
-  type TranslationSource,
+  type SavedTranslationSource,
   type UserDictionaryFolder,
 } from "@yuny/shared";
 import { Button, FeedbackBanner, IconButton, Input, Sheet, Text } from "@/shared/ui";
@@ -31,7 +31,7 @@ export interface SheetWord {
   /** Сохранённое значение слова, если оно уже лежит в какой-то папке. */
   translation?: string | null;
   /** Откуда `translation`: из файла, из статьи или от модели. */
-  translationSource?: TranslationSource | null;
+  translationSource?: SavedTranslationSource | null;
 }
 
 export interface ArticleSheetProps {
