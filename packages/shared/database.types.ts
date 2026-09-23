@@ -617,6 +617,75 @@ export type Database = {
           },
         ]
       }
+      user_dictionary_folders: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          updated_at?: string
+          user_id?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_dictionary_items: {
+        Row: {
+          created_at: string
+          dictionary_entry_id: number | null
+          folder_id: string
+          headword: string
+          id: string
+          reading: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          dictionary_entry_id?: number | null
+          folder_id: string
+          headword: string
+          id?: string
+          reading?: string | null
+          user_id?: string
+        }
+        Update: {
+          created_at?: string
+          dictionary_entry_id?: number | null
+          folder_id?: string
+          headword?: string
+          id?: string
+          reading?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_dictionary_items_dictionary_entry_id_fkey"
+            columns: ["dictionary_entry_id"]
+            isOneToOne: false
+            referencedRelation: "dictionary_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_dictionary_items_folder_id_user_id_fkey"
+            columns: ["folder_id", "user_id"]
+            isOneToOne: false
+            referencedRelation: "user_dictionary_folders"
+            referencedColumns: ["id", "user_id"]
+          },
+        ]
+      }
     }
     Views: {
       module_progress: {
