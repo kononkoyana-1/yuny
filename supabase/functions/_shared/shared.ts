@@ -398,11 +398,16 @@ export async function aiJson<T>(options: {
 }
 
 /**
- * Retries once, and only on the failures that are worth retrying: rate
- * limiting and the provider's own 5xx. A 400 is our bug — a schema Gemini
- * will reject the same way every time — so it fails immediately with the
- * response logged, rather than being served twice and hidden behind a
- * generic error code.
+ * Retries only the failures worth retrying: rate limiting and the provider's
+ * own 5xx. A 400 is our bug — a schema Gemini will reject the same way every
+ * time — so it fails immediately with the response logged, rather than being
+ * served twice and hidden behind a generic error code.
+ *
+ * Four attempts with a growing wait, not one quick repeat. Gemini answers
+ * `503 "This model is currently experiencing high demand"` for spells longer
+ * than a second, and a lesson generation that gives up after 1.2s hands the
+ * learner an error over a wait they would gladly have sat through — the call
+ * already runs in the background against a job.
  */
 async function callGemini(
   body: unknown,
@@ -411,7 +416,8 @@ async function callGemini(
 ): Promise<string> {
   const url = `${AI_ENDPOINT}/${AI_MODEL}:generateContent`;
 
-  for (let attempt = 0; attempt < 2; attempt += 1) {
+  const RETRY_WAITS_MS = [2000, 6000, 15000];
+  for (let attempt = 0; attempt <= RETRY_WAITS_MS.length; attempt += 1) {
     const response = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
@@ -421,8 +427,8 @@ async function callGemini(
     if (!response.ok) {
       const detail = (await response.text()).slice(0, 500);
       const retryable = response.status === 429 || response.status >= 500;
-      if (retryable && attempt === 0) {
-        await new Promise((resolve) => setTimeout(resolve, 1200));
+      if (retryable && attempt < RETRY_WAITS_MS.length) {
+        await new Promise((resolve) => setTimeout(resolve, RETRY_WAITS_MS[attempt]));
         continue;
       }
       console.error("ai_http_error", purpose, response.status, detail);
