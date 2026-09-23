@@ -1,6 +1,6 @@
 import { describe, expect, it } from "@jest/globals";
 import type { UserDictionaryItem } from "@yuny/shared";
-import { folderCounts, groupSavedWords, searchSaved } from "./saved";
+import { folderCounts, groupSavedWords, searchSaved, translationLine } from "./saved";
 
 let n = 0;
 function item(folder: string, headword: string, reading: string | null, glosses: string[] = []): UserDictionaryItem {
@@ -11,6 +11,7 @@ function item(folder: string, headword: string, reading: string | null, glosses:
     headword,
     reading,
     translation: null,
+    translation_source: null,
     created_at: "2026-09-23T00:00:00.000Z",
     entry: {
       id: n,
@@ -78,13 +79,45 @@ describe("searchSaved", () => {
   it("keeps the first own translation of a word kept in several folders", () => {
     const own = groupSavedWords([
       { ...item("a", "买", "mǎi"), translation: null },
-      { ...item("b", "买", "mǎi"), translation: "покупать" },
+      { ...item("b", "买", "mǎi"), translation: "покупать", translation_source: "file" },
     ]);
     expect(own[0].translation).toBe("покупать");
+    expect(own[0].translationSource).toBe("file");
   });
 
   it("returns nothing for an empty or letterless query", () => {
     expect(found("  ")).toEqual([]);
     expect(found("...")).toEqual([]);
+  });
+});
+
+describe("translationLine", () => {
+  const entry = { id: 1, headword: "买", reading: "mǎi", senses: [], compact: ["покупать", "купить"] };
+
+  it("names a file or AI translation even when the entry is there", () => {
+    expect(translationLine({ entry, translation: "брать", translationSource: "file" })).toEqual({
+      kind: "file",
+      text: "брать",
+    });
+    expect(translationLine({ entry: null, translation: "QR", translationSource: "ai" })?.kind).toBe("ai");
+  });
+
+  it("hides a dictionary copy while the entry it was copied from is shown", () => {
+    expect(translationLine({ entry, translation: "покупать; купить", translationSource: "dictionary" })).toBeNull();
+  });
+
+  it("shows the dictionary copy once the entry is gone", () => {
+    expect(translationLine({ entry: null, translation: "покупать", translationSource: "dictionary" })?.kind).toBe(
+      "dictionary",
+    );
+  });
+
+  it("falls back to a neutral label for words saved before sources were kept", () => {
+    expect(translationLine({ entry, translation: "покупать; купить", translationSource: null })).toBeNull();
+    expect(translationLine({ entry, translation: "брать", translationSource: null })?.kind).toBe("saved");
+  });
+
+  it("is null without a translation", () => {
+    expect(translationLine({ entry, translation: null })).toBeNull();
   });
 });

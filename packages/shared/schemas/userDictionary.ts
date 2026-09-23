@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { DictionaryEntrySchema } from "./dictionary";
+import { TranslationSourceSchema } from "./words";
 
 /**
  * Свой словарь (TZ.md §11 экран 04, §12): папки пользователя и слова в них.
@@ -47,6 +48,8 @@ export const UserDictionaryItemSchema = z.object({
    * `null` только у слов, сохранённых до этого правила.
    */
   translation: z.string().nullable(),
+  /** Откуда `translation`: из файла, из статьи БКРС или от модели. */
+  translation_source: TranslationSourceSchema.nullable(),
   created_at: z.string(),
   entry: SavedEntrySchema.nullable(),
 });

@@ -1,4 +1,5 @@
-import type { SavedEntry, UserDictionaryItem } from "@yuny/shared";
+import type { SavedEntry, TranslationSource, UserDictionaryItem } from "@yuny/shared";
+import { shortMeaning } from "./article";
 import { pinyinPlain, queryKind, readingsPlain } from "@/shared/lib/dictionaryText";
 
 /**
@@ -12,8 +13,10 @@ export interface SavedWord {
   reading: string | null;
   /** Статья словаря или `null`, если после перезаливки её больше нет. */
   entry: SavedEntry | null;
-  /** Свой перевод слова (из файла или от модели), если он есть хоть в одной папке. */
+  /** Сохранённое значение слова — из той строки, где оно есть. */
   translation: string | null;
+  /** Откуда `translation`; `null` у слов, сохранённых до хранения источника. */
+  translationSource: TranslationSource | null;
   items: UserDictionaryItem[];
 }
 
@@ -31,7 +34,10 @@ export function groupSavedWords(items: UserDictionaryItem[]): SavedWord[] {
     if (word) {
       word.items.push(item);
       word.entry ??= item.entry;
-      word.translation ??= item.translation;
+      if (word.translation === null && item.translation !== null) {
+        word.translation = item.translation;
+        word.translationSource = item.translation_source;
+      }
     } else {
       byKey.set(key, {
         key,
@@ -39,6 +45,7 @@ export function groupSavedWords(items: UserDictionaryItem[]): SavedWord[] {
         reading: item.reading,
         entry: item.entry,
         translation: item.translation,
+        translationSource: item.translation_source,
         items: [item],
       });
     }
@@ -78,4 +85,33 @@ export function searchSaved(words: SavedWord[], query: string): SavedWord[] {
       (w.translation?.toLocaleLowerCase("ru").includes(needle) ?? false) ||
       (w.entry?.senses ?? []).some((s) => s.gloss.toLocaleLowerCase("ru").includes(needle)),
   );
+}
+
+/**
+ * Строка над статьёй, которая называет сохранённое значение слова и его
+ * источник, или `null`, если показывать нечего:
+ *
+ *   * из файла и от модели — всегда: это не то, что написано в статье;
+ *   * копия статьи — только когда самой статьи больше нет, иначе она
+ *     повторяла бы статью под собой;
+ *   * без источника (сохранено раньше) — если отличается от статьи.
+ */
+export type TranslationLineKind = "file" | "ai" | "dictionary" | "saved";
+
+export function translationLine(word: {
+  entry: SavedEntry | null;
+  translation?: string | null;
+  translationSource?: TranslationSource | null;
+}): { kind: TranslationLineKind; text: string } | null {
+  const text = word.translation;
+  if (!text) return null;
+  switch (word.translationSource) {
+    case "file":
+    case "ai":
+      return { kind: word.translationSource, text };
+    case "dictionary":
+      return word.entry ? null : { kind: "dictionary", text };
+    default:
+      return word.entry && text === shortMeaning(word.entry) ? null : { kind: "saved", text };
+  }
 }

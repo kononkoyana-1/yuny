@@ -1,4 +1,9 @@
-import type { SavedEntry, UserDictionaryFolder, UserDictionaryItem } from "@yuny/shared";
+import type {
+  SavedEntry,
+  TranslationSource,
+  UserDictionaryFolder,
+  UserDictionaryItem,
+} from "@yuny/shared";
 
 /**
  * Что нужно, чтобы положить слово в папку: ключ слова, ссылка на статью и,
@@ -7,6 +12,8 @@ import type { SavedEntry, UserDictionaryFolder, UserDictionaryItem } from "@yuny
 export type SaveWordInput = Pick<SavedEntry, "headword" | "reading"> & {
   entryId: number | null;
   translation?: string | null;
+  /** Откуда `translation` — решает, как статья его подпишет. */
+  translationSource?: TranslationSource | null;
 };
 
 /**

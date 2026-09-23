@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { FlatList, Pressable, ScrollView, View } from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -8,7 +8,8 @@ import { useCreateFolder, useFolders, useSaveWords, useSavedItems } from "@/shar
 import { BackendError } from "@/shared/lib/backendError";
 import { spacing } from "@/shared/config/tokens";
 import { t } from "@/shared/i18n";
-import { CheckMark } from "@/features/dictionary/CheckMark";
+import { returnFocusTo } from "@/shared/platform/sheetA11y";
+import { CheckMark, CheckRow } from "@/features/dictionary/CheckMark";
 import { folderCounts } from "@/features/dictionary/saved";
 import type { SaveWordInput } from "@/shared/repositories";
 
@@ -56,13 +57,12 @@ export function WordsReview({ result, onDone }: { result: WordsExtractResult; on
         contentContainerClassName="px-lg pb-lg"
         ItemSeparatorComponent={() => <View style={{ height: spacing.sm }} />}
         ListHeaderComponent={
-          <View className="gap-xs pb-lg pt-xl">
+          <View className="gap-xs pb-sm pt-xl">
             <Text variant="title" accessibilityRole="header">
               {t("upload.words.title", { count: result.words.length })}
             </Text>
-            <Text variant="body" tone="muted">
-              {result.title}
-            </Text>
+            {/* Название файла — будущее имя папки, не часть подсказки (review m4). */}
+            <Text variant="heading">{result.title}</Text>
             <Text variant="body" tone="muted">
               {t("upload.words.hint")}
             </Text>
@@ -70,6 +70,10 @@ export function WordsReview({ result, onDone }: { result: WordsExtractResult; on
               <Button
                 label={t(allChecked ? "upload.words.selectNone" : "upload.words.selectAll")}
                 variant="ghost"
+                // Без своего отступа: текст на одной линии со строками (review m3).
+                // Стилем, не классом: `px-0` проигрывает `px-lg` самой кнопки
+                // по порядку правил в CSS.
+                style={{ paddingHorizontal: 0 }}
                 onPress={() =>
                   setUnchecked(allChecked ? new Set(result.words.map((w) => w.word)) : new Set())
                 }
@@ -115,22 +119,25 @@ export function WordsReview({ result, onDone }: { result: WordsExtractResult; on
   );
 }
 
+/**
+ * Подпись источника. Слово без статьи БКРС помечено «нет в словаре», откуда
+ * бы ни был перевод — из файла или от модели (upload-words.review.md B1).
+ */
+function sourceLabel(word: ExtractedWord): string {
+  if (word.source === "file" && word.entry_id === null) return t("upload.words.source.fileNoEntry");
+  return t(`upload.words.source.${word.source}`);
+}
+
 function WordRow({ word, checked, onPress }: { word: ExtractedWord; checked: boolean; onPress: () => void }) {
-  const source = t(`upload.words.source.${word.source}`);
+  const source = sourceLabel(word);
+  // Без чтения — без пустого места в подписи: «слово, , перевод» (review m6).
+  const label = [word.word, word.reading, word.translation].filter(Boolean).join(", ") + `. ${source}`;
   return (
-    <Pressable
-      accessibilityRole="checkbox"
-      accessibilityLabel={t("upload.words.checkA11y", {
-        word: word.word,
-        reading: word.reading ?? "",
-        translation: word.translation,
-        source,
-      })}
-      accessibilityState={{ checked }}
-      // react-native-web не переносит `accessibilityState.checked` в `aria-checked`.
-      aria-checked={checked}
-      onPress={onPress}
-      className="min-h-[44px] flex-row items-start gap-md rounded-md bg-surface px-md py-sm dark:bg-surface-dark"
+    <CheckRow
+      checked={checked}
+      onToggle={onPress}
+      accessibilityLabel={label}
+      className="flex-row items-start gap-md rounded-md bg-surface px-md py-sm dark:bg-surface-dark"
     >
       <View className="pt-xs">
         <CheckMark checked={checked} />
@@ -145,11 +152,11 @@ function WordRow({ word, checked, onPress }: { word: ExtractedWord; checked: boo
           ) : null}
         </View>
         <Text variant="body">{word.translation}</Text>
-        <Text variant="caption" tone={word.source === "ai" ? "brand" : "muted"}>
+        <Text variant="caption" tone={word.entry_id === null ? "brand" : "muted"}>
           {source}
         </Text>
       </View>
-    </Pressable>
+    </CheckRow>
   );
 }
 
@@ -160,7 +167,9 @@ function toSaveInput(word: ExtractedWord): SaveWordInput {
     entryId: word.entry_id,
     // Значение едет вместе со словом всегда (#36), в том числе предложенное
     // словарём: если статью удалят при перезаливке, слово не останется пустым.
+    // Источник — чтобы статья подписала его честно.
     translation: word.translation,
+    translationSource: word.source,
   };
 }
 
@@ -253,6 +262,15 @@ function WhereToSave({
 
       {error ? <FeedbackBanner message={error} /> : null}
 
+      {/* Папки ещё грузятся или не загрузились — сказать об этом, а не молчать (review m5). */}
+      {folders.isPending ? (
+        <Text variant="body" tone="muted">
+          {t("dictionary.mine.loading")}
+        </Text>
+      ) : folders.isError && !folders.data ? (
+        <FeedbackBanner message={t("dictionary.mine.error")} />
+      ) : null}
+
       {folders.data && folders.data.length > 0 ? (
         <View className="gap-sm">
           <Text variant="body" className="font-semibold">
@@ -292,11 +310,20 @@ function WhereToSave({
 function SavedScreen({ outcome, onDone }: { outcome: SavedOutcome; onDone: () => void }) {
   const router = useRouter();
   const skipped = outcome.total - outcome.added;
+  const openRef = useRef<View>(null);
+
+  // Лист «Куда сохранить» закрылся вместе с кнопкой, на которой был фокус:
+  // ставим его на главное действие итога, а сам итог объявляется живой
+  // областью (review m1).
+  useEffect(() => {
+    const id = setTimeout(() => returnFocusTo(openRef), 0);
+    return () => clearTimeout(id);
+  }, []);
 
   return (
     <View className="flex-1 items-center justify-center gap-lg bg-background px-lg dark:bg-background-dark">
       <Mascot decorative stage={1} mood="celebrating" size="medium" showStage={false} />
-      <View className="items-center gap-xs">
+      <View className="items-center gap-xs" accessibilityLiveRegion="polite" aria-live="polite">
         <Text variant="title" className="text-center" accessibilityRole="header">
           {outcome.added > 0
             ? t("upload.words.saved.title", { count: outcome.added, folder: outcome.folderName })
@@ -310,6 +337,7 @@ function SavedScreen({ outcome, onDone }: { outcome: SavedOutcome; onDone: () =>
       </View>
       <View className="w-full gap-sm">
         <Button
+          ref={openRef}
           label={t("upload.words.saved.open")}
           variant="primary"
           onPress={() => {

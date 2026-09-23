@@ -12,7 +12,7 @@ import type { UserDictionaryRepository } from "../userDictionary.repository";
 
 const FOLDER_COLUMNS = "id,name,created_at";
 const ITEM_COLUMNS =
-  "id,folder_id,headword,reading,translation,created_at,entry:dictionary_entries(id,headword,reading,senses,compact)";
+  "id,folder_id,headword,reading,translation,translation_source,created_at,entry:dictionary_entries(id,headword,reading,senses,compact)";
 
 /** Уникальность слова в папке — `user_dictionary_items_folder_word_key`, `nulls not distinct`. */
 const ITEM_KEY = "folder_id,headword,reading";
@@ -92,6 +92,7 @@ export const supabaseUserDictionaryRepository: UserDictionaryRepository = {
           headword: word.headword,
           reading: word.reading,
           translation: word.translation ?? null,
+          translation_source: word.translation ? (word.translationSource ?? null) : null,
           dictionary_entry_id: word.entryId,
         })),
         // Слово уже в этой папке — пропускаем его, остальные вставляются.

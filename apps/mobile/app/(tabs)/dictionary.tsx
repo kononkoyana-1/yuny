@@ -55,7 +55,7 @@ export default function DictionaryTab() {
   }
 
   const savedWords = useMemo(() => groupSavedWords(saved.data ?? []), [saved.data]);
-  const savedKeys = useMemo(() => new Set(savedWords.map((w) => w.key)), [savedWords]);
+  const savedByKey = useMemo(() => new Map(savedWords.map((w) => [w.key, w])), [savedWords]);
   const ownMatches = useMemo(() => searchSaved(savedWords, query), [savedWords, query]);
 
   const items = data?.pages.flatMap((page) => page.items) ?? [];
@@ -128,12 +128,25 @@ export default function DictionaryTab() {
         }
         renderItem={({ item }) => {
           const rowKey = `bkrs:${item.id}`;
+          // Уже сохранённое слово открывается со своим значением и его
+          // источником — как из папки (review n3): иначе статья не показала
+          // бы перевод из файла, а сохранение в ещё одну папку скопировало
+          // бы значение статьи вместо него.
+          const own = savedByKey.get(wordKey(item.headword, item.reading));
           return (
             <EntryRow
               ref={refFor(rowKey)}
               word={item}
-              saved={savedKeys.has(wordKey(item.headword, item.reading))}
-              onPress={() => open(rowKey, { headword: item.headword, reading: item.reading, entry: item })}
+              saved={own !== undefined}
+              onPress={() =>
+                open(rowKey, {
+                  headword: item.headword,
+                  reading: item.reading,
+                  entry: item,
+                  translation: own?.translation,
+                  translationSource: own?.translationSource,
+                })
+              }
             />
           );
         }}

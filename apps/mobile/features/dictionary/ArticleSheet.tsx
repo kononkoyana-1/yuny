@@ -1,6 +1,11 @@
-import { useState, type RefObject } from "react";
-import { Pressable, View } from "react-native";
-import { FolderNameSchema, type SavedEntry, type UserDictionaryFolder } from "@yuny/shared";
+import { useEffect, useRef, useState, type RefObject } from "react";
+import { View, type TextInput } from "react-native";
+import {
+  FolderNameSchema,
+  type SavedEntry,
+  type TranslationSource,
+  type UserDictionaryFolder,
+} from "@yuny/shared";
 import { Button, FeedbackBanner, IconButton, Input, Sheet, Text } from "@/shared/ui";
 import {
   useAddToFolder,
@@ -10,11 +15,12 @@ import {
   useSavedItems,
 } from "@/shared/api";
 import { BackendError } from "@/shared/lib/backendError";
+import { returnFocusTo } from "@/shared/platform/sheetA11y";
 import { t } from "@/shared/i18n";
-import { CheckMark } from "./CheckMark";
+import { CheckMark, CheckRow } from "./CheckMark";
 import { shortMeaning } from "./article";
 import { EntryArticle } from "./EntryArticle";
-import { wordKey } from "./saved";
+import { translationLine, wordKey } from "./saved";
 
 /** Слово, которое открыто в листе: из выдачи БКРС или из папки своего словаря. */
 export interface SheetWord {
@@ -22,8 +28,10 @@ export interface SheetWord {
   reading: string | null;
   /** `null` — у слова из папки, чья статья пропала после перезаливки словаря. */
   entry: SavedEntry | null;
-  /** Свой перевод слова из файла, если оно сохранено с ним. */
+  /** Сохранённое значение слова, если оно уже лежит в какой-то папке. */
   translation?: string | null;
+  /** Откуда `translation`: из файла, из статьи или от модели. */
+  translationSource?: TranslationSource | null;
 }
 
 export interface ArticleSheetProps {
@@ -56,15 +64,22 @@ function ArticleSheetBody({ word, onClose }: { word: SheetWord; onClose: () => v
   const [mode, setMode] = useState<"article" | "folders">("article");
   const folders = useFolders();
   const items = useSavedItems();
+  const actionRef = useRef<View>(null);
+  const cameBack = useRef(false);
+
+  // Вернулись из выбора папок — фокус на кнопку, которая туда вела: кнопки
+  // «Готово» уже нет, и без этого фокус падал на страницу (review n1).
+  useEffect(() => {
+    if (mode === "folders") {
+      cameBack.current = true;
+    } else if (cameBack.current) {
+      returnFocusTo(actionRef);
+    }
+  }, [mode]);
 
   const key = wordKey(word.headword, word.reading);
   const wordItems = (items.data ?? []).filter((i) => wordKey(i.headword, i.reading) === key);
-  // Копия значения статьи — не «свой перевод»: её незачем повторять над той
-  // же статьёй. Своим он становится, когда отличается от статьи или статьи нет.
-  const ownTranslation =
-    word.translation && (!word.entry || word.translation !== shortMeaning(word.entry))
-      ? word.translation
-      : null;
+  const line = translationLine(word);
   const savedFolderNames = (folders.data ?? [])
     .filter((f) => wordItems.some((i) => i.folder_id === f.id))
     .map((f) => f.name);
@@ -81,9 +96,9 @@ function ArticleSheetBody({ word, onClose }: { word: SheetWord; onClose: () => v
               {word.reading}
             </Text>
           ) : null}
-          {ownTranslation ? (
+          {line ? (
             <Text variant="body" className="pt-xs">
-              {t("dictionary.article.ownTranslation", { translation: ownTranslation })}
+              {t(`dictionary.article.translation.${line.kind}`, { translation: line.text })}
             </Text>
           ) : null}
         </View>
@@ -101,6 +116,7 @@ function ArticleSheetBody({ word, onClose }: { word: SheetWord; onClose: () => v
               </Text>
             ) : null}
             <Button
+              ref={actionRef}
               label={t(savedFolderNames.length > 0 ? "dictionary.article.changeFolders" : "dictionary.article.save")}
               variant={savedFolderNames.length > 0 ? "secondary" : "primary"}
               onPress={() => setMode("folders")}
@@ -138,14 +154,24 @@ function FolderPicker({ word, onDone }: { word: SheetWord; onDone: () => void })
 
   const key = wordKey(word.headword, word.reading);
   const wordItems = (items.data ?? []).filter((i) => wordKey(i.headword, i.reading) === key);
-  // Значение едет вместе со словом (#36): своё, если слово пришло из файла,
-  // иначе короткое значение статьи — на случай, если статью потом удалят.
-  const saveInput = {
-    headword: word.headword,
-    reading: word.reading,
-    entryId: word.entry?.id ?? null,
-    translation: word.translation ?? (word.entry ? shortMeaning(word.entry) : null),
-  };
+  // Значение едет вместе со словом (#36) вместе с источником: уже
+  // сохранённое (из файла, от модели), иначе короткое значение статьи — на
+  // случай, если статью потом удалят.
+  const saveInput = word.translation
+    ? {
+        headword: word.headword,
+        reading: word.reading,
+        entryId: word.entry?.id ?? null,
+        translation: word.translation,
+        translationSource: word.translationSource ?? null,
+      }
+    : {
+        headword: word.headword,
+        reading: word.reading,
+        entryId: word.entry?.id ?? null,
+        translation: word.entry ? shortMeaning(word.entry) : null,
+        translationSource: word.entry ? ("dictionary" as const) : null,
+      };
 
   async function toggle(folder: UserDictionaryFolder) {
     if (busyFolderId) return;
@@ -183,6 +209,26 @@ function FolderPicker({ word, onDone }: { word: SheetWord; onDone: () => void })
   // создаёт папку, и кладёт в неё слово (dictionary.review.md B3).
   const firstFolder = folders.data?.length === 0;
 
+  // Фокус (review n1): на входе — в первую галочку или, если папок нет, в
+  // поле названия; после первой папки кнопка «Создать и положить» исчезает —
+  // фокус на «Готово».
+  const firstCheckRef = useRef<View>(null);
+  const nameRef = useRef<TextInput>(null);
+  const doneRef = useRef<View>(null);
+  const focusedOnEntry = useRef(false);
+  const wasFirstFolder = useRef(false);
+  useEffect(() => {
+    if (folders.data === undefined) return;
+    if (!focusedOnEntry.current) {
+      focusedOnEntry.current = true;
+      if (firstFolder) nameRef.current?.focus();
+      else returnFocusTo(firstCheckRef);
+    } else if (wasFirstFolder.current && !firstFolder) {
+      returnFocusTo(doneRef);
+    }
+    wasFirstFolder.current = firstFolder;
+  }, [folders.data, firstFolder]);
+
   return (
     <View className="gap-lg">
       <View className="gap-xs">
@@ -202,22 +248,32 @@ function FolderPicker({ word, onDone }: { word: SheetWord; onDone: () => void })
         <Text variant="body" tone="muted">
           {t("dictionary.mine.loading")}
         </Text>
-      ) : (
+      ) : firstFolder ? null : (
+        // Пустой список не рисуется вовсе: пустой View всё равно занимал бы
+        // свой отступ, и над полем выходил двойной (review n2).
         <View className="gap-xs">
-          {folders.data.map((folder) => (
-            <FolderCheckbox
+          {folders.data.map((folder, index) => (
+            <CheckRow
               key={folder.id}
-              name={folder.name}
+              ref={index === 0 ? firstCheckRef : undefined}
+              accessibilityLabel={t("dictionary.picker.checkA11y", { name: folder.name })}
               checked={wordItems.some((i) => i.folder_id === folder.id)}
               busy={busyFolderId === folder.id}
-              onPress={() => void toggle(folder)}
-            />
+              onToggle={() => void toggle(folder)}
+              className="flex-row items-center gap-md rounded-md px-sm"
+            >
+              <CheckMark checked={wordItems.some((i) => i.folder_id === folder.id)} />
+              <Text variant="body" className="flex-1">
+                {folder.name}
+              </Text>
+            </CheckRow>
           ))}
         </View>
       )}
 
       <View className="gap-sm">
         <Input
+          ref={nameRef}
           value={newName}
           onChangeText={(next) => {
             setNewName(next);
@@ -253,39 +309,8 @@ function FolderPicker({ word, onDone }: { word: SheetWord; onDone: () => void })
           <Button label={t("dictionary.picker.cancel")} variant="ghost" onPress={onDone} />
         </View>
       ) : (
-        <Button label={t("dictionary.picker.done")} variant="primary" onPress={onDone} />
+        <Button ref={doneRef} label={t("dictionary.picker.done")} variant="primary" onPress={onDone} />
       )}
     </View>
-  );
-}
-
-function FolderCheckbox({
-  name,
-  checked,
-  busy,
-  onPress,
-}: {
-  name: string;
-  checked: boolean;
-  busy: boolean;
-  onPress: () => void;
-}) {
-  return (
-    <Pressable
-      accessibilityRole="checkbox"
-      accessibilityLabel={t("dictionary.picker.checkA11y", { name })}
-      accessibilityState={{ checked, busy }}
-      // react-native-web не переносит `accessibilityState.checked` в
-      // `aria-checked` — без этого web-скринридер не слышит, стоит ли галочка.
-      aria-checked={checked}
-      aria-busy={busy}
-      onPress={onPress}
-      className={`min-h-[44px] flex-row items-center gap-md rounded-md px-sm ${busy ? "opacity-50" : ""}`}
-    >
-      <CheckMark checked={checked} />
-      <Text variant="body" className="flex-1">
-        {name}
-      </Text>
-    </Pressable>
   );
 }

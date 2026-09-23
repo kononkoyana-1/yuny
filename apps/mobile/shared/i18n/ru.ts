@@ -110,9 +110,9 @@ export const ru = {
       hint: "Снимите галочки у слов, которые сохранять не нужно.",
       selectAll: "Выбрать все",
       selectNone: "Снять все",
-      checkA11y: "{{word}}, {{reading}}, {{translation}}. {{source}}",
       source: {
         file: "Перевод из файла",
+        fileNoEntry: "Перевод из файла · нет в словаре",
         dictionary: "Перевод из словаря",
         ai: "Перевод ИИ · нет в словаре",
       },
@@ -209,8 +209,13 @@ export const ru = {
       savedIn: "В папках: {{folders}}",
       changeFolders: "Изменить папки",
       missing: "Этой статьи больше нет в словаре. Слово осталось в ваших папках.",
-      noEntry: "Этого слова нет в словаре БКРС — сохранён перевод из файла.",
-      ownTranslation: "Ваш перевод: {{translation}}",
+      noEntry: "Этого слова нет в словаре БКРС — показан сохранённый перевод.",
+      translation: {
+        file: "Перевод из файла: {{translation}}",
+        ai: "Перевод ИИ: {{translation}}",
+        dictionary: "Значение из словаря: {{translation}}",
+        saved: "Сохранённый перевод: {{translation}}",
+      },
     },
     picker: {
       title: "В какие папки положить «{{word}}»",

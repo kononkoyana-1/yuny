@@ -38,6 +38,7 @@ function item(folderId: string, headword: string, createdAt: string): UserDictio
     reading: entry?.reading ?? null,
     // Как `shortMeaning` в features/dictionary/article.ts — копия значения (#36).
     translation: entry ? entry.compact.slice(0, 3).join("; ") : null,
+    translation_source: entry ? "dictionary" : null,
     created_at: createdAt,
     entry,
   };
@@ -110,6 +111,7 @@ export const mockUserDictionaryRepository: UserDictionaryRepository = {
           headword: word.headword,
           reading: word.reading,
           translation: word.translation ?? null,
+          translation_source: word.translation ? (word.translationSource ?? null) : null,
           created_at: new Date().toISOString(),
           entry: word.entryId === null ? null : entryFor(word.headword),
         },

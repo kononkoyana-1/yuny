@@ -650,6 +650,7 @@ export type Database = {
           id: string
           reading: string | null
           translation: string | null
+          translation_source: string | null
           user_id: string
         }
         Insert: {
@@ -660,6 +661,7 @@ export type Database = {
           id?: string
           reading?: string | null
           translation?: string | null
+          translation_source?: string | null
           user_id?: string
         }
         Update: {
@@ -670,6 +672,7 @@ export type Database = {
           id?: string
           reading?: string | null
           translation?: string | null
+          translation_source?: string | null
           user_id?: string
         }
         Relationships: [
