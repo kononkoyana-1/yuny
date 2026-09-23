@@ -58,3 +58,19 @@ export function entrySummary(entry: Pick<DictionaryEntry, "compact" | "senses">)
   if (entry.compact.length > 0) return entry.compact.slice(0, SUMMARY_SENSES).join("; ");
   return entry.senses.find((s) => !isHeader(s))?.gloss ?? "";
 }
+
+/** Столько символов значения хранит `user_dictionary_items.translation` (check в миграции). */
+export const MAX_SAVED_MEANING = 300;
+
+/**
+ * Короткое значение, которое слово уносит с собой в папку (#36): копия на
+ * случай, если статью удалят при перезаливке словаря. То же, что строка
+ * выдачи, обрезанное до длины колонки; `null`, если значений нет.
+ */
+export function shortMeaning(entry: Pick<DictionaryEntry, "compact" | "senses">): string | null {
+  const summary = entrySummary(entry).trim();
+  if (!summary) return null;
+  return summary.length <= MAX_SAVED_MEANING
+    ? summary
+    : summary.slice(0, MAX_SAVED_MEANING - 1).trimEnd() + "…";
+}

@@ -36,7 +36,8 @@ function item(folderId: string, headword: string, createdAt: string): UserDictio
     folder_id: folderId,
     headword,
     reading: entry?.reading ?? null,
-    translation: null,
+    // Как `shortMeaning` в features/dictionary/article.ts — копия значения (#36).
+    translation: entry ? entry.compact.slice(0, 3).join("; ") : null,
     created_at: createdAt,
     entry,
   };

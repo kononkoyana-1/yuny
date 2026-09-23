@@ -12,6 +12,7 @@ import {
 import { BackendError } from "@/shared/lib/backendError";
 import { t } from "@/shared/i18n";
 import { CheckMark } from "./CheckMark";
+import { shortMeaning } from "./article";
 import { EntryArticle } from "./EntryArticle";
 import { wordKey } from "./saved";
 
@@ -58,6 +59,12 @@ function ArticleSheetBody({ word, onClose }: { word: SheetWord; onClose: () => v
 
   const key = wordKey(word.headword, word.reading);
   const wordItems = (items.data ?? []).filter((i) => wordKey(i.headword, i.reading) === key);
+  // Копия значения статьи — не «свой перевод»: её незачем повторять над той
+  // же статьёй. Своим он становится, когда отличается от статьи или статьи нет.
+  const ownTranslation =
+    word.translation && (!word.entry || word.translation !== shortMeaning(word.entry))
+      ? word.translation
+      : null;
   const savedFolderNames = (folders.data ?? [])
     .filter((f) => wordItems.some((i) => i.folder_id === f.id))
     .map((f) => f.name);
@@ -74,9 +81,9 @@ function ArticleSheetBody({ word, onClose }: { word: SheetWord; onClose: () => v
               {word.reading}
             </Text>
           ) : null}
-          {word.translation ? (
+          {ownTranslation ? (
             <Text variant="body" className="pt-xs">
-              {t("dictionary.article.ownTranslation", { translation: word.translation })}
+              {t("dictionary.article.ownTranslation", { translation: ownTranslation })}
             </Text>
           ) : null}
         </View>
@@ -131,7 +138,14 @@ function FolderPicker({ word, onDone }: { word: SheetWord; onDone: () => void })
 
   const key = wordKey(word.headword, word.reading);
   const wordItems = (items.data ?? []).filter((i) => wordKey(i.headword, i.reading) === key);
-  const saveInput = { headword: word.headword, reading: word.reading, entryId: word.entry?.id ?? null };
+  // Значение едет вместе со словом (#36): своё, если слово пришло из файла,
+  // иначе короткое значение статьи — на случай, если статью потом удалят.
+  const saveInput = {
+    headword: word.headword,
+    reading: word.reading,
+    entryId: word.entry?.id ?? null,
+    translation: word.translation ?? (word.entry ? shortMeaning(word.entry) : null),
+  };
 
   async function toggle(folder: UserDictionaryFolder) {
     if (busyFolderId) return;

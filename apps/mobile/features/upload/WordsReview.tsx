@@ -158,8 +158,9 @@ function toSaveInput(word: ExtractedWord): SaveWordInput {
     headword: word.word,
     reading: word.reading,
     entryId: word.entry_id,
-    // Перевод из словаря — это и есть статья, хранить его второй раз незачем.
-    translation: word.source === "dictionary" ? null : word.translation,
+    // Значение едет вместе со словом всегда (#36), в том числе предложенное
+    // словарём: если статью удалят при перезаливке, слово не останется пустым.
+    translation: word.translation,
   };
 }
 

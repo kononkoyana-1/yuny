@@ -1,6 +1,6 @@
 import { describe, expect, it } from "@jest/globals";
 import type { DictionarySense } from "@yuny/shared";
-import { articleNests, entrySummary } from "./article";
+import { MAX_SAVED_MEANING, articleNests, entrySummary, shortMeaning } from "./article";
 
 const header = (nest: string, gloss: string): DictionarySense => ({ nest, num: null, gloss, header: true });
 const sense = (nest: string | null, num: string | null, gloss: string): DictionarySense => ({
@@ -69,5 +69,22 @@ describe("entrySummary", () => {
     expect(
       entrySummary({ compact: [], senses: [header("I", "гл. dǎ"), sense("I", "1", "бить")] }),
     ).toBe("бить");
+  });
+});
+
+describe("shortMeaning", () => {
+  it("is the row summary", () => {
+    expect(shortMeaning({ compact: ["а", "б", "в", "г"], senses: [] })).toBe("а; б; в");
+  });
+
+  it("fits the column", () => {
+    const long = "я".repeat(200);
+    const meaning = shortMeaning({ compact: [long, long], senses: [] });
+    expect(meaning).toHaveLength(MAX_SAVED_MEANING);
+    expect(meaning?.endsWith("…")).toBe(true);
+  });
+
+  it("is null for an entry with nothing to copy", () => {
+    expect(shortMeaning({ compact: [], senses: [header("I", "гл. dǎ")] })).toBeNull();
   });
 });
