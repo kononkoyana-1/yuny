@@ -81,8 +81,29 @@ Deno.test("знак вопроса и прочие символы на мест�
   assertEquals([word?.translation, word?.source], ["идти; годиться; ладно", "dictionary"]);
 });
 
-Deno.test("перевод с буквами остаётся переводом, даже со знаком вопроса", () => {
+Deno.test("перевод по-русски остаётся переводом, даже со знаком вопроса", () => {
   assertEquals(translationText("что?"), "что?");
-  assertEquals(translationText("what"), "what");
   assertEquals(translationText("  магазин  "), "магазин");
+  assertEquals(translationText("store; магазин"), "store; магазин");
+});
+
+Deno.test("перевод на английский из китайско-английского учебника — не перевод, предлагает словарь", () => {
+  for (const english of ["to buy", "shop, store", "what?", "Hello!", "¿qué?"]) {
+    assertEquals(translationText(english), null, `«${english}»`);
+  }
+  const [row] = normalizeWords([raw("行", "xíng", "to walk; OK", "идти")]);
+  assertEquals(row.fileTranslation, null);
+  const word = resolveWord(row, [行[0]]);
+  assertEquals([word?.translation, word?.source], ["идти; годиться; ладно", "dictionary"]);
+});
+
+Deno.test("слова нет в БКРС, в файле английский — перевод на русский от модели", () => {
+  const [row] = normalizeWords([raw("网红", "wǎnghóng", "influencer", "интернет-знаменитость")]);
+  const word = resolveWord(row, []);
+  assertEquals([word?.translation, word?.source], ["интернет-знаменитость", "ai"]);
+});
+
+Deno.test("модель ответила по-английски и в meaning_ru — такого перевода нет, слово без статьи отбрасывается", () => {
+  const [row] = normalizeWords([raw("网红", "wǎnghóng", "", "influencer")]);
+  assertEquals(resolveWord(row, []), null);
 });
