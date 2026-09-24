@@ -54,3 +54,23 @@ export {
 } from "./submit.ts";
 export { signTicket, type Ticket, type TicketError, type TicketExercise, TICKET_TTL_MS, verifyTicket } from "./ticket.ts";
 export { type Candidate, type CandidateSource, type OptionKind, pickOptions, type PickInput } from "./distractors.ts";
+export {
+  buildSession,
+  chooseFormat,
+  type FolderMode,
+  forecastDue,
+  intakeQuota,
+  interleave,
+  NEW_WORD_COST,
+  type PlanInput,
+  type PlanLexeme,
+  type PlanPair,
+  type PlanReason,
+  type PlanTask,
+  portions,
+  ROUND_MIXINS,
+  ROUND_SIZE,
+  type SessionPlan,
+  sessionBudget,
+  type Slot,
+} from "./session.ts";
