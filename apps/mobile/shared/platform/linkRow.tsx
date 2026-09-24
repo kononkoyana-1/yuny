@@ -1,4 +1,5 @@
-import { Pressable, type PressableProps } from "react-native";
+import type { Ref } from "react";
+import { Pressable, type PressableProps, type View } from "react-native";
 
 /**
  * `SettingsRow`'s platform-specific tap surface, native implementation.
@@ -16,6 +17,7 @@ export interface LinkRowProps extends PressableProps {
    * that calls `Linking.openURL` and this prop goes unused here.
    */
   href?: string | null;
+  ref?: Ref<View>;
 }
 
 export function LinkRow({ href: _href, ...props }: LinkRowProps) {

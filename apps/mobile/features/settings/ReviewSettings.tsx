@@ -80,84 +80,92 @@ export function ReviewSettings() {
           className="p-md"
         />
       ) : (
-        <Blocks data={settings.data} />
+        // Три блока — прямые дети группы, иначе SettingsGroup не поставит
+        // разделители между ними (settings.review.md m1).
+        [
+          <MinutesBlock key="minutes" data={settings.data} />,
+          <NewWordsBlock key="new" data={settings.data} />,
+          <IntensityBlock key="intensity" data={settings.data} />,
+        ]
       )}
     </SettingsGroup>
   );
 }
 
-function Blocks({ data }: { data: LearningSettings }) {
-  const minutes = useSettingField("session_minutes");
-  const maxNew = useSettingField("max_new");
-  const retention = useSettingField("retention");
-
-  const minutesLabel = t("settings.review.minutes");
-  const newLabel = t("settings.review.newWords");
-  const intensityLabel = t("settings.review.intensity");
-
+function MinutesBlock({ data }: { data: LearningSettings }) {
+  const field = useSettingField("session_minutes");
+  const label = t("settings.review.minutes");
   return (
-    <>
-      <SettingBlock
-        label={minutesLabel}
-        hint={t("settings.review.minutesHint")}
-        hintId="settings-minutes-hint"
-        status={<Status state={minutes.state} onRetry={minutes.retry} setting={minutesLabel} />}
-        footer={<ErrorLine state={minutes.state} onRetry={minutes.retry} setting={minutesLabel} />}
-      >
-        <SegmentedChoice
-          size="compact"
-          accessibilityLabel={minutesLabel}
-          describedById="settings-minutes-hint"
-          value={String(matchOption(data.session_minutes, MINUTES) ?? "") || null}
-          onChange={(v) => void minutes.save(Number(v) as SessionMinutes)}
-          options={MINUTES.map((m) => ({
-            value: String(m),
-            label: t("settings.review.minutesOption", { count: m }),
-            accessibilityLabel: t("settings.review.minutesA11y", { count: m }),
-          }))}
-        />
-      </SettingBlock>
+    <SettingBlock
+      label={label}
+      hint={t("settings.review.minutesHint")}
+      hintId="settings-minutes-hint"
+      status={<Status state={field.state} onRetry={field.retry} setting={label} />}
+      footer={<ErrorLine state={field.state} onRetry={field.retry} setting={label} />}
+    >
+      <SegmentedChoice
+        size="compact"
+        accessibilityLabel={label}
+        describedById="settings-minutes-hint"
+        value={String(matchOption(data.session_minutes, MINUTES) ?? "") || null}
+        onChange={(v) => void field.save(Number(v) as SessionMinutes)}
+        options={MINUTES.map((m) => ({
+          value: String(m),
+          label: t("settings.review.minutesOption", { count: m }),
+          accessibilityLabel: t("settings.review.minutesA11y", { count: m }),
+        }))}
+      />
+    </SettingBlock>
+  );
+}
 
-      <SettingBlock
-        label={newLabel}
-        hint={t(data.max_new === 0 ? "settings.review.newHintZero" : "settings.review.newHint")}
-        hintId="settings-new-hint"
-        status={<Status state={maxNew.state} onRetry={maxNew.retry} setting={newLabel} />}
-        footer={<ErrorLine state={maxNew.state} onRetry={maxNew.retry} setting={newLabel} />}
-      >
-        <SegmentedChoice
-          size="compact"
-          accessibilityLabel={newLabel}
-          describedById="settings-new-hint"
-          value={matchOption(data.max_new, NEW_WORDS) === null ? null : String(data.max_new)}
-          onChange={(v) => void maxNew.save(Number(v))}
-          options={NEW_WORDS.map((n) => ({
-            value: String(n),
-            label: String(n),
-            accessibilityLabel: t("settings.review.newA11y", { count: n }),
-          }))}
-        />
-      </SettingBlock>
+function NewWordsBlock({ data }: { data: LearningSettings }) {
+  const field = useSettingField("max_new");
+  const label = t("settings.review.newWords");
+  return (
+    <SettingBlock
+      label={label}
+      hint={t(data.max_new === 0 ? "settings.review.newHintZero" : "settings.review.newHint")}
+      hintId="settings-new-hint"
+      status={<Status state={field.state} onRetry={field.retry} setting={label} />}
+      footer={<ErrorLine state={field.state} onRetry={field.retry} setting={label} />}
+    >
+      <SegmentedChoice
+        size="compact"
+        accessibilityLabel={label}
+        describedById="settings-new-hint"
+        value={matchOption(data.max_new, NEW_WORDS) === null ? null : String(data.max_new)}
+        onChange={(v) => void field.save(Number(v))}
+        options={NEW_WORDS.map((n) => ({
+          value: String(n),
+          label: String(n),
+          accessibilityLabel: t("settings.review.newA11y", { count: n }),
+        }))}
+      />
+    </SettingBlock>
+  );
+}
 
-      <SettingBlock
-        label={intensityLabel}
-        hint={t("settings.review.intensityHint")}
-        hintId="settings-intensity-hint"
-        status={<Status state={retention.state} onRetry={retention.retry} setting={intensityLabel} />}
-        footer={<ErrorLine state={retention.state} onRetry={retention.retry} setting={intensityLabel} />}
-      >
-        <SegmentedChoice
-          size="compact"
-          accessibilityLabel={intensityLabel}
-          describedById="settings-intensity-hint"
-          value={(() => {
-            const hit = matchOption(data.retention, INTENSITY.map((o) => o.value));
-            return hit === null ? null : String(hit);
-          })()}
-          onChange={(v) => void retention.save(Number(v))}
-          options={INTENSITY.map((o) => ({ value: String(o.value), label: t(o.label) }))}
-        />
-      </SettingBlock>
-    </>
+function IntensityBlock({ data }: { data: LearningSettings }) {
+  const field = useSettingField("retention");
+  const label = t("settings.review.intensity");
+  const hit = matchOption(data.retention, INTENSITY.map((o) => o.value));
+  return (
+    <SettingBlock
+      label={label}
+      hint={t("settings.review.intensityHint")}
+      hintId="settings-intensity-hint"
+      status={<Status state={field.state} onRetry={field.retry} setting={label} />}
+      footer={<ErrorLine state={field.state} onRetry={field.retry} setting={label} />}
+    >
+      <SegmentedChoice
+        size="compact"
+        accessibilityLabel={label}
+        describedById="settings-intensity-hint"
+        value={hit === null ? null : String(hit)}
+        onChange={(v) => void field.save(Number(v))}
+        options={INTENSITY.map((o) => ({ value: String(o.value), label: t(o.label) }))}
+      />
+    </SettingBlock>
   );
 }

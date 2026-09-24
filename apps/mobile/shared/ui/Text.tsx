@@ -1,7 +1,7 @@
 import { Text as RNText, type TextProps as RNTextProps } from "react-native";
 
 export type TextVariant = "display" | "title" | "heading" | "body" | "caption";
-export type TextTone = "default" | "muted" | "inverse" | "brand";
+export type TextTone = "default" | "muted" | "inverse" | "brand" | "destructive";
 
 /**
  * Each variant carries its own font FAMILY, not a numeric weight.
@@ -33,6 +33,7 @@ const TONE_CLASS: Record<TextTone, string> = {
   muted: "text-text-muted dark:text-text-muted-dark",
   inverse: "text-text-inverse dark:text-text-inverse-dark",
   brand: "text-primary dark:text-primary-dark",
+  destructive: "text-destructive dark:text-destructive-dark",
 };
 
 export interface TextProps extends RNTextProps {

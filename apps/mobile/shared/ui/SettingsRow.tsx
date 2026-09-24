@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type Ref } from "react";
 import { ActivityIndicator, View } from "react-native";
 import { useTheme } from "@/shared/lib/useTheme";
 import { LinkRow } from "@/shared/platform/linkRow";
@@ -25,6 +25,8 @@ export interface SettingsRowProps {
   /** Spinner at the trailing edge, `aria-busy`, and presses are ignored. */
   pending?: boolean;
   className?: string;
+  /** Focus target, e.g. a sheet's `returnFocusRef` — lands on the tappable element itself. */
+  ref?: Ref<View>;
 }
 
 const TRAILING_ICON: Partial<Record<SettingsRowTrailing, IconName>> = {
@@ -55,13 +57,12 @@ export function SettingsRow({
   accessibilityHint,
   pending = false,
   className = "",
+  ref,
 }: SettingsRowProps) {
   const { colors } = useTheme();
   const [pressed, setPressed] = useState(false);
   const interactive = role !== "text";
 
-  const titleToneClass =
-    tone === "destructive" ? "text-destructive dark:text-destructive-dark" : "text-text dark:text-text-dark";
   const iconColor =
     tone === "destructive" ? colors.destructive : colors.textMuted;
 
@@ -69,7 +70,7 @@ export function SettingsRow({
     <View className="min-h-[44px] flex-row items-center gap-sm px-md py-sm">
       {leadingIcon ? <Icon name={leadingIcon} size={20} color={iconColor} /> : null}
       <View className="flex-1">
-        <Text variant="body" className={`font-semibold ${titleToneClass}`}>
+        <Text variant="body" tone={tone === "destructive" ? "destructive" : "default"} className="font-semibold">
           {title}
         </Text>
         {detail ? (
@@ -98,6 +99,7 @@ export function SettingsRow({
 
   return (
     <LinkRow
+      ref={ref}
       href={role === "link" ? href : null}
       accessibilityRole={accessibilityRole}
       accessibilityLabel={accessibilityLabel ?? title}

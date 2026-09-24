@@ -45,16 +45,15 @@ export function AccountSettings() {
           pending={signingOut}
           onPress={() => void handleSignOut()}
         />
-        <View ref={deleteRowRef}>
-          <SettingsRow
-            role="button"
-            leadingIcon="trash"
-            tone="destructive"
-            title={t("settings.account.delete")}
-            accessibilityHint={t("settings.account.deleteHint")}
-            onPress={() => setDeleting(true)}
-          />
-        </View>
+        <SettingsRow
+          ref={deleteRowRef}
+          role="button"
+          leadingIcon="trash"
+          tone="destructive"
+          title={t("settings.account.delete")}
+          accessibilityHint={t("settings.account.deleteHint")}
+          onPress={() => setDeleting(true)}
+        />
       </SettingsGroup>
 
       <DeleteSheet visible={deleting} returnFocusRef={deleteRowRef} onClose={() => setDeleting(false)} />
@@ -111,7 +110,7 @@ function DeleteSheet({
           ))}
         </View>
         <View className="rounded-md bg-destructive-soft p-md dark:bg-destructive-soft-dark">
-          <Text variant="body" className="font-semibold text-destructive dark:text-destructive-dark">
+          <Text variant="body" tone="destructive" className="font-semibold">
             {t("settings.delete.irreversible")}
           </Text>
         </View>
