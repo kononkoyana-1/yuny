@@ -4,10 +4,11 @@ export { useProfile } from "./useProfile";
 export { useUpdateProfile } from "./useUpdateProfile";
 export {
   useLearningSettings,
-  useUpdateLearningSettings,
+  useSettingField,
   useAccountEmail,
   useDeleteAccount,
 } from "./useSettings";
+export type { SaveState } from "./useSettings";
 export { useModules } from "./useModules";
 export { useDictionarySearch } from "./useDictionarySearch";
 export {

@@ -1,3 +1,4 @@
+import { useCallback, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { LearningSettings } from "@yuny/shared";
 import {
@@ -15,30 +16,60 @@ export function useLearningSettings() {
   });
 }
 
-/**
- * Сохраняет выбор сразу, без кнопки «Сохранить»: экран показывает новое
- * значение до ответа сервера и откатывает его, если запись не удалась.
- */
-export function useUpdateLearningSettings() {
-  const client = useQueryClient();
+export type SaveState = "idle" | "saving" | "saved" | "error";
 
-  return useMutation({
-    mutationFn: (patch: LearningSettingsUpdate) => learningSettingsRepository.update(patch),
-    onMutate: async (patch) => {
-      await client.cancelQueries({ queryKey: queryKeys.learningSettings });
-      const previous = client.getQueryData<LearningSettings>(queryKeys.learningSettings);
-      if (previous) {
-        client.setQueryData<LearningSettings>(queryKeys.learningSettings, { ...previous, ...patch });
+type SettingField = keyof LearningSettingsUpdate;
+
+/**
+ * Сохранение одной настройки повторений сразу при выборе
+ * (settings.design.md §3.4): выбор виден сразу, уходит upsert одного поля.
+ * Статус и откат решает только **последний** запрос поля — ответы на более
+ * ранние быстрые выборы игнорируются. При ошибке значение возвращается к
+ * последнему подтверждённому сервером, `retry` отправляет несохранённое.
+ */
+export function useSettingField<K extends SettingField>(field: K) {
+  const client = useQueryClient();
+  const seq = useRef(0);
+  const confirmed = useRef<LearningSettings[K] | undefined>(undefined);
+  const [state, setState] = useState<SaveState>("idle");
+  const [failed, setFailed] = useState<LearningSettings[K] | null>(null);
+
+  const save = useCallback(
+    async (value: LearningSettings[K]) => {
+      const current = client.getQueryData<LearningSettings>(queryKeys.learningSettings);
+      if (!current) return;
+      if (confirmed.current === undefined) confirmed.current = current[field];
+      const id = ++seq.current;
+
+      client.setQueryData<LearningSettings>(queryKeys.learningSettings, { ...current, [field]: value });
+      setFailed(null);
+      setState("saving");
+      try {
+        const saved = await learningSettingsRepository.update({ [field]: value } as LearningSettingsUpdate);
+        if (id !== seq.current) return;
+        confirmed.current = saved[field];
+        client.setQueryData<LearningSettings>(queryKeys.learningSettings, (prev) =>
+          prev ? { ...prev, [field]: saved[field] } : saved,
+        );
+        setState("saved");
+      } catch {
+        if (id !== seq.current) return;
+        const rollback = confirmed.current;
+        client.setQueryData<LearningSettings>(queryKeys.learningSettings, (prev) =>
+          prev && rollback !== undefined ? { ...prev, [field]: rollback } : prev,
+        );
+        setFailed(value);
+        setState("error");
       }
-      return { previous };
     },
-    onError: (_error, _patch, context) => {
-      if (context?.previous) client.setQueryData(queryKeys.learningSettings, context.previous);
-    },
-    onSuccess: (saved) => {
-      client.setQueryData(queryKeys.learningSettings, saved);
-    },
-  });
+    [client, field],
+  );
+
+  const retry = useCallback(() => {
+    if (failed !== null) void save(failed);
+  }, [failed, save]);
+
+  return { state, save, retry };
 }
 
 /** Почта из входа — только для показа. */
