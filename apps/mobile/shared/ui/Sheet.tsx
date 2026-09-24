@@ -31,6 +31,14 @@ export interface SheetProps {
    */
   initialFocusRef?: RefObject<{ focus(): void } | null>;
   className?: string;
+  /**
+   * S6 (settings.design.md §9): when `false`, Escape, the scrim, and the
+   * browser/OS "back" gesture no longer close the sheet — only an explicit
+   * call to `onClose` (e.g. a request finishing) does. Used while "Удалить
+   * навсегда" is in flight (§3.7): losing the sheet mid-request would strand
+   * the user with no way to see the outcome.
+   */
+  dismissible?: boolean;
 }
 
 /**
@@ -50,6 +58,7 @@ export function Sheet({
   returnFocusRef,
   initialFocusRef,
   className = "",
+  dismissible = true,
 }: SheetProps) {
   const { width, height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
@@ -101,9 +110,15 @@ export function Sheet({
   }, [visible]);
 
   useEffect(() => {
-    if (!visible) return undefined;
+    if (!visible || !dismissible) return undefined;
     return attachEscapeListener(onClose);
-  }, [visible, onClose]);
+  }, [visible, dismissible, onClose]);
+
+  // S6: swallows the scrim tap, `Modal`'s `onRequestClose` (Android
+  // hardware/gesture back), and Escape (via the effect above) alike.
+  const requestClose = () => {
+    if (dismissible) onClose();
+  };
 
   const scrimStyle = useAnimatedStyle(() => ({ opacity: scrimOpacity.value }));
   const panelStyle = useAnimatedStyle(() =>
@@ -117,7 +132,7 @@ export function Sheet({
       visible={visible}
       transparent
       animationType="none"
-      onRequestClose={onClose}
+      onRequestClose={requestClose}
       // Second, final return of focus. On the web the Modal stays in the DOM
       // until its own exit animation ends, and its focus trap pulls focus
       // back inside — so the return from the effect above can land and be
@@ -138,7 +153,7 @@ export function Sheet({
       <View style={{ flex: 1, height }}>
         <Pressable
           accessible={false}
-          onPress={onClose}
+          onPress={requestClose}
           style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }}
         >
           {/*

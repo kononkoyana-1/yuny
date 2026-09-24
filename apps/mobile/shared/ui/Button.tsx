@@ -12,7 +12,7 @@ import { linearGradient } from "@/shared/platform/gradient";
 import { useTheme } from "@/shared/lib/useTheme";
 import { Text } from "./Text";
 
-export type ButtonVariant = "primary" | "secondary" | "ghost";
+export type ButtonVariant = "primary" | "secondary" | "ghost" | "destructive";
 
 const CONTAINER_CLASS: Record<ButtonVariant, string> = {
   // `primary` paints itself with a gradient below; the solid class is the
@@ -21,12 +21,19 @@ const CONTAINER_CLASS: Record<ButtonVariant, string> = {
   secondary:
     "bg-primary-soft dark:bg-primary-soft-dark border border-primary dark:border-primary-dark",
   ghost: "bg-transparent",
+  /**
+   * S4 (settings.design.md §9): flat `destructive` fill, no gradient — the
+   * spec calls out "без градиента" explicitly so this destructive action
+   * never reads as the screen's primary one (§1, "один акцент на экране").
+   */
+  destructive: "bg-destructive dark:bg-destructive-dark",
 };
 
 const LABEL_TONE_CLASS: Record<ButtonVariant, string> = {
   primary: "text-text-inverse dark:text-text-inverse-dark",
   secondary: "text-primary dark:text-primary-dark",
   ghost: "text-primary dark:text-primary-dark",
+  destructive: "text-text-inverse dark:text-text-inverse-dark",
 };
 
 export interface ButtonProps extends Omit<PressableProps, "children" | "style"> {
@@ -70,6 +77,7 @@ export function Button({
    * the gradient on one target (it did, on web, before this split existed).
    */
   const [from, to] = scheme === "dark" ? gradients.primaryDark : gradients.primary;
+  // `destructive` (S4) paints flat, so only `primary` computes a gradient.
   const gradientStyle = variant === "primary" ? linearGradient(from, to) : null;
 
   return (
