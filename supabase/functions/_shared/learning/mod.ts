@@ -3,7 +3,7 @@
  * готовые стадии, сроки и исходы (TZ.md §3, правило 1).
  */
 export { DAY_MS, type ExerciseCode, MODEL, type Rating, type Skill } from "./config.ts";
-export { normalizePinyin, parsePinyin, sameSyllables, type Syllable } from "./pinyin.ts";
+export { formatPinyin, normalizePinyin, parsePinyin, sameSyllables, type Syllable, toneVariants } from "./pinyin.ts";
 export {
   type ErrorKind,
   formatWeight,
@@ -53,3 +53,4 @@ export {
   type SubmitPlan,
 } from "./submit.ts";
 export { signTicket, type Ticket, type TicketError, type TicketExercise, TICKET_TTL_MS, verifyTicket } from "./ticket.ts";
+export { type Candidate, type CandidateSource, type OptionKind, pickOptions, type PickInput } from "./distractors.ts";

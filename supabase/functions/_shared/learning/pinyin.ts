@@ -124,3 +124,41 @@ export function sameSyllables(a: string, b: string): boolean {
   const y = parsePinyin(b);
   return !!x && !!y && x.length === y.length && x.every((s, i) => s.base === y[i].base);
 }
+
+const MARKED: Record<string, string> = { a: "āáǎà", e: "ēéěè", i: "īíǐì", o: "ōóǒò", u: "ūúǔù", ü: "ǖǘǚǜ" };
+
+/**
+ * Слог со знаком тона по правилу: на a или e, в «ou» — на o, иначе на
+ * последнюю гласную. Лёгкий тон — без знака.
+ */
+function markSyllable({ base, tone }: Syllable): string {
+  if (tone === 5) return base;
+  const at = /a|e/.exec(base)?.index ?? (base.includes("ou") ? base.indexOf("o") : -1);
+  const idx = at >= 0 ? at : Math.max(...[...base].map((c, i) => (/[aeiouü]/.test(c) ? i : -1)));
+  if (idx < 0) return base;
+  return base.slice(0, idx) + MARKED[base[idx]][tone - 1] + base.slice(idx + 1);
+}
+
+/** Пиньинь со знаками тонов, слоги слитно: `mǎi`, `dòufu`. */
+export function formatPinyin(syllables: Syllable[]): string {
+  return syllables.map(markSyllable).join("");
+}
+
+/**
+ * Тот же слог, другой тон — главные дистракторы для «пиньинь из 4» (P1): в
+ * `mǎi` путают тон, а не буквы. У многосложного меняется по одному слогу.
+ */
+export function toneVariants(reading: string): string[] {
+  const syl = parsePinyin(reading);
+  if (!syl) return [];
+  const own = formatPinyin(syl);
+  const out: string[] = [];
+  for (let i = 0; i < syl.length; i++) {
+    for (const tone of [1, 2, 3, 4] as const) {
+      if (tone === syl[i].tone) continue;
+      const v = formatPinyin(syl.map((s, j) => (j === i ? { ...s, tone } : s)));
+      if (v !== own && !out.includes(v)) out.push(v);
+    }
+  }
+  return out;
+}

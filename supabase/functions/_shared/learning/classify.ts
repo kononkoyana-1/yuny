@@ -124,6 +124,13 @@ export function classify(input: ClassifyInput): Classified {
         return { outcome: "ok", partner: null, grade: speedGrade(input) };
       }
       if (!chosen) return err("wrong");
+      // Тот же знак, другое чтение — вариант P1 «тот же слог, другой тон»:
+      // это ошибка тона, а не путаница с другим словом.
+      if (chosen.headword === target.headword) {
+        return chosen.reading && target.reading && sameSyllables(chosen.reading, target.reading)
+          ? err("tone")
+          : err("syllable");
+      }
       const partner: WordKey = { headword: chosen.headword, reading: chosen.reading };
       // Слово из своего словаря — самое точное: это пара, которую нужно разводить.
       if (knownOther(input, (w) => sameWord(w, partner))) return err("confusion", partner);
