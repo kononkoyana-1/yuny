@@ -227,6 +227,25 @@ export const sizing = {
    * the whole row it sits in, never the box itself, so it can stay below 44.
    */
   checkbox: 22,
+  /** Settings (#40): diameter of `Monogram`, the profile-card avatar circle. */
+  avatar: 64,
+  /** Settings (#40): max width of the single settings column, both breakpoints. */
+  settingsColumn: 640,
+} as const;
+
+/**
+ * Settings (#40, settings.design.md «Новые токены»): the one motion-duration
+ * value this task's own spec introduces (not part of #65's `motion.*`, which
+ * is out of scope here — see settings.design.md §V-F). Consumed only from
+ * JS (`setTimeout`), never a `className`, the same way `sizing.checkbox`
+ * above has no Tailwind counterpart — there is no Tailwind utility that
+ * reads a bare millisecond count outside of `transition-duration`, which
+ * `SaveStatus` does not use (its held/faded states are visibility swaps, not
+ * CSS transitions).
+ */
+export const motion = {
+  /** How long `SaveStatus`'s "Сохранено" stays on screen before fading. */
+  statusHold: 1600,
 } as const;
 
 /**

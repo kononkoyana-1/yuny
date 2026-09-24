@@ -27,6 +27,12 @@ module.exports = {
         warning: "#E8A54B",
         danger: "#D96A6A",
         "danger-dark": "#E58585",
+        // Settings (#40, settings.design.md «Новые токены»); mirrors
+        // `colors.{light,dark}.destructive{,Soft}` in shared/config/tokens.ts.
+        destructive: "#B4232F",
+        "destructive-dark": "#FF8A8A",
+        "destructive-soft": "#FFEEF0",
+        "destructive-soft-dark": "#3A1620",
         background: "#F1EFFC",
         "background-dark": "#17142A",
         surface: "#FFFFFF",
@@ -63,11 +69,15 @@ module.exports = {
         "module-cell": "112px",
         "ring-stroke": "4px",
         "ring-gap": "4px",
+        // `Monogram`'s diameter (#40); mirrors `sizing.avatar`.
+        avatar: "64px",
       },
       maxWidth: {
         // `Sheet`'s panel width on `breakpoints.wide` and up; mirrors
         // `sizing.sheetMaxWidth` in shared/config/tokens.ts.
         sheet: "480px",
+        // Settings (#40) single-column width; mirrors `sizing.settingsColumn`.
+        "settings-column": "640px",
       },
       screens: {
         // Mirrors `breakpoints.wide` in shared/config/tokens.ts. Numerically
