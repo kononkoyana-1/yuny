@@ -1,59 +1,44 @@
 import { useState } from "react";
-import { View } from "react-native";
-import { Button, EmptyState, Text } from "@/shared/ui";
+import { ScrollView, View } from "react-native";
+import { Text } from "@/shared/ui";
+import { breakpoints } from "@/shared/config/tokens";
 import { REQUIRES_AUTH } from "@/shared/config/dataSource";
-import { signOut } from "@/shared/lib/auth";
-import { useProfile } from "@/shared/api";
 import { t } from "@/shared/i18n";
+import { ProfileCard } from "@/features/settings/ProfileCard";
+import { ReviewSettings } from "@/features/settings/ReviewSettings";
+import { AppearanceSettings } from "@/features/settings/AppearanceSettings";
+import { AboutSettings } from "@/features/settings/AboutSettings";
+import { AccountSettings } from "@/features/settings/AccountSettings";
 
 /**
- * Экран 05 — Настройки (TZ.md §11). Уровень HSK и прогресс по уровням, тема,
- * удаление аккаунта — всё это фаза 7. Сейчас здесь только сам аккаунт:
- * приложение живёт за входом, и выйти из него должно быть откуда.
+ * Экран 05 — Настройки (#40, docs/design/specs/settings.design.md). Одна
+ * колонка по центру на любой ширине, порядок групп — он же порядок Tab:
+ * профиль, повторения, оформление, о приложении, аккаунт. Группы грузятся и
+ * падают независимо; оформление, источники и выход работают без сети.
  */
 export default function SettingsTab() {
-  const { data: profile } = useProfile();
-  const [signingOut, setSigningOut] = useState(false);
-  const [signOutError, setSignOutError] = useState(false);
-
-  async function handleSignOut() {
-    setSigningOut(true);
-    setSignOutError(false);
-    try {
-      // Дальше экран сменит AuthGate: сессии нет — экран входа.
-      await signOut();
-    } catch {
-      setSignOutError(true);
-      setSigningOut(false);
-    }
-  }
+  // Ширина — по контейнеру, не по useWindowDimensions (#56).
+  const [isWide, setIsWide] = useState(false);
 
   return (
-    <View className="flex-1 justify-between bg-background px-lg py-xl dark:bg-background-dark">
-      <View className="flex-1 items-center justify-center gap-md">
-        {profile ? (
-          <View className="items-center gap-xs">
-            <Text variant="title">{profile.display_name}</Text>
-          </View>
-        ) : null}
-        <EmptyState message="Уровень, темы и прогресс будут здесь" />
+    <ScrollView
+      className="flex-1 bg-background dark:bg-background-dark"
+      onLayout={(e) => setIsWide(e.nativeEvent.layout.width >= breakpoints.wide)}
+    >
+      <View
+        className={`w-full max-w-settings-column self-center gap-xl ${
+          isWide ? "px-xl pt-xxl pb-xxl" : "px-md pt-lg pb-xxl"
+        }`}
+      >
+        <Text variant="display" accessibilityRole="header" aria-level={1}>
+          {t("settings.title")}
+        </Text>
+        <ProfileCard isWide={isWide} />
+        <ReviewSettings />
+        <AppearanceSettings />
+        <AboutSettings />
+        {REQUIRES_AUTH ? <AccountSettings /> : null}
       </View>
-
-      {REQUIRES_AUTH ? (
-        <View className="gap-sm">
-          {signOutError ? (
-            <Text variant="caption" tone="muted" className="text-center" accessibilityLiveRegion="polite">
-              {t("settings.signOutFailed")}
-            </Text>
-          ) : null}
-          <Button
-            label={t("settings.signOut")}
-            variant="secondary"
-            loading={signingOut}
-            onPress={() => void handleSignOut()}
-          />
-        </View>
-      ) : null}
-    </View>
+    </ScrollView>
   );
 }
