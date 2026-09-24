@@ -17,6 +17,18 @@ export interface ArticleNest {
   senses: ArticleSense[];
 }
 
+/**
+ * Значение по-русски. В БКРС попадаются значения на китайском («说；可以说。»)
+ * и английском — ученику, который учит китайский через русский, они не
+ * помогают (баг с живого сайта, 2026-09-24). Такие значения не показываются;
+ * то же правило, что `translationText` в `_shared/wordsExtract.ts`.
+ */
+const RUSSIAN_LETTER = /\p{Script=Cyrillic}/u;
+
+export function isRussianGloss(gloss: string): boolean {
+  return RUSSIAN_LETTER.test(gloss);
+}
+
 /** Тот же признак, что `isHeader` в `supabase/functions/_shared/wordCards.ts`. */
 function isHeader(sense: DictionarySense): boolean {
   return sense.header === true || sense.header === "true";
@@ -29,6 +41,8 @@ function isHeader(sense: DictionarySense): boolean {
  */
 export function articleNests(senses: DictionarySense[]): ArticleNest[] {
   const nests: ArticleNest[] = [];
+  // Гнёзда, из которых ушли значения не по-русски.
+  const filtered = new Set<ArticleNest>();
 
   for (const sense of senses) {
     let current = nests.at(-1);
@@ -38,25 +52,30 @@ export function articleNests(senses: DictionarySense[]): ArticleNest[] {
     }
     if (isHeader(sense)) {
       current.heading = sense.gloss;
-    } else {
+    } else if (isRussianGloss(sense.gloss)) {
       current.senses.push({ num: sense.num, gloss: sense.gloss });
+    } else {
+      filtered.add(current);
     }
   }
 
-  return nests;
+  // Гнездо, в котором не осталось значений по-русски, не показывается.
+  return nests.filter((n) => n.senses.length > 0 || !filtered.has(n));
 }
 
 /** Сколько значений показывать в строке выдачи — остальное в статье. */
 const SUMMARY_SENSES = 3;
 
 /**
- * Короткий перевод для строки выдачи: первые значения из `compact`. Если
- * `compact` пуст (статья из одних служебных рубрик), берётся первое значение
- * статьи, чтобы строка не осталась без перевода.
+ * Короткий перевод для строки выдачи: первые значения из `compact` по-русски.
+ * Если таких нет (статья из одних служебных рубрик), берётся первое значение
+ * статьи по-русски; нет и его — пустая строка, и экран пишет, что перевода
+ * на русский в словаре нет.
  */
 export function entrySummary(entry: Pick<DictionaryEntry, "compact" | "senses">): string {
-  if (entry.compact.length > 0) return entry.compact.slice(0, SUMMARY_SENSES).join("; ");
-  return entry.senses.find((s) => !isHeader(s))?.gloss ?? "";
+  const compact = entry.compact.filter(isRussianGloss);
+  if (compact.length > 0) return compact.slice(0, SUMMARY_SENSES).join("; ");
+  return entry.senses.find((s) => !isHeader(s) && isRussianGloss(s.gloss))?.gloss ?? "";
 }
 
 /** Столько символов значения хранит `user_dictionary_items.translation` (check в миграции). */

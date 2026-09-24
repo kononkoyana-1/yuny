@@ -2,6 +2,7 @@ import { View } from "react-native";
 import type { SavedEntry } from "@yuny/shared";
 import { Text } from "@/shared/ui";
 import { spacing } from "@/shared/config/tokens";
+import { t } from "@/shared/i18n";
 import { articleNests } from "./article";
 
 /**
@@ -11,6 +12,14 @@ import { articleNests } from "./article";
  */
 export function EntryArticle({ entry }: { entry: SavedEntry }) {
   const nests = articleNests(entry.senses);
+
+  if (nests.length === 0) {
+    return (
+      <Text variant="body" tone="muted">
+        {t("dictionary.article.noRussian")}
+      </Text>
+    );
+  }
 
   return (
     <View className="gap-lg">

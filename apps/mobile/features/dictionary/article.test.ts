@@ -88,3 +88,34 @@ describe("shortMeaning", () => {
     expect(shortMeaning({ compact: [], senses: [header("I", "гл. dǎ")] })).toBeNull();
   });
 });
+
+describe("значения не по-русски (说得: «说；可以说。»)", () => {
+  const chineseOnly = {
+    compact: ["说；可以说。", "说到。"],
+    senses: [
+      { num: "1", nest: null, gloss: "说；可以说。" },
+      { num: "2", nest: null, gloss: "说到。" },
+    ] as DictionarySense[],
+  };
+
+  it("строка выдачи пустая — экран пишет, что перевода на русский нет", () => {
+    expect(entrySummary(chineseOnly)).toBe("");
+    expect(shortMeaning(chineseOnly)).toBeNull();
+  });
+
+  it("в статье не остаётся ни значений, ни пустых гнёзд", () => {
+    expect(articleNests(chineseOnly.senses)).toEqual([]);
+  });
+
+  it("из смешанной статьи уходят только значения не по-русски", () => {
+    const mixed = {
+      compact: ["to say", "говорить", "说到。"],
+      senses: [
+        { num: "1", nest: null, gloss: "to say" },
+        { num: "2", nest: null, gloss: "говорить" },
+      ] as DictionarySense[],
+    };
+    expect(entrySummary(mixed)).toBe("говорить");
+    expect(articleNests(mixed.senses)).toEqual([{ nest: null, heading: null, senses: [{ num: "2", gloss: "говорить" }] }]);
+  });
+});

@@ -107,3 +107,11 @@ Deno.test("модель ответила по-английски и в meaning_r
   const [row] = normalizeWords([raw("网红", "wǎnghóng", "", "influencer")]);
   assertEquals(resolveWord(row, []), null);
 });
+
+Deno.test("значения статьи не по-русски не становятся переводом (说得: «说；可以说。»)", () => {
+  const 说得 = [{ id: 7, headword: "说得", reading: null, compact: ["说；可以说。", "说到。", "to say"] }];
+  const word = resolveWord(row("说得", "shuōde", null, "говорить (так, что…)"), 说得);
+  assertEquals([word?.translation, word?.source, word?.entry_id], ["говорить (так, что…)", "ai", 7]);
+  const mixed = resolveWord(row("行", "xíng", null, "идти"), [{ ...行[0], compact: ["to walk", "идти", "ладно"] }]);
+  assertEquals(mixed?.translation, "идти; ладно");
+});

@@ -148,8 +148,10 @@ export interface ExtractedWord {
  */
 export function resolveWord(row: WordRow, candidates: EntryForWord[]): ExtractedWord | null {
   const entry = pickEntry(candidates, row.reading) as EntryForWord | null;
-  const dictionaryTranslation = entry && entry.compact.length > 0
-    ? clip(entry.compact.slice(0, DICTIONARY_SENSES).join("; "))
+  // Только значения по-русски: в БКРС бывают китайские и английские («说；可以说。»).
+  const russianSenses = entry ? entry.compact.filter((c) => RUSSIAN_LETTER.test(c)) : [];
+  const dictionaryTranslation = russianSenses.length > 0
+    ? clip(russianSenses.slice(0, DICTIONARY_SENSES).join("; "))
     : null;
 
   const [translation, source]: [string | null, TranslationSource] = row.fileTranslation

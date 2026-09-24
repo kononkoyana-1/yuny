@@ -34,7 +34,9 @@ export const EntryRow = forwardRef<View, EntryRowProps>(function EntryRow(
     <Pressable
       ref={ref}
       accessibilityRole="button"
-      accessibilityLabel={[word.headword, word.reading, summary, savedLabel].filter(Boolean).join(". ")}
+      accessibilityLabel={[word.headword, word.reading, summary || t("dictionary.article.noRussian"), savedLabel]
+        .filter(Boolean)
+        .join(". ")}
       accessibilityHint={t("dictionary.entry.a11yHint")}
       onPressIn={() => setPressed(true)}
       onPressOut={() => setPressed(false)}
@@ -60,7 +62,11 @@ export const EntryRow = forwardRef<View, EntryRowProps>(function EntryRow(
         <Text variant="body" numberOfLines={2}>
           {summary}
         </Text>
-      ) : null}
+      ) : (
+        <Text variant="caption" tone="muted">
+          {t("dictionary.article.noRussian")}
+        </Text>
+      )}
     </Pressable>
   );
 });
