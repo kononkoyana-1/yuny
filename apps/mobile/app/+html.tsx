@@ -45,24 +45,26 @@ textarea:autofill {
   color: ${colors.light.text} !important;
 }
 
-@media (prefers-color-scheme: dark) {
-  input:-webkit-autofill,
-  input:-webkit-autofill:hover,
-  input:-webkit-autofill:focus,
-  input:-webkit-autofill:active,
-  textarea:-webkit-autofill,
-  select:-webkit-autofill {
-    -webkit-box-shadow: 0 0 0 1000px ${colors.dark.surface} inset !important;
-    box-shadow: 0 0 0 1000px ${colors.dark.surface} inset !important;
-    -webkit-text-fill-color: ${colors.dark.text} !important;
-    caret-color: ${colors.dark.text};
-  }
+/* DS-T: dark styling here follows the ".dark" class the pre-hydration
+   script (below) and \`themePreference.ts\` put on <html> — not
+   "prefers-color-scheme" — since \`darkMode: "class"\` means the app's theme
+   is the user's stored choice, not always the OS setting. */
+html.dark input:-webkit-autofill,
+html.dark input:-webkit-autofill:hover,
+html.dark input:-webkit-autofill:focus,
+html.dark input:-webkit-autofill:active,
+html.dark textarea:-webkit-autofill,
+html.dark select:-webkit-autofill {
+  -webkit-box-shadow: 0 0 0 1000px ${colors.dark.surface} inset !important;
+  box-shadow: 0 0 0 1000px ${colors.dark.surface} inset !important;
+  -webkit-text-fill-color: ${colors.dark.text} !important;
+  caret-color: ${colors.dark.text};
+}
 
-  input:autofill,
-  textarea:autofill {
-    background-color: ${colors.dark.surface} !important;
-    color: ${colors.dark.text} !important;
-  }
+html.dark input:autofill,
+html.dark textarea:autofill {
+  background-color: ${colors.dark.surface} !important;
+  color: ${colors.dark.text} !important;
 }
 
 /* The document behind the app, so a bounce or an over-scroll never exposes
@@ -71,11 +73,40 @@ html, body {
   background-color: ${colors.light.background};
 }
 
-@media (prefers-color-scheme: dark) {
-  html, body {
-    background-color: ${colors.dark.background};
-  }
+html.dark, html.dark body {
+  background-color: ${colors.dark.background};
 }
+`;
+
+/**
+ * Runs before React hydrates (a plain <script> tag in <head> executes during
+ * HTML parsing). Reads the stored theme choice the same way
+ * `shared/lib/themePreference.ts` does (`localStorage["yuny.theme"]`, one of
+ * "light" | "dark" | absent-means-system) and applies the `dark` class and
+ * `color-scheme` style on <html> synchronously, so the first paint of a
+ * static web export is already in the right theme instead of flashing light
+ * and then re-applying dark after hydration (DS-T, settings.design.md §9).
+ *
+ * try/catch: `localStorage` throws in some privacy modes (Safari private
+ * browsing, cookies-blocked). Falling through to `system` there matches
+ * `themePreference.ts`'s own fallback.
+ */
+const themeScript = `
+(function () {
+  try {
+    var stored = window.localStorage.getItem("yuny.theme");
+    var isDark = stored === "dark"
+      || (stored !== "light" && window.matchMedia
+        && window.matchMedia("(prefers-color-scheme: dark)").matches);
+    var root = document.documentElement;
+    if (isDark) {
+      root.classList.add("dark");
+    } else {
+      root.classList.remove("dark");
+    }
+    root.style.colorScheme = isDark ? "dark" : "light";
+  } catch (e) {}
+})();
 `;
 
 export default function Root({ children }: PropsWithChildren) {
@@ -96,6 +127,7 @@ export default function Root({ children }: PropsWithChildren) {
         <ScrollViewStyleReset />
 
         <style dangerouslySetInnerHTML={{ __html: autofillCss }} />
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
       <body>{children}</body>
     </html>

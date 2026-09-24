@@ -38,6 +38,16 @@ export const colors = {
     success: "#4A9B6E",
     warning: "#E8A54B",
     danger: "#D96A6A",
+    /**
+     * Settings (#40, settings.design.md «Новые токены»): destructive action
+     * role — «Удалить аккаунт» label/glyph, the confirmation panel's text,
+     * `Button variant="destructive"`'s fill. Distinct from `danger` (3.2:1
+     * on white, not usable for text): this is 6.52:1 as text on `surface`.
+     * `danger` stays unused by this role, per the spec.
+     */
+    destructive: "#B4232F",
+    /** Backdrop for the "нельзя отменить" panel; `destructive` on it is 5.82:1. */
+    destructiveSoft: "#FFEEF0",
     // Cool lavender, replacing the warm cream #FAF7F2. The dark theme was
     // already cool (#17142A), so the two modes now agree instead of reading
     // as different products.
@@ -88,6 +98,10 @@ export const colors = {
     success: "#5FB584",
     warning: "#E8A54B",
     danger: "#E58585",
+    /** Dark counterpart of `destructive` above — 7.03:1 as text on `surface`. */
+    destructive: "#FF8A8A",
+    /** Dark counterpart of `destructiveSoft` — `destructive` on it is 7.03:1. */
+    destructiveSoft: "#3A1620",
     background: "#17142A",
     surface: "#221E3B",
     surfaceAlt: "#2B2547",

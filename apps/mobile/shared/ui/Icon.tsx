@@ -9,6 +9,16 @@ import HomeSvg from "@/assets/home.svg";
 import ImageSvg from "@/assets/image.svg";
 import SettingsSvg from "@/assets/settings.svg";
 import UploadSvg from "@/assets/upload.svg";
+// #40 (settings, DS-T/S8): edit, externalLink, signOut, trash, monitor, sun,
+// moon, check — same filled, fill-less-path style as the icons above.
+import EditSvg from "@/assets/edit.svg";
+import ExternalLinkSvg from "@/assets/external-link.svg";
+import SignOutSvg from "@/assets/sign-out.svg";
+import TrashSvg from "@/assets/trash.svg";
+import MonitorSvg from "@/assets/monitor.svg";
+import SunSvg from "@/assets/sun.svg";
+import MoonSvg from "@/assets/moon.svg";
+import CheckSvg from "@/assets/check.svg";
 
 /**
  * The icon set, behind one name-keyed component.
@@ -42,6 +52,22 @@ const GLYPHS = {
   document: DocumentSvg,
   /** Bare-icon dismiss/remove action — always paired with a visible `accessibilityLabel` on its Pressable, never used alone. */
   close: CloseSvg,
+  /** Settings (#40): "Изменить имя". */
+  edit: EditSvg,
+  /** Settings (#40): source rows that open an external site. */
+  externalLink: ExternalLinkSvg,
+  /** Settings (#40): "Выйти". */
+  signOut: SignOutSvg,
+  /** Settings (#40): "Удалить аккаунт". */
+  trash: TrashSvg,
+  /** Settings (#40): theme choice "Системная". */
+  monitor: MonitorSvg,
+  /** Settings (#40): theme choice "Светлая". */
+  sun: SunSvg,
+  /** Settings (#40): theme choice "Тёмная". */
+  moon: MoonSvg,
+  /** Settings (#40, DS11): `SaveStatus` "Сохранено". */
+  check: CheckSvg,
 } as const;
 
 export type IconName = keyof typeof GLYPHS;
