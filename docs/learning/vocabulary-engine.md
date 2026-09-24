@@ -942,8 +942,9 @@ contrast_cards        (headword_a, headword_b, body jsonb)               -- гл
 learning_settings     (user_id, daily_budget, max_new, retention, tone_colors)
 ```
 
-Расчёты FSRS — в клиенте (быстро, офлайн) и повторно на сервере при записи
-события (сервер — источник истины, клиенту не доверяем).
+Память считает **только сервер** (`supabase/functions/_shared/learning/`,
+Edge Function `review-submit`): клиенту память не доверяем (TZ.md §3,
+правило 1). Клиент получает от сервера готовые стадии, сроки и исход ответа.
 
 ## Приложение B. Открытые вопросы
 
