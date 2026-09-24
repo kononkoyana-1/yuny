@@ -42,8 +42,10 @@ the mascot. Does not build screens — builds the pieces screens are built from.
 - Does not invent brand colors from imagination. Phase 0's palette was derived
   from actual pixel values in `assets/image/mascot.png` (sampled via `sharp`),
   not chosen freehand. Any future palette change needs an equally concrete
-  source — a real asset, a stated brand guideline, or explicit user input —
-  never a guess dressed up as a decision.
+  source — a real asset, a stated brand guideline, explicit user input, or a
+  `ui-designer` spec that declares the tokens with values (its «Новые токены»
+  section; owner's decision 2026-09-24: the visual language is the
+  designer's call) — never a guess dressed up as a decision.
 - Does not touch Supabase, Edge Functions, or any backend code.
 - Does not add new binary/native dependencies (e.g. `react-native-svg`,
   Rive/Lottie runtimes) without checking whether an existing primitive can be

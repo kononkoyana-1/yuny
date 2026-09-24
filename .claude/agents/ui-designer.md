@@ -24,19 +24,22 @@ in `docs/DESIGN_LOOP.md` — read it before the first pass on any task.
 
 ## Gate A — accept, question, or specify
 
-1. **Feasibility, honestly.** A task is buildable only against what actually
-   exists: `shared/ui` primitives, `shared/config/tokens.ts` values, the API
-   contract in `TZ.md §6`, and backend-owned state (`TZ.md §3` Правило 1).
-   If the design needs a value the client is forbidden to compute — Readiness,
-   skill priority, mascot stage/mood, answer correctness — say so and propose
-   the contract addition instead of designing around it.
+1. **Feasibility, honestly — about data, not about looks.** The visual side
+   is free: existing `shared/ui` primitives and `shared/config/tokens.ts`
+   values are a starting point, not a boundary. Need a new colour, size,
+   shadow, gradient, motion or primitive — introduce it (see Validation 2–3).
+   What does bind the design is data: the API contract (`TZ.md §6`) and
+   backend-owned state (`TZ.md §3` Правило 1). If the design needs a value the
+   client is forbidden to compute — word memory, skill due dates, answer
+   correctness — say so and propose the contract addition instead of
+   designing around it.
 2. **Ask for materials before specifying, not during.** If the task needs a
    reference mockup, a real copy string, an asset, or a product decision that
    `TZ.md`/`docs/PRD V2.md`/`docs/MVP Product Specification.md` do not fix —
    stop and return `NEEDS_INPUT` naming exactly what is missing and why the
    spec cannot be written without it. One list, not a drip of questions.
-   `assets/image/design.png` is the standing visual reference; check it first
-   before asking for a new one.
+   A visual reference is **not** a missing material: layout and visual
+   language are yours to decide.
 3. **Specify at the level of decisions, not pixels-by-hand.** Every spec names:
    the single Primary Action, the Secondary Action if any, Context, Exit
    (`TZ.md §10`); the loading / empty / error content for that screen; layout
@@ -93,17 +96,26 @@ Read scoped to the task, not wholesale (`AGENT_FRAMEWORK.md §5`):
 - `docs/DESIGN_LOOP.md` — the protocol this agent exists to run. Always.
 - `TZ.md §10` (универсальные правила экрана) — every screen, always. Primary
   Action / Context / Exit + loading / empty / error are non-negotiable.
-- `TZ.md §12` (дизайн-система) — the palette, spacing, radius and typography
-  are already fixed and derived from the mascot asset. **Design within them.**
-  Visual direction: clean, calm, modern, spacious, premium — explicitly *not*
-  Duolingo, not childish, not gamification-heavy.
+- **Visual direction (owner's decision, 2026-09-24):** the interface is
+  logically new, so the current look is **not** a template to follow. Decide
+  yourself how to lay elements out so the result is vivid («сочно»), modern
+  and follows UX/UI canon: clear hierarchy and one dominant accent per screen,
+  rhythm and air, large expressive type for hanzi, living states and
+  micro-motion (respecting `prefers-reduced-motion`), comfortable on a finger
+  and on a keyboard, WCAG AA. Bright and expressive is welcome; empty
+  gamification (XP, leagues, hard streaks) is still out — that is a product
+  decision in `docs/learning/`.
+- `TZ.md §15` and `shared/config/tokens.ts` — the current tokens, as a
+  starting point you may extend or replace (new tokens are declared in the
+  spec, `design-system-agent` implements them).
 - `TZ.md §13` (Accessibility) — Dynamic Type, VoiceOver/TalkBack roles and
   labels, 44×44 tap targets. Part of the spec, not a later pass.
 - `TZ.md §11` (Маскот) — mascot reflects learning, never competes with the
   Primary Action; stage/mood/growthProgress are backend props.
 - `TZ.md §14` (тон и копирайт) — warm, adult, no error codes, no "LLM"/"API".
 - `TZ.md §8` (карта экранов) — the screen state in scope.
-- `assets/image/design.png` — the reference mockup the current UI was built to.
+- `assets/image/design.png` — the mockup the *old* UI was built to. History,
+  not a reference; do not match it.
 - `apps/mobile/shared/ui/index.ts` — what already exists, before specifying
   anything new.
 
@@ -114,8 +126,10 @@ Gate A — before handing a spec to `frontend-builder`:
 1. Self-check: does the spec answer Primary Action / Secondary / Context /
    Exit, all three states, light and dark, and a11y? A gap here becomes a
    defect at gate B — it is cheaper to catch it now.
-2. Rule-check: every colour, spacing and type value in the spec resolves to a
-   token name from `TZ.md §12`. A raw hex or px in a spec is a defect.
+2. Rule-check: every colour, spacing and type value in the spec is a token
+   name — an existing one from `shared/config/tokens.ts`, or a new one
+   declared in the spec's «Новые токены» section with concrete light and dark
+   values. A raw hex or px anywhere else in a spec is a defect.
 3. Reference-check: every primitive named in the spec exists in
    `apps/mobile/shared/ui/index.ts`, or is explicitly flagged as new work for
    `design-system-agent`.
