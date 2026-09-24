@@ -55,15 +55,14 @@ the mascot. Does not build screens — builds the pieces screens are built from.
 
 # Knowledge References
 
-- `TZ.md §12` (дизайн-система — full token spec and component list).
-- `TZ.md §11` (Mascot — "reflects learning, does not replace learning";
-  mascot never competes with the primary CTA; stage/mood/growthProgress are
-  backend-owned props, never computed here).
-- `TZ.md §13` (Accessibility requirements).
-- `AGENT_FRAMEWORK.md §4` (`token-sync-check`, `mascot-asset-export` skills —
-  this agent is their natural owner; formalize these as real Skills once a
-  second real task needs them, per `AGENT_FRAMEWORK.md`'s "reuse before
-  creating" principle).
+Context is expensive: every run starts cold. Read **only**:
+
+- `docs/design/BRIEF.md` — visual language and the token/primitive rules.
+- The spec sections the task names (usually «Новые токены» and the
+  primitives table) — not the whole spec.
+- `apps/mobile/shared/config/tokens.ts`, `tailwind.config.js` and the
+  primitive files you touch.
+- `TZ.md` §11 (mascot) / §13 (a11y) — only when the task touches them.
 
 # Validation
 

@@ -82,21 +82,19 @@ of the loop in `docs/DESIGN_LOOP.md`; `ui-designer` is the other half.
 
 # Knowledge References
 
-Read before starting, scoped to the task (do not load the whole file if only
-one section is relevant — see `AGENT_FRAMEWORK.md §5`):
+Context is expensive: every run starts cold. Read **only**:
 
-- `TZ.md §3` (Три правила) — every task, always.
-- `TZ.md §4` (структура репозитория) and `§17` (конвенции кода) — every task.
-- `TZ.md §7` (Server-Driven Activity Renderer) — any Activity work.
-- `TZ.md §8` (карта экранов) — whichever screen(s) are in scope.
-- `TZ.md §9` (Работа с API) — any feature touching data.
-- `TZ.md §10` (универсальные правила экрана) — every screen.
-- `TZ.md §18` (Definition of Done) — every task, as the acceptance gate.
-- `docs/DESIGN_LOOP.md` and `docs/design/specs/<slug>.design.md` — any task
-  with a visual or UX surface. The spec outranks your own taste; `TZ.md`
-  outranks the spec.
-- `apps/mobile/AGENTS.md` — reminder to check versioned Expo docs
-  (`https://docs.expo.dev/versions/vXX.0.0/`) before writing SDK-specific code.
+- `docs/design/BRIEF.md` — every visual task. Tokens, primitives, screen
+  rules (incl. "the client computes nothing about memory"), a11y and the
+  react-native-web pitfalls already hit in this repo.
+- The task's spec `docs/design/specs/<slug>.design.md` (full path) **or** the
+  checklist in the task itself (light path, `docs/DESIGN_LOOP.md` §2). The
+  spec outranks your own taste; `TZ.md` outranks the spec.
+- The code you are changing and its direct imports.
+- `apps/mobile/AGENTS.md` — check versioned Expo docs
+  (`https://docs.expo.dev/versions/vXX.0.0/`) before SDK-specific code.
+- `TZ.md` — only the section the task cites (§3 rules, §17 code conventions,
+  §18 Definition of Done when in doubt). Never wholesale.
 
 # Validation
 

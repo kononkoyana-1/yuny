@@ -91,33 +91,18 @@ Write matrix — anything outside this is a boundary violation, not a shortcut:
 
 # Knowledge References
 
-Read scoped to the task, not wholesale (`AGENT_FRAMEWORK.md §5`):
+Context is expensive: every run starts cold. Read **only**:
 
-- `docs/DESIGN_LOOP.md` — the protocol this agent exists to run. Always.
-- `TZ.md §10` (универсальные правила экрана) — every screen, always. Primary
-  Action / Context / Exit + loading / empty / error are non-negotiable.
-- **Visual direction (owner's decision, 2026-09-24):** the interface is
-  logically new, so the current look is **not** a template to follow. Decide
-  yourself how to lay elements out so the result is vivid («сочно»), modern
-  and follows UX/UI canon: clear hierarchy and one dominant accent per screen,
-  rhythm and air, large expressive type for hanzi, living states and
-  micro-motion (respecting `prefers-reduced-motion`), comfortable on a finger
-  and on a keyboard, WCAG AA. Bright and expressive is welcome; empty
-  gamification (XP, leagues, hard streaks) is still out — that is a product
-  decision in `docs/learning/`.
-- `TZ.md §15` and `shared/config/tokens.ts` — the current tokens, as a
-  starting point you may extend or replace (new tokens are declared in the
-  spec, `design-system-agent` implements them).
-- `TZ.md §13` (Accessibility) — Dynamic Type, VoiceOver/TalkBack roles and
-  labels, 44×44 tap targets. Part of the spec, not a later pass.
-- `TZ.md §11` (Маскот) — mascot reflects learning, never competes with the
-  Primary Action; stage/mood/growthProgress are backend props.
-- `TZ.md §14` (тон и копирайт) — warm, adult, no error codes, no "LLM"/"API".
-- `TZ.md §8` (карта экранов) — the screen state in scope.
-- `assets/image/design.png` — the mockup the *old* UI was built to. History,
-  not a reference; do not match it.
-- `apps/mobile/shared/ui/index.ts` — what already exists, before specifying
-  anything new.
+- `docs/design/BRIEF.md` — always. Visual language, tokens, primitives,
+  screen rules, a11y and web pitfalls, copy tone. It replaces reading TZ,
+  PRD and past specs; do not re-derive what it states.
+- `docs/DESIGN_LOOP.md` — §2 (which path: full or light), §3 (gates), §5
+  (artifact format). Not the whole file.
+- The files the task names: its spec or checklist, the `docs/learning/`
+  section it cites, the screen's own code.
+- `apps/mobile/shared/ui/index.ts` — before proposing a new primitive.
+- TZ / PRD / older specs and reviews — **only** the section the task cites
+  by number. Never wholesale.
 
 # Validation
 
@@ -133,11 +118,16 @@ Gate A — before handing a spec to `frontend-builder`:
 3. Reference-check: every primitive named in the spec exists in
    `apps/mobile/shared/ui/index.ts`, or is explicitly flagged as new work for
    `design-system-agent`.
-4. Acceptance-check: the spec ends with a numbered Acceptance list that is
+4. Size-check: the spec stays within ~150 lines (`docs/DESIGN_LOOP.md`
+   §5.1). Shared rules are a link to `BRIEF.md`, copy is `key: text` for new
+   strings only. Over the limit — split the task or cut the retelling.
+5. Acceptance-check: the spec ends with a numbered Acceptance list that is
    verifiable by reading code. "Looks premium" is not verifiable; "surface uses
    `surfaceAlt`, radius `lg`, 24px outer padding" is.
 
-Gate B — before returning a verdict:
+Gate B — before returning a verdict (on the light path this is the only
+pass: review the diff against the task checklist and `BRIEF.md`, from the
+screenshots at 390 and 1280 in both themes the orchestrator attaches):
 
 1. Read the diff, not the developer's summary of the diff.
 2. Walk the Acceptance list in order; mark each pass/fail with its address.
