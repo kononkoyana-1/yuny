@@ -2,7 +2,6 @@ import type { Ref } from "react";
 import {
   Pressable,
   ActivityIndicator,
-  useColorScheme,
   type PressableProps,
   type StyleProp,
   type View,
@@ -10,6 +9,7 @@ import {
 } from "react-native";
 import { gradients } from "@/shared/config/tokens";
 import { linearGradient } from "@/shared/platform/gradient";
+import { useTheme } from "@/shared/lib/useTheme";
 import { Text } from "./Text";
 
 export type ButtonVariant = "primary" | "secondary" | "ghost";
@@ -59,7 +59,7 @@ export function Button({
   ...props
 }: ButtonProps) {
   const isDisabled = disabled || loading;
-  const scheme = useColorScheme();
+  const { scheme } = useTheme();
 
   /**
    * Both stops clear WCAG AA against the white label; see `gradients` in

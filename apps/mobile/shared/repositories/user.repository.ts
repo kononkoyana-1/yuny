@@ -10,4 +10,11 @@ export type ProfileUpdateInput = Partial<Pick<Profile, "display_name">>;
 export interface UserRepository {
   getProfile(): Promise<Profile>;
   updateProfile(patch: ProfileUpdateInput): Promise<Profile>;
+  /** Почта, с которой человек вошёл; `null`, если вход без почты. */
+  getEmail(): Promise<string | null>;
+  /**
+   * Удаляет аккаунт целиком (Edge Function `account-delete`, #40): файлы, все
+   * строки пользователя каскадом, самого пользователя. После — выход.
+   */
+  deleteAccount(): Promise<void>;
 }

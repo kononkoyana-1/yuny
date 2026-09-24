@@ -1,6 +1,7 @@
 import { ProfileSchema } from "@yuny/shared";
 import { BackendError } from "@/shared/lib/backendError";
 import { requireUserId } from "@/shared/lib/auth";
+import { invokeEdge } from "@/shared/lib/edge";
 import { getSupabase } from "@/shared/lib/supabase";
 import type { ProfileUpdateInput, UserRepository } from "../user.repository";
 
@@ -34,5 +35,17 @@ export const supabaseUserRepository: UserRepository = {
 
     if (error || !data) throw new BackendError("profile_update_failed");
     return ProfileSchema.parse(data);
+  },
+
+  async getEmail() {
+    const { data } = await getSupabase().auth.getSession();
+    return data.session?.user.email ?? null;
+  },
+
+  async deleteAccount() {
+    await invokeEdge<unknown>("account-delete", { confirm: "delete" });
+    // Пользователя на сервере уже нет, выход на сервере вернул бы ошибку —
+    // убираем только локальную сессию; AuthGate уведёт на экран входа.
+    await getSupabase().auth.signOut({ scope: "local" });
   },
 };

@@ -15,4 +15,13 @@ export const mockUserRepository: UserRepository = {
     currentProfile = ProfileSchema.parse({ ...currentProfile, ...patch });
     return delay(currentProfile, 300);
   },
+
+  async getEmail() {
+    return delay("anya@example.com");
+  },
+
+  async deleteAccount() {
+    await delay(undefined, 600);
+    currentProfile = { ...mockProfile };
+  },
 };

@@ -1,8 +1,9 @@
 import type { PropsWithChildren } from "react";
-import { View, useColorScheme } from "react-native";
+import { View } from "react-native";
 import { atmosphere } from "@/shared/config/tokens";
 import { radialGlow, verticalGradient } from "@/shared/platform/gradient";
 import { Sparkles } from "./Sparkles";
+import { useTheme } from "@/shared/lib/useTheme";
 
 /**
  * The entry screen's backdrop: near-white at the top, a cold lavender bloom
@@ -28,7 +29,7 @@ export function AtmosphericBackground({
   children,
   className = "",
 }: PropsWithChildren<{ className?: string }>) {
-  const scheme = useColorScheme();
+  const { scheme } = useTheme();
   const palette = scheme === "dark" ? atmosphere.dark : atmosphere.light;
 
   return (

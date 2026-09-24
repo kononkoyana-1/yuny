@@ -11,6 +11,10 @@ import { ErrorState, LoadingState } from "@/shared/ui";
 import { queryClient } from "@/shared/api/queryClient";
 import { useAuthStatus } from "@/features/auth/useAuthStatus";
 import { useTheme } from "@/shared/lib/useTheme";
+import { initTheme } from "@/shared/lib/themePreference";
+
+// Тема из настроек (#40) — до первой отрисовки, чтобы не мигнуть не той темой.
+initTheme();
 
 /**
  * Auth gate. Against the real backend every row is owned by `auth.uid()`, so

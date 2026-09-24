@@ -3,16 +3,19 @@ import { mockModuleRepository } from "./mock/module.repository.mock";
 import { mockDictionaryRepository } from "./mock/dictionary.repository.mock";
 import { mockUserDictionaryRepository } from "./mock/userDictionary.repository.mock";
 import { mockWordsRepository } from "./mock/words.repository.mock";
+import { mockLearningSettingsRepository } from "./mock/learningSettings.repository.mock";
 import { supabaseUserRepository } from "./supabase/user.repository.supabase";
 import { supabaseModuleRepository } from "./supabase/module.repository.supabase";
 import { supabaseDictionaryRepository } from "./supabase/dictionary.repository.supabase";
 import { supabaseUserDictionaryRepository } from "./supabase/userDictionary.repository.supabase";
 import { supabaseWordsRepository } from "./supabase/words.repository.supabase";
+import { supabaseLearningSettingsRepository } from "./supabase/learningSettings.repository.supabase";
 import type { UserRepository } from "./user.repository";
 import type { ModuleRepository } from "./module.repository";
 import type { DictionaryRepository } from "./dictionary.repository";
 import type { UserDictionaryRepository } from "./userDictionary.repository";
 import type { WordsRepository } from "./words.repository";
+import type { LearningSettingsRepository } from "./learningSettings.repository";
 import { DATA_SOURCE } from "@/shared/config/dataSource";
 
 /**
@@ -36,8 +39,12 @@ export const userDictionaryRepository: UserDictionaryRepository =
 export const wordsRepository: WordsRepository =
   DATA_SOURCE === "supabase" ? supabaseWordsRepository : mockWordsRepository;
 
+export const learningSettingsRepository: LearningSettingsRepository =
+  DATA_SOURCE === "supabase" ? supabaseLearningSettingsRepository : mockLearningSettingsRepository;
+
 export type { ProfileUpdateInput, UserRepository } from "./user.repository";
 export type { ModuleRepository, UploadFileInput, JobRef } from "./module.repository";
 export type { DictionaryRepository } from "./dictionary.repository";
 export type { UserDictionaryRepository, SaveWordInput } from "./userDictionary.repository";
 export type { WordsRepository } from "./words.repository";
+export type { LearningSettingsRepository, LearningSettingsUpdate } from "./learningSettings.repository";

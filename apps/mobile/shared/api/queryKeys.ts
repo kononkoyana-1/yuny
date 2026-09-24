@@ -9,4 +9,6 @@ export const queryKeys = {
   dictionarySearch: (query: string) => ["dictionary", "search", query] as const,
   userDictionaryFolders: ["userDictionary", "folders"] as const,
   userDictionaryItems: ["userDictionary", "items"] as const,
+  learningSettings: ["learningSettings"] as const,
+  accountEmail: ["account", "email"] as const,
 };
