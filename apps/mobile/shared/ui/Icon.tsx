@@ -19,6 +19,9 @@ import MonitorSvg from "@/assets/monitor.svg";
 import SunSvg from "@/assets/sun.svg";
 import MoonSvg from "@/assets/moon.svg";
 import CheckSvg from "@/assets/check.svg";
+// `SettingsRow`'s (S2) `trailing="chevron"` option — not in #40's own glyph
+// list, but the prop can't be implemented without it.
+import ChevronRightSvg from "@/assets/chevron-right.svg";
 
 /**
  * The icon set, behind one name-keyed component.
@@ -68,6 +71,8 @@ const GLYPHS = {
   moon: MoonSvg,
   /** Settings (#40, DS11): `SaveStatus` "Сохранено". */
   check: CheckSvg,
+  /** Settings (#40): `SettingsRow trailing="chevron"`. */
+  chevronRight: ChevronRightSvg,
 } as const;
 
 export type IconName = keyof typeof GLYPHS;
