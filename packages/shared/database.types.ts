@@ -14,6 +14,90 @@ export type Database = {
   }
   public: {
     Tables: {
+      confusion_pairs: {
+        Row: {
+          count_ab: number
+          count_ba: number
+          created_at: string
+          difficulty: number | null
+          due: string | null
+          headword_a: string
+          headword_b: string
+          id: string
+          last_confused_at: string | null
+          last_review: string | null
+          lexeme_a: string | null
+          lexeme_b: string | null
+          reading_a: string | null
+          reading_b: string | null
+          resolve_streak: number
+          resolved_at: string | null
+          stability: number | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          count_ab?: number
+          count_ba?: number
+          created_at?: string
+          difficulty?: number | null
+          due?: string | null
+          headword_a: string
+          headword_b: string
+          id?: string
+          last_confused_at?: string | null
+          last_review?: string | null
+          lexeme_a?: string | null
+          lexeme_b?: string | null
+          reading_a?: string | null
+          reading_b?: string | null
+          resolve_streak?: number
+          resolved_at?: string | null
+          stability?: number | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          count_ab?: number
+          count_ba?: number
+          created_at?: string
+          difficulty?: number | null
+          due?: string | null
+          headword_a?: string
+          headword_b?: string
+          id?: string
+          last_confused_at?: string | null
+          last_review?: string | null
+          lexeme_a?: string | null
+          lexeme_b?: string | null
+          reading_a?: string | null
+          reading_b?: string | null
+          resolve_streak?: number
+          resolved_at?: string | null
+          stability?: number | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "confusion_pairs_lexeme_a_user_id_fkey"
+            columns: ["lexeme_a", "user_id"]
+            isOneToOne: false
+            referencedRelation: "learning_lexemes"
+            referencedColumns: ["id", "user_id"]
+          },
+          {
+            foreignKeyName: "confusion_pairs_lexeme_b_user_id_fkey"
+            columns: ["lexeme_b", "user_id"]
+            isOneToOne: false
+            referencedRelation: "learning_lexemes"
+            referencedColumns: ["id", "user_id"]
+          },
+        ]
+      }
       dictionary_entries: {
         Row: {
           compact: string[]
@@ -542,6 +626,99 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      review_events: {
+        Row: {
+          answer: string | null
+          created_at: string
+          d_after: number | null
+          d_before: number | null
+          device: string | null
+          exercise: string
+          expected: string | null
+          id: number
+          latency_ms: number | null
+          lexeme_id: string | null
+          options: string[] | null
+          outcome: string
+          pair_id: string | null
+          partner: string | null
+          prompt: Json
+          r_before: number | null
+          rating: number | null
+          request_id: string
+          s_after: number | null
+          s_before: number | null
+          session_id: string
+          skill: string | null
+          user_id: string
+        }
+        Insert: {
+          answer?: string | null
+          created_at?: string
+          d_after?: number | null
+          d_before?: number | null
+          device?: string | null
+          exercise: string
+          expected?: string | null
+          id?: number
+          latency_ms?: number | null
+          lexeme_id?: string | null
+          options?: string[] | null
+          outcome: string
+          pair_id?: string | null
+          partner?: string | null
+          prompt?: Json
+          r_before?: number | null
+          rating?: number | null
+          request_id: string
+          s_after?: number | null
+          s_before?: number | null
+          session_id: string
+          skill?: string | null
+          user_id: string
+        }
+        Update: {
+          answer?: string | null
+          created_at?: string
+          d_after?: number | null
+          d_before?: number | null
+          device?: string | null
+          exercise?: string
+          expected?: string | null
+          id?: number
+          latency_ms?: number | null
+          lexeme_id?: string | null
+          options?: string[] | null
+          outcome?: string
+          pair_id?: string | null
+          partner?: string | null
+          prompt?: Json
+          r_before?: number | null
+          rating?: number | null
+          request_id?: string
+          s_after?: number | null
+          s_before?: number | null
+          session_id?: string
+          skill?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "review_events_lexeme_id_user_id_fkey"
+            columns: ["lexeme_id", "user_id"]
+            isOneToOne: false
+            referencedRelation: "learning_lexemes"
+            referencedColumns: ["id", "user_id"]
+          },
+          {
+            foreignKeyName: "review_events_pair_id_fkey"
+            columns: ["pair_id"]
+            isOneToOne: false
+            referencedRelation: "confusion_pairs"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       skill_states: {
         Row: {

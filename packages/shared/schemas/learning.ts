@@ -6,7 +6,8 @@ import { z } from "zod";
  * механика — docs/learning/daily-and-folder-study.md.
  *
  * Таблицы — `learning_lexemes`, `skill_states`, `learning_settings`
- * (миграция 20260924101500_learning_lexemes.sql).
+ * (миграция 20260924101500_learning_lexemes.sql), пары путаницы —
+ * `confusion_pairs` (20260924120000_review_events_confusion_pairs.sql).
  */
 
 /**
@@ -79,9 +80,59 @@ export const LearningSettingsSchema = z.object({
   last_prompt_on: z.iso.date().nullable(),
 });
 
+/**
+ * Исход ответа — как его классифицирует сервер (vocabulary-engine.md, раздел 5).
+ * `seen` — знакомство со словом, не оценивается. Совпадает с
+ * `review_events_outcome_kind` в миграции.
+ */
+export const ANSWER_OUTCOMES = [
+  "ok",
+  "blank",
+  "confusion",
+  "tone",
+  "syllable",
+  "form_similar",
+  "homophone",
+  "order",
+  "wrong",
+  "seen",
+] as const;
+export const AnswerOutcomeSchema = z.enum(ANSWER_OUTCOMES);
+
+/**
+ * `pending` — путаница замечена, порог интервенции не достигнут; `active` —
+ * пара в расписании и держит интервалы обоих слов; `watch` — держится,
+ * ограничение снято; `resolved` — различается стабильно.
+ */
+export const ConfusionStatusSchema = z.enum(["pending", "active", "watch", "resolved"]);
+
+/**
+ * Пара слов, которые пользователь путает (`confusion_pairs`). Стороны — в
+ * каноническом порядке: `headword_a` < `headword_b` по кодовым точкам.
+ * Партнёра может не быть в словаре — тогда его лексема `null`. Пишет только
+ * сервер.
+ */
+export const ConfusionPairSchema = z.object({
+  id: z.uuid(),
+  headword_a: z.string().min(1),
+  reading_a: z.string().nullable(),
+  headword_b: z.string().min(1),
+  reading_b: z.string().nullable(),
+  lexeme_a: z.uuid().nullable(),
+  lexeme_b: z.uuid().nullable(),
+  count_ab: z.number().int().nonnegative(),
+  count_ba: z.number().int().nonnegative(),
+  status: ConfusionStatusSchema,
+  due: z.string().nullable(),
+  resolved_at: z.string().nullable(),
+});
+
 export type Skill = z.infer<typeof SkillSchema>;
 export type LexemeGoal = z.infer<typeof LexemeGoalSchema>;
 export type SessionMinutes = z.infer<typeof SessionMinutesSchema>;
 export type LearningLexeme = z.infer<typeof LearningLexemeSchema>;
 export type SkillState = z.infer<typeof SkillStateSchema>;
 export type LearningSettings = z.infer<typeof LearningSettingsSchema>;
+export type AnswerOutcome = z.infer<typeof AnswerOutcomeSchema>;
+export type ConfusionStatus = z.infer<typeof ConfusionStatusSchema>;
+export type ConfusionPair = z.infer<typeof ConfusionPairSchema>;

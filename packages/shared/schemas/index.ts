@@ -93,6 +93,10 @@ export {
   SkillStateSchema,
   LEARNING_SETTINGS_DEFAULTS,
   LearningSettingsSchema,
+  ANSWER_OUTCOMES,
+  AnswerOutcomeSchema,
+  ConfusionStatusSchema,
+  ConfusionPairSchema,
 } from "./learning";
 export type {
   Skill,
@@ -101,4 +105,7 @@ export type {
   LearningLexeme,
   SkillState,
   LearningSettings,
+  AnswerOutcome,
+  ConfusionStatus,
+  ConfusionPair,
 } from "./learning";
