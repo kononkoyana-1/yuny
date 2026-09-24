@@ -64,8 +64,19 @@ jobs:
           version: latest
 
       # Every function in supabase/functions, bundled by the API (no Docker).
+      # The API answers 500 «Function deploy failed due to an internal error»
+      # now and then (three times on words-extract by 2026-09-24) and the same
+      # upload succeeds on the next try — so up to three attempts.
       - name: Deploy Edge Functions
-        run: supabase functions deploy --project-ref "$SUPABASE_PROJECT_REF" --use-api
+        run: |
+          for attempt in 1 2 3; do
+            if supabase functions deploy --project-ref "$SUPABASE_PROJECT_REF" --use-api; then
+              exit 0
+            fi
+            echo "::warning::functions deploy failed (attempt $attempt of 3)"
+            sleep 15
+          done
+          exit 1
 
       - name: Auth redirects and the public key
         id: web
