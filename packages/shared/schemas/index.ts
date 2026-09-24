@@ -83,3 +83,22 @@ export type {
   LessonGenerateResult,
   LessonErrorCode,
 } from "./lesson";
+export {
+  SKILLS,
+  SkillSchema,
+  LexemeGoalSchema,
+  SESSION_MINUTES,
+  SessionMinutesSchema,
+  LearningLexemeSchema,
+  SkillStateSchema,
+  LEARNING_SETTINGS_DEFAULTS,
+  LearningSettingsSchema,
+} from "./learning";
+export type {
+  Skill,
+  LexemeGoal,
+  SessionMinutes,
+  LearningLexeme,
+  SkillState,
+  LearningSettings,
+} from "./learning";

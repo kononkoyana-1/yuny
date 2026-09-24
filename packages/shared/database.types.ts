@@ -152,6 +152,81 @@ export type Database = {
         }
         Relationships: []
       }
+      learning_lexemes: {
+        Row: {
+          created_at: string
+          dictionary_entry_id: number | null
+          goal: string
+          headword: string
+          id: string
+          reading: string | null
+          translation: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          dictionary_entry_id?: number | null
+          goal?: string
+          headword: string
+          id?: string
+          reading?: string | null
+          translation?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          dictionary_entry_id?: number | null
+          goal?: string
+          headword?: string
+          id?: string
+          reading?: string | null
+          translation?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "learning_lexemes_dictionary_entry_id_fkey"
+            columns: ["dictionary_entry_id"]
+            isOneToOne: false
+            referencedRelation: "dictionary_entries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      learning_settings: {
+        Row: {
+          created_at: string
+          last_prompt_on: string | null
+          max_new: number
+          retention: number
+          session_minutes: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          last_prompt_on?: string | null
+          max_new?: number
+          retention?: number
+          session_minutes?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Update: {
+          created_at?: string
+          last_prompt_on?: string | null
+          max_new?: number
+          retention?: number
+          session_minutes?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+        ]
+      }
       lessons: {
         Row: {
           created_at: string
@@ -468,6 +543,59 @@ export type Database = {
         }
         Relationships: []
       }
+      skill_states: {
+        Row: {
+          contexts_passed: number
+          difficulty: number
+          due: string
+          lapses: number
+          last_review: string | null
+          lexeme_id: string
+          reps: number
+          skill: string
+          stability: number
+          unlocked_at: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          contexts_passed?: number
+          difficulty: number
+          due: string
+          lapses?: number
+          last_review?: string | null
+          lexeme_id: string
+          reps?: number
+          skill: string
+          stability: number
+          unlocked_at?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          contexts_passed?: number
+          difficulty?: number
+          due?: string
+          lapses?: number
+          last_review?: string | null
+          lexeme_id?: string
+          reps?: number
+          skill?: string
+          stability?: number
+          unlocked_at?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "skill_states_lexeme_id_user_id_fkey"
+            columns: ["lexeme_id", "user_id"]
+            isOneToOne: false
+            referencedRelation: "learning_lexemes"
+            referencedColumns: ["id", "user_id"]
+          },
+        ]
+      }
       task_answer_keys: {
         Row: {
           answer_key: Json
@@ -648,6 +776,7 @@ export type Database = {
           folder_id: string
           headword: string
           id: string
+          lexeme_id: string
           reading: string | null
           translation: string | null
           translation_source: string | null
@@ -659,6 +788,7 @@ export type Database = {
           folder_id: string
           headword: string
           id?: string
+          lexeme_id?: string
           reading?: string | null
           translation?: string | null
           translation_source?: string | null
@@ -670,6 +800,7 @@ export type Database = {
           folder_id?: string
           headword?: string
           id?: string
+          lexeme_id?: string
           reading?: string | null
           translation?: string | null
           translation_source?: string | null
@@ -682,6 +813,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "dictionary_entries"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_dictionary_items_lexeme_fk"
+            columns: ["lexeme_id", "user_id"]
+            isOneToOne: false
+            referencedRelation: "learning_lexemes"
+            referencedColumns: ["id", "user_id"]
           },
           {
             foreignKeyName: "user_dictionary_items_folder_id_user_id_fkey"
