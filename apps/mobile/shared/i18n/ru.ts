@@ -230,6 +230,10 @@ export const ru = {
       },
     },
   },
+  settings: {
+    signOut: "Выйти",
+    signOutFailed: "Не получилось выйти. Проверьте интернет и попробуйте ещё раз.",
+  },
   dictionary: {
     title: "Словарь",
     search: {

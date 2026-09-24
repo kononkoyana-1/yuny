@@ -138,8 +138,19 @@ export async function signInWithApple(): Promise<void> {
   if (error) throw authFailure(error.message);
 }
 
+/**
+ * Выход. Сначала — везде (сервер отзывает сессию). Если сервер ответил
+ * ошибкой (нет сети, сессия уже истекла, аккаунт удалён), supabase-js
+ * оставляет локальную сессию как есть, и кнопка «Выйти» выглядела бы
+ * неработающей — поэтому тогда выходим хотя бы на этом устройстве.
+ */
 export async function signOut(): Promise<void> {
-  await getSupabase().auth.signOut();
+  const supabase = getSupabase();
+  const { error } = await supabase.auth.signOut().catch((e: unknown) => ({ error: e }));
+  if (error) {
+    const local = await supabase.auth.signOut({ scope: "local" });
+    if (local.error) throw new BackendError("sign_out_failed");
+  }
 }
 
 /**

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { REQUIRES_AUTH } from "@/shared/config/dataSource";
 import { getSupabase } from "@/shared/lib/supabase";
+import { queryClient } from "@/shared/api/queryClient";
 
 export type AuthStatus = "loading" | "signed_in" | "signed_out";
 
@@ -27,7 +28,10 @@ export function useAuthStatus(): AuthStatus {
     });
 
     // Covers sign-in, sign-out, token refresh, and expiry alike.
-    const { data: subscription } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: subscription } = supabase.auth.onAuthStateChange((event, session) => {
+      // Данные прошлого аккаунта не должны пережить выход: следующий вошедший
+      // увидел бы чужие папки из кэша.
+      if (event === "SIGNED_OUT") queryClient.clear();
       if (active) setStatus(session ? "signed_in" : "signed_out");
     });
 
