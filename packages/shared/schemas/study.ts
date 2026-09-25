@@ -173,11 +173,12 @@ export const StageSchema = z.enum(["new", "meeting", "recognize", "recall", "use
 const StageCountsSchema = z.record(StageSchema, z.number().int());
 
 /**
- * Очередь новых слов папки (#85): сколько ждёт приёма, примерно дней до
- * конца при `per_day` в день. `per_day: null` — потолок новых 0, новые
- * приходят только из папки.
+ * Изучено и впереди (#85): `learned` — начатые и «Уже знаю», `queued` — ещё не
+ * учили, `eta_days` — примерно дней до конца при `per_day` новых в день из
+ * настроек. `per_day: null` — в настройках 0, новые приходят только из папки.
  */
 const QueueFields = {
+  learned: z.number().int().default(0),
   queued: z.number().int().default(0),
   eta_days: z.number().int().nullable().default(null),
   per_day: z.number().int().nullable().default(null),
@@ -191,7 +192,18 @@ export const FolderProgressSchema = z.object({
   stage_counts: StageCountsSchema,
   ...QueueFields,
 });
-export const FolderProgressListSchema = z.object({ folders: z.array(FolderProgressSchema) });
+/** Сводка по всем словам в папках (слово в двух папках — одно). */
+export const WordTotalsSchema = z.object({
+  words: z.number().int(),
+  learned: z.number().int(),
+  queued: z.number().int(),
+  eta_days: z.number().int().nullable(),
+});
+export const FolderProgressListSchema = z.object({
+  folders: z.array(FolderProgressSchema),
+  total: WordTotalsSchema.nullable().default(null),
+  per_day: z.number().int().nullable().default(null),
+});
 
 /** Карта папки (#70, folder-map.design.md §1): у каждого слова стадия, «пора освежить», пара. */
 export const FolderMapSchema = z.object({
@@ -280,6 +292,8 @@ export type FolderMode = z.infer<typeof FolderModeSchema>;
 export type FolderStudyPlan = z.infer<typeof FolderStudyPlanSchema>;
 export type Stage = z.infer<typeof StageSchema>;
 export type FolderProgress = z.infer<typeof FolderProgressSchema>;
+export type FolderProgressList = z.infer<typeof FolderProgressListSchema>;
+export type WordTotals = z.infer<typeof WordTotalsSchema>;
 export type FolderMap = z.infer<typeof FolderMapSchema>;
 export type SkillLevel = z.infer<typeof SkillLevelSchema>;
 export type WordProgress = z.infer<typeof WordProgressSchema>;

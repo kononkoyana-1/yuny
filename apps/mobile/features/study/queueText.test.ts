@@ -1,20 +1,29 @@
 import { describe, expect, it } from "@jest/globals";
-import { queueText } from "./queueText";
+import { etaText, learnedText, queueText, totalsEtaText } from "./queueText";
 
 describe("queueText", () => {
-  it("пишет очередь и срок со склонениями", () => {
-    expect(queueText({ queued: 180, eta_days: 23, per_day: 8 })).toBe("В очереди 180 слов · примерно 23 дня при 8 в день");
-    expect(queueText({ queued: 1, eta_days: 1, per_day: 8 })).toBe("В очереди 1 слово · примерно 1 день при 8 в день");
-    expect(queueText({ queued: 22, eta_days: 5, per_day: 5 })).toBe("В очереди 22 слова · примерно 5 дней при 5 в день");
+  it("пишет, сколько изучено и сколько осталось", () => {
+    expect(learnedText({ learned: 12, queued: 28 })).toBe("Изучено 12 из 40 · осталось 28");
+    expect(learnedText({ learned: 22, queued: 0 })).toBe("Изучены все 22 слова");
+    expect(learnedText({ learned: 0, queued: 0 })).toBeNull();
   });
 
-  it("при потолке 0 — новые только из папки", () => {
-    expect(queueText({ queued: 180, eta_days: null, per_day: null })).toBe(
-      "В очереди 180 слов · новые приходят только из папки",
+  it("срок — по настройке «новых в день»", () => {
+    expect(etaText({ learned: 12, queued: 28, eta_days: 4, per_day: 8 })).toBe("примерно 4 дня при 8 новых в день");
+    expect(etaText({ learned: 12, queued: 28, eta_days: null, per_day: null })).toBe(
+      "в настройках 0 новых в день — учите раундами по папке",
     );
+    expect(queueText({ learned: 12, queued: 28, eta_days: 4, per_day: 8 })).toBe(
+      "Изучено 12 из 40 · осталось 28 — примерно 4 дня при 8 новых в день",
+    );
+    expect(queueText({ learned: 5, queued: 0, eta_days: 0, per_day: 8 })).toBe("Изучены все 5 слов");
   });
 
-  it("пустая очередь — строки нет", () => {
-    expect(queueText({ queued: 0, eta_days: 0, per_day: 8 })).toBeNull();
+  it("сводка по всем словам", () => {
+    expect(totalsEtaText({ queued: 138, eta_days: 18 }, 8)).toBe("По 8 новых в день — ещё примерно 18 дней");
+    expect(totalsEtaText({ queued: 0, eta_days: 0 }, 8)).toBe("Новых слов не осталось — все уже в работе");
+    expect(totalsEtaText({ queued: 10, eta_days: null }, null)).toBe(
+      "В настройках 0 новых в день: новые слова приходят только из раундов по папкам",
+    );
   });
 });

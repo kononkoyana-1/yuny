@@ -2,7 +2,7 @@ import {
   FolderMapSchema,
   WordProgressSchema,
   type FolderMap,
-  type FolderProgress,
+  type FolderProgressList,
   type Stage,
   type WordProgress,
 } from "@yuny/shared";
@@ -43,11 +43,12 @@ export async function mockFolderMap(folderId: string): Promise<FolderMap> {
     counts[f.stage]++;
     words.push({ headword: i.headword, reading: i.reading, stage: f.stage, due: f.due, pair_partner: f.pair });
   }
-  // Очередь (#85): новые слова ждут приёма по 8 в день, как при настройках по умолчанию.
+  // Изучено и впереди (#85): срок — по 8 новых в день, как при настройках по умолчанию.
   return FolderMapSchema.parse({
     word_count: words.length,
     due_count: words.filter((w) => w.due).length,
     stage_counts: counts,
+    learned: words.length - counts.new,
     queued: counts.new,
     eta_days: Math.ceil(counts.new / MOCK_PER_DAY),
     per_day: MOCK_PER_DAY,
@@ -55,15 +56,24 @@ export async function mockFolderMap(folderId: string): Promise<FolderMap> {
   });
 }
 
-export async function mockFolderProgress(): Promise<FolderProgress[]> {
+export async function mockFolderProgress(): Promise<FolderProgressList> {
   const folders = await mockUserDictionaryRepository.listFolders();
-  return Promise.all(
+  const list = await Promise.all(
     folders.map(async (f) => {
       const map = await mockFolderMap(f.id);
       const { words: _words, ...summary } = map;
       return { folder_id: f.id, ...summary };
     }),
   );
+  // Сводка: слово в двух папках — одно, стадия — по самому слову.
+  const all = new Map<string, Stage>();
+  for (const i of await mockUserDictionaryRepository.listItems()) all.set(`${i.headword}|${i.reading ?? ""}`, wordFacts(i.headword).stage);
+  const queued = [...all.values()].filter((s) => s === "new").length;
+  return {
+    folders: list,
+    total: { words: all.size, learned: all.size - queued, queued, eta_days: Math.ceil(queued / MOCK_PER_DAY) },
+    per_day: MOCK_PER_DAY,
+  };
 }
 
 export function mockWordProgress(word: { headword: string }): WordProgress {

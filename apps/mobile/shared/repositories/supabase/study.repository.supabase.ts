@@ -21,7 +21,7 @@ export const supabaseStudyRepository: StudyRepository = {
 
   async folderProgress() {
     const data = await invokeEdge<unknown>("learning-overview", { action: "folders", tz_offset_min: tzOffsetMin() });
-    return FolderProgressListSchema.parse(data).folders;
+    return FolderProgressListSchema.parse(data);
   },
 
   async folderMap(folderId) {

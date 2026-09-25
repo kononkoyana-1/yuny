@@ -4,10 +4,11 @@ import { useRouter } from "expo-router";
 import type { FolderProgress, UserDictionaryFolder } from "@yuny/shared";
 import { Button, Chip, EmptyState, ErrorState, LoadingState, StageBar, Text } from "@/shared/ui";
 import { useCreateFolder, useFolderProgress, useFolders, useSavedItems } from "@/shared/api";
-import { queueText } from "@/features/study/queueText";
+import { learnedText } from "@/features/study/queueText";
 import { focusRef } from "@/shared/platform/focusRef";
 import { t } from "@/shared/i18n";
 import { FolderNameSheet } from "./FolderNameSheet";
+import { WordStats } from "./WordStats";
 import { folderCounts } from "./saved";
 
 /**
@@ -98,6 +99,10 @@ export function MyDictionary({ header, newFolderVariant = "primary", ref }: MyDi
         </Text>
       </View>
 
+      {progress.data?.total && folders.data.length > 0 ? (
+        <WordStats total={progress.data.total} perDay={progress.data.per_day} />
+      ) : null}
+
       {folders.data.length === 0 ? (
         // Тот же `EmptyState`, что у пустой выдачи и пустой папки
         // (dictionary.review.md m4). Кнопка — ниже, общая для обоих случаев:
@@ -111,7 +116,7 @@ export function MyDictionary({ header, newFolderVariant = "primary", ref }: MyDi
               key={folder.id}
               folder={folder}
               count={counts.get(folder.id) ?? 0}
-              progress={progress.data?.find((p) => p.folder_id === folder.id) ?? null}
+              progress={progress.data?.folders.find((p) => p.folder_id === folder.id) ?? null}
               onPress={() => router.push({ pathname: "/folder/[id]", params: { id: folder.id } })}
             />
           ))}
@@ -157,7 +162,7 @@ function FolderRow({
   const [pressed, setPressed] = useState(false);
   const words = t("dictionary.mine.words", { count });
   const due = progress && progress.due_count > 0 ? t("learn.map.due", { count: progress.due_count }) : null;
-  const queue = progress ? queueText(progress) : null;
+  const queue = progress ? learnedText(progress) : null;
 
   return (
     <Pressable

@@ -14,8 +14,6 @@ import { handler, HandlerError, json, optionalString, requireString, requireUuid
 import {
   folderOverview,
   type FolderOverview,
-  intakeRate,
-  perDay,
   type PlanInput,
   queueView,
   wordProgress,
@@ -31,31 +29,30 @@ function mapJson(o: FolderOverview) {
   };
 }
 
-/** Очередь новых слов (#85): сколько ждёт и примерно сколько дней при нынешнем приёме. */
-function queueJson(input: Omit<PlanInput, "mode" | "minutes">, folderId: string | null, rate: number | null) {
-  const q = queueView(input, folderId, rate);
-  return { queued: q.queued, eta_days: q.etaDays };
+/** Изучено и впереди (#85): срок — при `max_new` новых в день из настроек. */
+function queueJson(input: Omit<PlanInput, "mode" | "minutes">, folderId: string | null) {
+  const q = queueView(input, folderId);
+  return { learned: q.learned, queued: q.queued, eta_days: q.etaDays };
 }
 
 Deno.serve(
   handler(async ({ userId, admin, body }) => {
     const { input } = await loadInput(admin, userId, body);
-    const rate = intakeRate(input);
-    // «при 8 в день»; `null` — потолок новых 0, новые приходят только из папки.
-    const pace = { per_day: perDay(rate) };
+    // «по 8 новых в день» — настройка; `null` — потолок 0, новые приходят только из папки.
+    const pace = { per_day: input.maxNew > 0 ? input.maxNew : null };
 
     if (body.action === "folders") {
       const folders = must(await admin.from("user_dictionary_folders").select("id").eq("user_id", userId)) as Row[];
-      const total = queueView(input, null, rate);
+      const total = queueView(input, null);
       return json({
         folders: folders.map((f) => ({
           folder_id: f.id,
           ...mapJson(folderOverview(input, f.id as string)),
-          ...queueJson(input, f.id as string, rate),
+          ...queueJson(input, f.id as string),
           ...pace,
         })),
-        queued_total: total.queued,
-        eta_days: total.etaDays,
+        // Все слова во всех папках, без повторов: сводка над списками.
+        total: { words: total.total, learned: total.learned, queued: total.queued, eta_days: total.etaDays },
         ...pace,
       });
     }
@@ -65,7 +62,7 @@ Deno.serve(
       const o = folderOverview(input, folderId);
       return json({
         ...mapJson(o),
-        ...queueJson(input, folderId, rate),
+        ...queueJson(input, folderId),
         ...pace,
         words: o.words.map((w) => ({
           headword: w.headword,

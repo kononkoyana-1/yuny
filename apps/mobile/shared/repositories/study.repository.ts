@@ -2,7 +2,7 @@ import type {
   AnswerResult,
   FolderMap,
   FolderMode,
-  FolderProgress,
+  FolderProgressList,
   FolderStudyPlan,
   SessionMinutes,
   SessionPreview,
@@ -33,7 +33,7 @@ export interface StudyRepository {
   /** Карточка «Сегодня» и три плана окна «Повторим?» — без записи. */
   preview(): Promise<SessionPreview>;
   /** Стадии и «пора освежить» по каждой папке — «Мой словарь» (#70). */
-  folderProgress(): Promise<FolderProgress[]>;
+  folderProgress(): Promise<FolderProgressList>;
   /** Карта папки: стадия, «пора освежить», пара у каждого слова (#70). */
   folderMap(folderId: string): Promise<FolderMap>;
   /** Карточка слова: стадия, навыки, повторение, пары (#70). */
