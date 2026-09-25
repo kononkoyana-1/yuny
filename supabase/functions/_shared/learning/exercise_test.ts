@@ -187,7 +187,7 @@ Deno.test("C1: пропуск на месте слова, варианты — �
   ];
   const b = buildExercise({ code: "C1", word: MAI3, candidates: pool, seed: 3, sentence: SENTENCE })!;
   assertEquals(b.body.code, "C1");
-  assertEquals(b.body.sentence, { tokens: ["我", "想", "买", "咖啡", "。"], blank_index: 2, ru: "Я хочу купить кофе." });
+  assertEquals(b.body.sentence, { tokens: ["我", "想", "", "咖啡", "。"], blank_index: 2, ru: "Я хочу купить кофе." });
   const texts = b.body.options!.map((o) => o.text);
   assertEquals(texts.length, 4);
   assert(texts.includes("买") && !texts.includes("想") && !texts.includes("购买"));

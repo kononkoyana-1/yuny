@@ -97,6 +97,16 @@ describe("итог по ключу", () => {
     expect(localVerdict(e, { tile_ids: ["t1", "t0"] })).toBe("wrong");
   });
 
+  it("плитки: верен любой допустимый порядок", () => {
+    const e = ex("a", {
+      code: "C2",
+      tiles: [{ id: "t0", text: "今天" }, { id: "t1", text: "我" }, { id: "t2", text: "去" }],
+      key: { tokens: ["今天", "我", "去"], orders: [["今天", "我", "去"], ["我", "今天", "去"]] },
+    });
+    expect(localVerdict(e, { tile_ids: ["t1", "t0", "t2"] })).toBe("correct");
+    expect(localVerdict(e, { tile_ids: ["t2", "t1", "t0"] })).toBe("wrong");
+  });
+
   it("знакомство и самооценка без проверки; сервер важнее ключа", () => {
     expect(localVerdict(ex("a", { code: "intro" }), { choice: "ok" })).toBeNull();
     expect(localVerdict(ex("a", { code: "R2" }), { self: "recalled" })).toBeNull();

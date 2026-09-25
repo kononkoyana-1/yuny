@@ -26,7 +26,10 @@ export function localVerdict(e: Exercise, answer: StudyAnswer): Verdict | null {
   if ("tile_ids" in answer) {
     if (!key.tokens || !e.tiles) return null;
     const text = new Map(e.tiles.map((t) => [t.id, t.text]));
-    return answer.tile_ids.map((id) => text.get(id)).join("") === key.tokens.join("") ? "correct" : "wrong";
+    const given = answer.tile_ids.map((id) => text.get(id)).join("");
+    // Допустимых порядков может быть несколько (#64): верен любой.
+    const orders = key.orders?.length ? key.orders : [key.tokens];
+    return orders.some((o) => o.join("") === given) ? "correct" : "wrong";
   }
   return null;
 }

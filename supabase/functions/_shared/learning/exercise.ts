@@ -355,8 +355,8 @@ export function buildExercise(input: BuildInput): Built | null {
           ...base,
           code: "C1",
           lexeme: lexemeOf(word),
-          // Пиньинь фразы не показываем: в нём чтение пропущенного слова.
-          sentence: { tokens: s.tokens, blank_index: s.targetIndex, ru: s.ru },
+          // Пропуск пустой, пиньинь фразы не показываем: в нём чтение пропущенного слова.
+          sentence: { tokens: s.tokens.map((t, i) => (i === s.targetIndex ? "" : t)), blank_index: s.targetIndex, ru: s.ru },
           options: choiceOptions("hanzi", opts),
           key: { option_id: `o${right}` },
         },

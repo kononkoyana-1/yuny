@@ -57,7 +57,7 @@ export const CharNoteSchema = z.object({
 });
 
 export const IntroSchema = z.object({
-  /** Пример появится с контекстами (#64); до тех пор — `null`. */
+  /** Пример из проверенного кэша предложений (#64); покрытого словами пользователя нет — `null`. */
   example: z.object({ zh: z.string(), pinyin: z.string(), ru: z.string() }).nullable(),
   /** Знаки слова и где они уже встречаются в словах пользователя; пусто — «знак новый». */
   char_notes: z.array(CharNoteSchema),
@@ -93,6 +93,8 @@ export const AnswerKeySchema = z.object({
   option_id: z.string().optional(),
   pinyin: z.string().optional(),
   tokens: z.array(z.string()).optional(),
+  /** C2: все допустимые порядки плиток (`tokens` — первый), #64. */
+  orders: z.array(z.array(z.string())).optional(),
 });
 
 export const ExerciseSchema = z.object({
