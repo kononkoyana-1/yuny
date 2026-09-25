@@ -1,6 +1,7 @@
 import { useState, type Ref } from "react";
-import { TextInput, type TextInputProps } from "react-native";
+import { TextInput, type TextInputProps, type NativeSyntheticEvent, type TextInputKeyPressEventData } from "react-native";
 import { useTheme } from "@/shared/lib/useTheme";
+import { isImeComposing } from "@/shared/platform/imeSafeSubmit";
 
 export interface InputProps extends TextInputProps {
   className?: string;
@@ -9,6 +10,15 @@ export interface InputProps extends TextInputProps {
    * ordinary prop), so a `Sheet` can put focus in the field on open.
    */
   ref?: Ref<TextInput>;
+  /**
+   * DS-E6 (exercise.design.md §9): an Enter-triggered submit that is a
+   * no-op while a Chinese IME is composing (P2's pinyin field, §4.5 — Enter
+   * there only confirms the candidate, per V.2). Prefer this over
+   * `onSubmitEditing` whenever Enter should submit the field; the two
+   * compose fine together (`onSubmitEditing` keeps firing on native, where
+   * IME composition doesn't intercept it the same way).
+   */
+  onSubmitSafe?: () => void;
 }
 
 /**
@@ -53,15 +63,23 @@ function useFocusState(props: TextInputProps) {
   };
 }
 
-export function Input({ className = "", style, ...props }: InputProps) {
+export function Input({ className = "", style, onSubmitSafe, onKeyPress, ...props }: InputProps) {
   const { colors } = useTheme();
   const { focused, handlers } = useFocusState(props);
+
+  const handleKeyPress = (e: NativeSyntheticEvent<TextInputKeyPressEventData>) => {
+    if (onSubmitSafe && e.nativeEvent.key === "Enter" && !isImeComposing(e)) {
+      onSubmitSafe();
+    }
+    onKeyPress?.(e);
+  };
 
   return (
     <TextInput
       className={`min-h-[44px] ${FIELD_BASE} ${borderClass(focused)} ${className}`}
       placeholderTextColor={colors.textMuted}
       style={[NO_NATIVE_OUTLINE, style]}
+      onKeyPress={handleKeyPress}
       {...props}
       {...handlers}
     />

@@ -6,6 +6,18 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Stack, useRouter, useSegments } from "expo-router";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { useFonts } from "expo-font";
+import {
+  Inter_400Regular,
+  Inter_500Medium,
+  Inter_600SemiBold,
+  Inter_700Bold,
+  Inter_800ExtraBold,
+} from "@expo-google-fonts/inter";
+import {
+  NotoSansSC_400Regular,
+  NotoSansSC_500Medium,
+  NotoSansSC_700Bold,
+} from "@expo-google-fonts/noto-sans-sc";
 import { StatusBar } from "expo-status-bar";
 import { ErrorState, LoadingState } from "@/shared/ui";
 import { queryClient } from "@/shared/api/queryClient";
@@ -57,16 +69,26 @@ export default function RootLayout() {
 
   /**
    * Every weight is loaded before anything renders. Showing the app first
-   * would paint one frame in the system face and then reflow when Plus
-   * Jakarta Sans arrives — the metrics differ enough that headings visibly
-   * jump. `LoadingState` needs no font of its own, so the wait is silent.
+   * would paint one frame in the system face and then reflow once Inter /
+   * Noto Sans SC arrive — the metrics differ enough that headings and
+   * hanzi visibly jump. `LoadingState` needs no font of its own, so the
+   * wait is silent.
+   *
+   * #65 V.2/V.7 (DS13): Inter replaces Plus Jakarta Sans (`fontFamily.ui`
+   * in shared/config/tokens.ts — see there for why). Only the weights V.7
+   * lists are loaded, to keep the web bundle from carrying faces nothing
+   * uses: Inter 400/500/600/700/800, Noto Sans SC 400/500/700
+   * (`fontFamily.hanzi`, for `HanziText`).
    */
   const [fontsLoaded, fontError] = useFonts({
-    "PlusJakartaSans-Regular": require("../assets/fonts/PlusJakartaSans-Regular.ttf"),
-    "PlusJakartaSans-Medium": require("../assets/fonts/PlusJakartaSans-Medium.ttf"),
-    "PlusJakartaSans-SemiBold": require("../assets/fonts/PlusJakartaSans-SemiBold.ttf"),
-    "PlusJakartaSans-Bold": require("../assets/fonts/PlusJakartaSans-Bold.ttf"),
-    "PlusJakartaSans-ExtraBold": require("../assets/fonts/PlusJakartaSans-ExtraBold.ttf"),
+    Inter_400Regular,
+    Inter_500Medium,
+    Inter_600SemiBold,
+    Inter_700Bold,
+    Inter_800ExtraBold,
+    NotoSansSC_400Regular,
+    NotoSansSC_500Medium,
+    NotoSansSC_700Bold,
   });
 
   // A failed font load must not strand the user on a blank screen: the app

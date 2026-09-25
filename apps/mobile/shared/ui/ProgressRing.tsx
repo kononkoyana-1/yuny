@@ -21,6 +21,14 @@ interface ProgressRingBaseProps {
   /** Rendered centred inside the ring — the disc + label in `ModuleCircle`. */
   children?: ReactNode;
   className?: string;
+  /**
+   * #65 (today-session.design.md §9, DS10): the "Сегодня" hero's
+   * `in_progress` ring draws on `gradients.hero`, not `surface`, so its
+   * track/arc need `heroInk` at two alphas rather than `ringTrack`/`primary`.
+   * Defaults preserve every existing caller (`ModuleCircle`, home screen).
+   */
+  trackColor?: string;
+  arcColor?: string;
 }
 
 /**
@@ -64,6 +72,8 @@ export function ProgressRing(props: ProgressRingProps) {
     strokeWidth = sizing.progressRingStroke,
     children,
     className = "",
+    trackColor,
+    arcColor,
   } = props;
 
   const { colors } = useTheme();
@@ -125,7 +135,7 @@ export function ProgressRing(props: ProgressRingProps) {
           cx={size / 2}
           cy={size / 2}
           r={radius}
-          stroke={colors.ringTrack}
+          stroke={trackColor ?? colors.ringTrack}
           strokeWidth={strokeWidth}
           fill="none"
         />
@@ -140,7 +150,7 @@ export function ProgressRing(props: ProgressRingProps) {
             cx={size / 2}
             cy={size / 2}
             r={radius}
-            stroke={colors.primary}
+            stroke={arcColor ?? colors.primary}
             strokeWidth={strokeWidth}
             strokeLinecap="round"
             fill="none"

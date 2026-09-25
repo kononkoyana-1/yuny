@@ -7,12 +7,16 @@ import {
   type View,
   type ViewStyle,
 } from "react-native";
+import Animated from "react-native-reanimated";
 import { gradients } from "@/shared/config/tokens";
 import { linearGradient } from "@/shared/platform/gradient";
 import { useTheme } from "@/shared/lib/useTheme";
+import { usePressScale } from "@/shared/lib/usePressScale";
 import { Text } from "./Text";
 
-export type ButtonVariant = "primary" | "secondary" | "ghost" | "destructive";
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+
+export type ButtonVariant = "primary" | "secondary" | "ghost" | "destructive" | "hero";
 
 const CONTAINER_CLASS: Record<ButtonVariant, string> = {
   // `primary` paints itself with a gradient below; the solid class is the
@@ -27,6 +31,8 @@ const CONTAINER_CLASS: Record<ButtonVariant, string> = {
    * never reads as the screen's primary one (§1, "один акцент на экране").
    */
   destructive: "bg-destructive dark:bg-destructive-dark",
+  /** DS2 (today-session.design.md §9): `HeroButton` — inverse fill on `gradients.hero`. */
+  hero: "bg-hero-action dark:bg-hero-action-dark",
 };
 
 const LABEL_TONE_CLASS: Record<ButtonVariant, string> = {
@@ -34,6 +40,7 @@ const LABEL_TONE_CLASS: Record<ButtonVariant, string> = {
   secondary: "text-primary dark:text-primary-dark",
   ghost: "text-primary dark:text-primary-dark",
   destructive: "text-text-inverse dark:text-text-inverse-dark",
+  hero: "text-hero-action-ink dark:text-hero-action-ink-dark",
 };
 
 export interface ButtonProps extends Omit<PressableProps, "children" | "style"> {
@@ -63,10 +70,17 @@ export function Button({
   disabled,
   className = "",
   style,
+  onPressIn,
+  onPressOut,
   ...props
 }: ButtonProps) {
   const isDisabled = disabled || loading;
   const { scheme } = useTheme();
+  // DS2 (today-session.design.md §9): `HeroButton`'s `motion.pressScale`
+  // squeeze — the one variant #65 asks for it on. `usePressScale` is called
+  // unconditionally (rules of hooks); its style is only applied below.
+  const { style: pressStyle, onPressIn: startPressScale, onPressOut: endPressScale } = usePressScale();
+  const isHero = variant === "hero";
 
   /**
    * Both stops clear WCAG AA against the white label; see `gradients` in
@@ -81,13 +95,21 @@ export function Button({
   const gradientStyle = variant === "primary" ? linearGradient(from, to) : null;
 
   return (
-    <Pressable
+    <AnimatedPressable
       accessibilityRole="button"
       accessibilityLabel={label}
       accessibilityState={{ disabled: isDisabled, busy: loading }}
       disabled={isDisabled}
       className={`min-h-[56px] items-center justify-center rounded-pill px-lg py-md ${CONTAINER_CLASS[variant]} ${isDisabled ? "opacity-50" : ""} ${className}`}
-      style={[gradientStyle, style]}
+      style={[gradientStyle, isHero ? pressStyle : null, style]}
+      onPressIn={(e) => {
+        if (isHero) startPressScale();
+        onPressIn?.(e);
+      }}
+      onPressOut={(e) => {
+        if (isHero) endPressScale();
+        onPressOut?.(e);
+      }}
       {...props}
     >
       {loading ? (
@@ -97,6 +119,6 @@ export function Button({
           {label}
         </Text>
       )}
-    </Pressable>
+    </AnimatedPressable>
   );
 }

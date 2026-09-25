@@ -22,6 +22,16 @@ import CheckSvg from "@/assets/check.svg";
 // `SettingsRow`'s (S2) `trailing="chevron"` option — not in #40's own glyph
 // list, but the prop can't be implemented without it.
 import ChevronRightSvg from "@/assets/chevron-right.svg";
+// #65 (today-session DS11, exercise DS-E7, folder-study DS-S2, folder-map DS-M7).
+import ReviewSvg from "@/assets/review.svg";
+import SparkleSvg from "@/assets/sparkle.svg";
+import PairSvg from "@/assets/pair.svg";
+import ChevronDownSvg from "@/assets/chevron-down.svg";
+import ArrowRightSvg from "@/assets/arrow-right.svg";
+import ArrowLeftSvg from "@/assets/arrow-left.svg";
+import StarSvg from "@/assets/star.svg";
+import MoreSvg from "@/assets/more.svg";
+import PracticeSvg from "@/assets/practice.svg";
 
 /**
  * The icon set, behind one name-keyed component.
@@ -73,6 +83,24 @@ const GLYPHS = {
   check: CheckSvg,
   /** Settings (#40): `SettingsRow trailing="chevron"`. */
   chevronRight: ChevronRightSvg,
+  /** #65 DS11: "Повторить" stat line, the soft-review self-rate button. */
+  review: ReviewSvg,
+  /** #65 DS11: "Новые слова" stat line, the day-summary celebration. */
+  sparkle: SparkleSvg,
+  /** #65 DS11: "Разобрать пару" stat line, the confusion-pair card. */
+  pair: PairSvg,
+  /** #65 DS11: `BudgetChip`'s "▾". */
+  chevronDown: ChevronDownSvg,
+  /** #65 DS11: `HanziText`-adjacent forward affordances (e.g. a "Дальше" arrow). */
+  arrowRight: ArrowRightSvg,
+  /** #65 DS-M7: folder-map "К словарю"/back affordance. */
+  arrowLeft: ArrowLeftSvg,
+  /** #65 DS-M7: "Устойчиво" stage mark. */
+  star: StarSvg,
+  /** #65 DS-M7: `ActionRow`'s "⋯" overflow ("Действия с папкой"). */
+  more: MoreSvg,
+  /** #65 DS-S2: the practice-round glyph on `StudyButton`. */
+  practice: PracticeSvg,
 } as const;
 
 export type IconName = keyof typeof GLYPHS;
