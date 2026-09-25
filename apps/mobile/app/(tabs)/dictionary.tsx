@@ -2,13 +2,14 @@ import { useMemo, useRef, useState, type RefObject } from "react";
 import { FlatList, View, type TextInput } from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Button, EmptyState, ErrorState, IconButton, Input, LoadingState, Text } from "@/shared/ui";
+import { Button, EmptyState, ErrorState, LoadingState, Text } from "@/shared/ui";
 import { useDictionarySearch, useSavedItems, useToday, useTodayActions } from "@/shared/api";
 import { useDebouncedValue } from "@/shared/lib/useDebouncedValue";
 import { breakpoints, spacing } from "@/shared/config/tokens";
 import { t } from "@/shared/i18n";
 import { ArticleSheet, type SheetWord } from "@/features/dictionary/ArticleSheet";
 import { EntryRow } from "@/features/dictionary/EntryRow";
+import { SearchField } from "@/features/dictionary/SearchField";
 import { MyDictionary, type MyDictionaryHandle } from "@/features/dictionary/MyDictionary";
 import { TodayHero } from "@/features/study/TodayHero";
 import { BudgetSheet } from "@/features/study/BudgetSheet";
@@ -232,37 +233,19 @@ export default function DictionaryTab() {
       style={{ paddingTop: insets.top }}
       onLayout={(event) => setWidth(event.nativeEvent.layout.width)}
     >
-      <View className="gap-md px-lg pb-md pt-xl">
-        <Text variant="title" accessibilityRole="header">
-          {t("dictionary.title")}
-        </Text>
-        <View className="flex-row items-center gap-sm">
-          <Input
-            ref={inputRef}
-            className="flex-1"
-            value={input}
-            onChangeText={setInput}
-            placeholder={t("dictionary.search.placeholder")}
-            accessibilityLabel={t("dictionary.search.a11y")}
-            autoCapitalize="none"
-            autoCorrect={false}
-            returnKeyType="search"
-            inputMode="search"
-            maxLength={64}
-          />
-          {input !== "" ? (
-            <IconButton
-              icon="close"
-              accessibilityLabel={t("dictionary.search.clear")}
-              onPress={() => {
-                setInput("");
-                // Кнопка очистки сейчас исчезнет вместе с фокусом на ней —
-                // ведём фокус туда, где человек продолжит: в поле.
-                inputRef.current?.focus();
-              }}
-            />
-          ) : null}
-        </View>
+      {/* Заголовка нет: поиск — первое на экране (вкладка и так «Главная»). */}
+      <View className="px-lg pb-md pt-md">
+        <SearchField
+          ref={inputRef}
+          value={input}
+          onChangeText={setInput}
+          onClear={() => {
+            setInput("");
+            // Кнопка очистки сейчас исчезнет вместе с фокусом на ней —
+            // ведём фокус туда, где человек продолжит: в поле.
+            inputRef.current?.focus();
+          }}
+        />
       </View>
 
       {renderBody()}

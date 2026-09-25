@@ -8,8 +8,8 @@ import { breakpoints, spacing, typography } from "@/shared/config/tokens";
 import type { Href } from "expo-router";
 
 /**
- * Three visible tabs — Словарь / Загрузка / Настройки (#66: «Словарь» is
- * first and the start screen; `/` redirects there through the hidden
+ * Three visible tabs — Главная / Загрузка / Настройки (#66: the dictionary
+ * screen, labelled «Главная», is first and the start screen; `/` redirects there through the hidden
  * `index` trigger below). The
  * lesson is deliberately not part of this navigator: it lives at
  * `app/lesson/` as a separate full-screen flow, so a task fills the screen
@@ -37,7 +37,8 @@ import type { Href } from "expo-router";
  *    NativeWind does handle, so classes are fine there.
  */
 const TAB_ITEMS: { name: string; href: Href; label: string; icon: IconName }[] = [
-  { name: "dictionary", href: "/dictionary", label: "Словарь", icon: "dictionary" },
+  // Стартовый экран: «Сегодня», свой словарь и поиск — поэтому «Главная».
+  { name: "dictionary", href: "/dictionary", label: "Главная", icon: "home" },
   { name: "upload", href: "/upload", label: "Загрузка", icon: "upload" },
   { name: "settings", href: "/settings", label: "Настройки", icon: "settings" },
 ];

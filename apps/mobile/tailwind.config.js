@@ -149,6 +149,7 @@ module.exports = {
 
         // --- folder-map.design.md §8 -----------------------------------------
         "word-tile": "106px",
+        search: "52px",
         "due-border": "2px",
         "stage-bar": "12px",
         "stage-bar-mini": "6px",

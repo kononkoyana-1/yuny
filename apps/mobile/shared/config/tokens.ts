@@ -349,6 +349,8 @@ export const sizing = {
   // --- folder-map.design.md §8 --------------------------------------------
   /** `WordTile` minimum width/height on the word-grid. */
   wordTile: 106,
+  /** Высота поля поиска на главном экране. */
+  search: 52,
   /** Dashed "due" border thickness on a `WordTile`. */
   dueBorder: 2,
   /** `StageBar`, default size, in a folder's header. */

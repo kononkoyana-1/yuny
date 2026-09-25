@@ -1,7 +1,7 @@
 import type { Ref } from "react";
 import { Pressable, View } from "react-native";
 import type { SessionPreview } from "@yuny/shared";
-import { Button, Card, Chip, CountUp, FOCUS_RING_CLASS, HanziText, HeroCard, Icon, StatLine, Text } from "@/shared/ui";
+import { Button, Card, Chip, CountUp, HanziText, HERO_FOCUS_RING_CLASS, HeroCard, Icon, StatLine, Text } from "@/shared/ui";
 import { useTheme } from "@/shared/lib/useTheme";
 import { t } from "@/shared/i18n";
 import {
@@ -141,37 +141,36 @@ function TodayDone({
   const plan = currentPlan(today);
   const done = today.state === "done";
 
+  // Тот же градиент, что у карточки до занятия: «Сегодня» — одно место на
+  // экране, а не две разные карточки до и после.
   return (
-    <Card className={`gap-sm rounded-hero border border-border p-lg shadow-none dark:border-border-dark ${className}`}>
-      <Text variant="eyebrow" tone="muted" accessibilityRole="header" className="uppercase">
+    <HeroCard className={`gap-sm ${className}`}>
+      <Text variant="eyebrow" tone="heroInkMuted" accessibilityRole="header" className="uppercase">
         {t("learn.today.eyebrow")}
       </Text>
       <View className="flex-row items-center gap-sm">
-        <View
-          aria-hidden
-          className="h-8 w-8 items-center justify-center rounded-pill bg-success-soft dark:bg-success-soft-dark"
-        >
-          <Icon name="check" size={18} color={colors.success} />
+        <View aria-hidden className="h-8 w-8 items-center justify-center rounded-pill bg-hero-ink/20">
+          <Icon name="check" size={18} color={colors.heroInk} />
         </View>
-        <Text variant="title" className="flex-1">
+        <Text variant="title" tone="heroInk" className="flex-1">
           {done ? t("learn.today.done") : t("learn.today.nothingDue")}
         </Text>
       </View>
-      <Text variant="body" tone="muted">
+      <Text variant="body" tone="heroInkMuted">
         {done && plan ? doneDetailText(today, plan) : t("learn.today.nothingDueDetail")}
       </Text>
       {/* Ссылка, а не кнопка: ровно по левому краю текста, без полей кнопки. */}
       <Pressable
         accessibilityRole="link"
         onPress={onToFolders}
-        className={`min-h-tap flex-row items-center gap-xs self-start rounded-sm ${FOCUS_RING_CLASS}`}
+        className={`min-h-tap flex-row items-center gap-xs self-start rounded-sm ${HERO_FOCUS_RING_CLASS}`}
       >
-        <Text variant="heading" tone="brand">
+        <Text variant="heading" tone="heroInk">
           {t("learn.today.toFolders")}
         </Text>
-        <Icon name="arrowRight" size={18} color={colors.primary} />
+        <Icon name="arrowRight" size={18} color={colors.heroInk} />
       </Pressable>
-    </Card>
+    </HeroCard>
   );
 }
 
