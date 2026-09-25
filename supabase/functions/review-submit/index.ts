@@ -9,6 +9,7 @@
  * Тело:
  *   { ticket, request_id, answer, latency_ms?, second_try?, device? }
  *   { action: "pair_start", ticket }   — итог блока различения пары
+ *   { action: "report_context", ticket } — «Пожаловаться на пример» из этого задания
  *
  * Повтор с тем же `request_id` (сеть) не засчитывается второй раз и
  * возвращает тот же исход.
@@ -47,7 +48,7 @@ import {
 } from "../_shared/learning/mod.ts";
 import { issue, loadCharEntries, loadPool, loadWordsWithChars, russianGloss } from "../_shared/studyData.ts";
 import { ensureContrast, loadContrast } from "../_shared/contrastCards.ts";
-import { loadSentence } from "../_shared/contextSentences.ts";
+import { hideSentence, loadSentence } from "../_shared/contextSentences.ts";
 import { loadHanzi } from "../_shared/hanziChars.ts";
 
 const CONFUSIONS = ["confusion", "form_similar", "homophone"];
@@ -627,6 +628,12 @@ Deno.serve(
     const ticket = await verifyTicket(token, secret(), userId, new Date());
     if (typeof ticket === "string") throw new HandlerError(ticket, ticket === "ticket_foreign" ? 403 : 400);
     if (body.action === "pair_start") return await pairStart(admin, userId, ticket);
+    if (body.action === "report_context") {
+      // Жалоба на пример из этого задания: только на выданный пользователю.
+      if (!ticket.context_id) throw new HandlerError("invalid_request", 400);
+      await hideSentence(admin, ticket.context_id, userId);
+      return json({ hidden: true });
+    }
     return await submit(admin, userId, ticket, body);
   }),
 );

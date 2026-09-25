@@ -5,6 +5,7 @@ import { AudioButton, Button, Card, Chip, HanziText, StrokeOrder, Text } from "@
 import { t } from "@/shared/i18n";
 import { speak } from "@/shared/platform/speech";
 import { charNoteView } from "./charNote";
+import { ReportExample } from "./ReportExample";
 import type { ExerciseProps } from "./types";
 import { Scene } from "./Scene";
 
@@ -66,6 +67,7 @@ export function IntroExercise({ task, onAnswer, progressLabel }: ExerciseProps) 
             {example.pinyin}
           </Text>
           <Text variant="body">{example.ru}</Text>
+          <ReportExample taskId={task.task_id} />
         </Card>
       ) : null}
 

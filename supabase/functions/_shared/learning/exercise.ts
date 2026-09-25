@@ -352,7 +352,11 @@ export function buildExercise(input: BuildInput): Built | null {
             actions: input.introActions ?? "know_or_remember",
           },
         },
-        ticket: ticket("intro", firstGloss(word.translation) ?? word.headword),
+        ticket: {
+          ...ticket("intro", firstGloss(word.translation) ?? word.headword),
+          // Пример — для «Пожаловаться на пример»: жалоба идёт по билету.
+          ...(input.sentence?.id ? { context_id: input.sentence.id } : {}),
+        },
       };
     case "R1":
       return choice("R1", "meaning", 3, "R1");

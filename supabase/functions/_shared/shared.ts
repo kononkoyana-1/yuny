@@ -390,6 +390,8 @@ export async function aiJson<T>(options: {
   system: string;
   prompt: string | AiPart[];
   maxTokens?: number;
+  /** Модель вместо основной — например, дешёвая для проверок; запасные те же. */
+  model?: string;
 }): Promise<T> {
   const apiKey = Deno.env.get("GEMINI_API_KEY");
   if (!apiKey) throw new HandlerError("ai_unavailable", 503);
@@ -409,7 +411,7 @@ export async function aiJson<T>(options: {
     },
   };
 
-  const payload = await callGemini(body, apiKey, options.name);
+  const payload = await callGemini(body, apiKey, options.name, options.model);
 
   try {
     return JSON.parse(payload) as T;
@@ -445,9 +447,10 @@ async function callGemini(
   body: unknown,
   apiKey: string,
   purpose: string,
+  model?: string,
 ): Promise<string> {
-  // Attempt 0 — the main model; each retry — the next fallback, then the main again.
-  const models = [AI_MODEL, ...AI_FALLBACK_MODELS];
+  // Attempt 0 — the main model (or the one asked for); each retry — the next fallback, then the first again.
+  const models = [model ?? AI_MODEL, ...AI_FALLBACK_MODELS.filter((m) => m !== model)];
 
   const RETRY_WAITS_MS = [2000, 6000, 15000];
   const startedAt = Date.now();

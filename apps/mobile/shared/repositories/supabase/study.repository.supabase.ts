@@ -65,4 +65,8 @@ export const supabaseStudyRepository: StudyRepository = {
   async pairStart(taskId) {
     await invokeEdge<unknown>("review-submit", { action: "pair_start", task_id: taskId });
   },
+
+  async reportContext(taskId) {
+    await invokeEdge<unknown>("review-submit", { action: "report_context", task_id: taskId });
+  },
 };

@@ -46,4 +46,6 @@ export interface StudyRepository {
   submit(input: SubmitAnswerInput): Promise<AnswerResult>;
   /** Итог блока различения пары — по карточке пары, после её заданий. */
   pairStart(taskId: string): Promise<void>;
+  /** «Пожаловаться на пример» из этого задания: пример больше не показывается. */
+  reportContext(taskId: string): Promise<void>;
 }

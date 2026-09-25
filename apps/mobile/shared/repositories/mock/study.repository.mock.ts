@@ -196,4 +196,8 @@ export const mockStudyRepository: StudyRepository = {
   async pairStart() {
     await delay(null, 200);
   },
+
+  async reportContext() {
+    await delay(null, 300);
+  },
 };

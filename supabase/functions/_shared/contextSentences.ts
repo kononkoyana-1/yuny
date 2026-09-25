@@ -66,7 +66,9 @@ export async function loadContexts(admin: SupabaseClient, words: ContextWord[]):
   const heads = [...new Set(words.map((w) => w.headword))];
   // По 25 слов: до ~36 предложений на слово, а PostgREST отдаёт не больше 1000 строк.
   for (const part of chunks(heads, 25)) {
-    const rows = must(await admin.from("context_sentences").select(COLUMNS).in("headword", part).limit(1000)) as Row[];
+    const rows = must(
+      await admin.from("context_sentences").select(COLUMNS).in("headword", part).eq("hidden", false).limit(1000),
+    ) as Row[];
     for (const r of rows) {
       const key = rowKey(r);
       if (!wanted.has(key)) continue;
@@ -75,6 +77,15 @@ export async function loadContexts(admin: SupabaseClient, words: ContextWord[]):
     }
   }
   return out;
+}
+
+/**
+ * «Пожаловаться на пример» (решение владельца): фраза больше не показывается
+ * никому; когда покрытых не хватит, закажется новая пачка.
+ */
+export async function hideSentence(admin: SupabaseClient, id: string, userId: string): Promise<void> {
+  must(await admin.from("context_sentences").update({ hidden: true, reported_at: new Date().toISOString() }).eq("id", id));
+  console.warn("context_reported", id, userId);
 }
 
 /** Одно предложение по id — для повтора C1/C2 после ошибки (то же предложение). */
@@ -109,7 +120,10 @@ const SYSTEM = `Ты пишешь короткие китайские фразы
 3. Грамматика — самая простая: подлежащее, сказуемое, дополнение; 想/要 + глагол, 不 + глагол, 太…了, 在 + место.
 4. T1 — коллокация из ${TIER_LENGTH.T1[0]}–${TIER_LENGTH.T1[1]} иероглифов без знаков препинания (买票). T2 — простое предложение из ${TIER_LENGTH.T2[0]}–10 иероглифов с точкой, вопросом или восклицанием в конце (我想买咖啡。).
 5. Так говорят люди: в магазине, в чате, дома. Не «это книга», не «小明是学生», не лозунги, не перечисления. Разные подлежащие и ситуации в пачке. Никаких имён 小明/小红.
-6. ru — естественный русский перевод, не подстрочник.
+6. ru — естественный русский перевод, как сказал бы носитель русского, а не подстрочник. Плохо → хорошо:
+   这双鞋很新。 «Эта обувь очень новая.» → «Туфли совсем новые.»
+   我想买咖啡。 «Я хочу покупать кофе.» → «Хочу купить кофе.»
+   他很高。 «Он очень высокий.» → «Он высокий.» (很 часто не переводится «очень»)
 7. pinyin — пиньинь со знаками тонов, слова через пробел, по слогу на каждый иероглиф.
 8. tokens — фраза, разрезанная на слова, как в словаре; target_index — номер TARGET в tokens.
 9. alt_orders — другие допустимые порядки слов той же фразы (без знаков препинания), если они есть; иначе пустой список.`;
@@ -146,6 +160,58 @@ async function loadLexicon(admin: SupabaseClient, texts: string[]): Promise<Lexi
   return { readings, hsk };
 }
 
+// --------------------------------------------------------- проверка перевода
+
+/** Проверка — на самой дешёвой модели: оценить фразу и поправить перевод ей по силам. */
+const REVIEW_MODEL = Deno.env.get("GEMINI_CHEAP_MODEL") ?? "gemini-flash-lite-latest";
+
+const REVIEW_SCHEMA = objectSchema(
+  {
+    items: {
+      type: "array",
+      items: objectSchema(
+        { i: { type: "integer" }, natural: { type: "boolean" }, ru: { type: "string" } },
+        ["i", "natural", "ru"],
+      ),
+    },
+  },
+  ["items"],
+);
+
+const REVIEW_SYSTEM = `Ты редактор учебных примеров для русскоязычного ученика китайского.
+Для каждой пары «китайская фраза — русский перевод»:
+1. natural — true, если так естественно говорят по-китайски (в жизни, в чате, в магазине). Неестественная, искусственная или ошибочная фраза — false.
+2. ru — естественный русский перевод этой фразы, как сказал бы носитель: без подстрочника, грамматически правильный, по смыслу точный. Если данный перевод уже хорош — верни его без изменений.
+Пример: 这双鞋很新。 «Эта обувь очень новая.» → natural: true, ru: «Туфли совсем новые.»`;
+
+const ruOk = (ru: string) => /[А-Яа-яЁё]/.test(ru) && !/[a-zA-Z]/.test(ru) && ru.length <= 120;
+
+/**
+ * Второй проход (решение владельца): дешёвая модель правит корявый русский
+ * перевод и отсеивает неестественные фразы. Не ответила — пачка не
+ * сохраняется: непроверенное не показываем.
+ */
+async function reviewSentences(sentences: ContextSentence[]): Promise<ContextSentence[]> {
+  const raw = await aiJson<{ items?: { i: number; natural: boolean; ru: string }[] }>({
+    name: "context_review",
+    description: "Проверь естественность фраз и поправь русский перевод",
+    schema: REVIEW_SCHEMA,
+    system: REVIEW_SYSTEM,
+    prompt: JSON.stringify(sentences.map((s, i) => ({ i, zh: s.zh, ru: s.ru }))),
+    maxTokens: 1500,
+    model: REVIEW_MODEL,
+  });
+  const verdicts = new Map((raw.items ?? []).map((v) => [v.i, v]));
+  const out: ContextSentence[] = [];
+  sentences.forEach((s, i) => {
+    const v = verdicts.get(i);
+    if (!v || !v.natural) return;
+    const ru = v.ru?.trim() ?? "";
+    out.push(ruOk(ru) ? { ...s, ru } : s);
+  });
+  return out;
+}
+
 interface Claimed extends ContextWord {
   batchId: string;
   round: number;
@@ -172,9 +238,13 @@ async function generate(admin: SupabaseClient, w: Claimed, knownList: string[]):
     });
     const items = (raw as { items?: unknown[] })?.items ?? [];
     const lexicon = await loadLexicon(admin, items.map((i) => String((i as Row)?.zh ?? "")));
-    const sentences = checkBatch(raw, w, lexicon);
-    if (sentences.length < items.length) {
-      console.warn("context_rejected", w.headword, `${sentences.length}/${items.length}`);
+    const checked = checkBatch(raw, w, lexicon);
+    if (checked.length < items.length) {
+      console.warn("context_rejected", w.headword, `${checked.length}/${items.length}`);
+    }
+    const sentences = checked.length ? await reviewSentences(checked) : [];
+    if (sentences.length < checked.length) {
+      console.warn("context_review_dropped", w.headword, `${sentences.length}/${checked.length}`);
     }
     const model = Deno.env.get("GEMINI_MODEL") ?? null;
     if (sentences.length) {

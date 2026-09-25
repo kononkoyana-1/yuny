@@ -8,6 +8,7 @@ import { focusRef } from "@/shared/platform/focusRef";
 import { t } from "@/shared/i18n";
 import type { Answered } from "../session/useStudySession";
 import { checkFailed } from "../session/queue";
+import { ReportExample } from "./ReportExample";
 
 /**
  * Лоток ответа (exercise.design.md §3.3): «Верно» / «Почти» / мягкий разбор
@@ -85,6 +86,8 @@ export function Feedback({ answered, onNext }: { answered: Answered; onNext: () 
             </Text>
           ))
         : null}
+      {/* Задание с предложением — можно пожаловаться на пример. */}
+      {answered.task.code === "C1" || answered.task.code === "C2" ? <ReportExample taskId={answered.task.task_id} /> : null}
       {answered.failed ? (
         <Text variant="caption" tone="muted">
           {t("learn.ex.submitError")}
