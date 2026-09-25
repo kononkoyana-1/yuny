@@ -34,22 +34,9 @@ export function WordComposition({
 function CharChip({ char, onPress }: { char: CompositionChar; onPress: () => void }) {
   const [pressed, setPressed] = useState(false);
   const meaning = char.meaning ?? t("dictionary.article.composition.noMeaning");
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={t("dictionary.article.composition.a11y", {
-        char: char.char,
-        reading: char.reading ?? "",
-        meaning,
-      })}
-      accessibilityHint={t("dictionary.article.composition.hint")}
-      onPressIn={() => setPressed(true)}
-      onPressOut={() => setPressed(false)}
-      onPress={onPress}
-      className={`min-h-tap max-w-full flex-row items-center gap-sm rounded-md border border-border px-md py-xs dark:border-border-dark ${
-        pressed ? "bg-surface-alt dark:bg-surface-alt-dark" : "bg-surface dark:bg-surface-dark"
-      } ${FOCUS_RING_CLASS}`}
-    >
+  const label = t("dictionary.article.composition.a11y", { char: char.char, reading: char.reading ?? "", meaning });
+  const content = (
+    <>
       <HanziText variant="inline">{char.char}</HanziText>
       <View className="shrink">
         {char.reading ? (
@@ -61,6 +48,33 @@ function CharChip({ char, onPress }: { char: CompositionChar; onPress: () => voi
           {meaning}
         </Text>
       </View>
+    </>
+  );
+  // Статьи знака в словаре нет — открывать нечего: плитка без нажатия, а не переход в пустоту.
+  if (char.entry_reading === null) {
+    return (
+      <View
+        accessible
+        accessibilityLabel={label}
+        className="min-h-tap max-w-full flex-row items-center gap-sm rounded-md bg-surface-alt px-md py-xs dark:bg-surface-alt-dark"
+      >
+        {content}
+      </View>
+    );
+  }
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityHint={t("dictionary.article.composition.hint")}
+      onPressIn={() => setPressed(true)}
+      onPressOut={() => setPressed(false)}
+      onPress={onPress}
+      className={`min-h-tap max-w-full flex-row items-center gap-sm rounded-md border border-border px-md py-xs dark:border-border-dark ${
+        pressed ? "bg-surface-alt dark:bg-surface-alt-dark" : "bg-surface dark:bg-surface-dark"
+      } ${FOCUS_RING_CLASS}`}
+    >
+      {content}
     </Pressable>
   );
 }

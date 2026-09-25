@@ -216,7 +216,7 @@ function ArticleSheetBody({
           {article.data && article.data.composition.length > 0 ? (
             <WordComposition
               chars={article.data.composition}
-              onOpen={(c) => onOpen({ headword: c.char, reading: c.entry_reading ?? c.reading })}
+              onOpen={(c) => onOpen({ headword: c.char, reading: c.entry_reading })}
             />
           ) : null}
           {/* Одно слово — одна память: прогресс виден, где бы слово ни открыли (#70). */}
