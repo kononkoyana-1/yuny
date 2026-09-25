@@ -24,10 +24,10 @@ const start = new Date(end.getTime() - hours * 3_600_000);
 // Строка фильтра идёт в SQL логов — только безопасные символы.
 const safe = filter.replace(/[^\w\-.: ]/g, "");
 
-// С 2026-09 все логи — в одной таблице `logs` (ClickHouse SQL), источник —
-// колонка `source_name`; логи функций — источники с `function` в имени.
-const sql = `select toString(timestamp) as time, source_name, event_message from logs
-  where source_name like '%function%' ${safe ? `and event_message like '%${safe}%'` : ""}
+// С 2026-09 все логи — в одной таблице `logs` (ClickHouse SQL); отбираем по
+// тексту сообщения (наши `console.error` начинаются с узнаваемых меток).
+const sql = `select toString(timestamp) as time, event_message from logs
+  ${safe ? `where event_message like '%${safe}%'` : ""}
   order by timestamp desc limit 200`;
 
 const url = new URL(`https://api.supabase.com/v1/projects/${PROJECT_REF}/analytics/endpoints/logs`);
@@ -47,6 +47,6 @@ if (body.error) {
 }
 const rows = body.result ?? [];
 for (const row of [...rows].reverse()) {
-  console.log(`${row.time}  [${row.source_name}]  ${String(row.event_message).trim()}`);
+  console.log(`${row.time}  ${String(row.event_message).trim()}`);
 }
 console.log(`— ${rows.length} строк за ${hours} ч${safe ? `, фильтр «${safe}»` : ""}`);
