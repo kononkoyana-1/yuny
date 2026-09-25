@@ -94,7 +94,7 @@ export interface SessionPlan {
 }
 
 export const ROUND_SIZE = 7;
-/** Уже знакомые слова из других папок в раунд — для перемешивания. */
+/** Уже знакомые слова этой же папки в раунд — для перемешивания. */
 export const ROUND_MIXINS = 3;
 /** Сколько заданий в первую неделю стоит новое слово (для квоты). */
 export const NEW_WORD_COST = 6;
@@ -489,10 +489,13 @@ export function buildSession(input: PlanInput): SessionPlan {
     // Круги: все знакомства, затем лёгкие вспоминания, затем трудные.
     const spread = words.length + 2;
     words.forEach((l, i) => slots.push(...newWordSlots(l, i, true, spread)));
-    // 2–3 знакомых слова из других папок — для перемешивания.
-    const others = dueSkills(input, null).filter((d) => !words.some((w) => w.id === d.lexemeId));
-    const mix = others.length ? others : input.lexemes
-      .filter((l) => !l.folderIds.includes(folder) && input.states[l.id]?.read)
+    // 2–3 знакомых слова для перемешивания — только из этой папки: человек
+    // учит список, чужие слова в раунде выглядят как ошибка. Сначала те, что
+    // пора повторить; знакомых в папке нет — раунд без них.
+    const inRound = (id: string) => words.some((w) => w.id === id);
+    const dueHere = due.filter((d) => !inRound(d.lexemeId));
+    const mix = dueHere.length ? dueHere : input.lexemes
+      .filter((l) => l.folderIds.includes(folder) && !inRound(l.id) && input.states[l.id]?.read)
       .map((l) => ({ lexemeId: l.id, skill: "read" as const, priority: rand() }));
     for (const d of mix.slice(0, ROUND_MIXINS)) {
       slots.push(reviewSlot(d, Math.floor(rand() * Math.max(1, words.length * 3))));

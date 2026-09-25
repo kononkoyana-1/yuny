@@ -217,13 +217,22 @@ Deno.test("папка: есть что повторить — режим «по�
   assert(plan.tasks.every((t) => lexOf(t)!.startsWith("df1")));
 });
 
-Deno.test("папка: раунд из 7 новых — знакомство, R1, P1, R2 на каждое + знакомые из других папок", () => {
+Deno.test("папка: раунд из 7 новых — знакомство, R1, P1, R2 на каждое + знакомые из этой же папки", () => {
+  const known = dueWords(3, "f1");
   const other = dueWords(3, "f2");
   const fresh = newWords(10, "f1");
-  const plan = buildSession(base({ mode: "folder", folderId: "f1", lexemes: [...fresh, ...other.lexemes], states: other.states }));
+  const lexemes = [...fresh, ...known.lexemes, ...other.lexemes];
+  const states = { ...known.states, ...other.states };
+  const plan = buildSession(base({ mode: "folder", folderId: "f1", folderMode: "new", lexemes, states }));
   assertEquals(plan.folderMode, "new");
   assertEquals(plan.stats.newTaken, 7);
   assertEquals(plan.tasks.length, 7 * 4 + 3);
+  // Слова других папок в раунд не попадают.
+  const otherIds = new Set(other.lexemes.map((l) => l.id));
+  assert(plan.tasks.every((t) => !otherIds.has(lexOf(t) ?? "")));
+  // В папке нет знакомых — раунд без перемешивания, чужих слов тоже нет.
+  const alone = buildSession(base({ mode: "folder", folderId: "f1", lexemes: [...fresh, ...other.lexemes], states: other.states }));
+  assertEquals(alone.tasks.length, 7 * 4);
   const round = plan.tasks.filter((t) => lexOf(t)?.startsWith("nf1"));
   for (const code of ["intro", "R1", "P1", "R2"]) assertEquals(round.filter((t) => t.code === code).length, 7);
   // Первый круг раньше второго у каждого слова.

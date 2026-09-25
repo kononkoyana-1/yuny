@@ -21,7 +21,7 @@ import { RoundSummaryScreen } from "@/features/study/RoundSummaryScreen";
  * сразу: ответы уже в очереди отправки (exercise.design.md §3.4).
  */
 export default function StudyScreen() {
-  const params = useLocalSearchParams<{ folder?: string; minutes?: string; mode?: string; extra?: string }>();
+  const params = useLocalSearchParams<{ folder?: string; minutes?: string; mode?: string; extra?: string; run?: string }>();
   const router = useRouter();
   const client = useQueryClient();
   const minutes = Number(params.minutes);
@@ -33,7 +33,7 @@ export default function StudyScreen() {
       ...(minutes === 5 || minutes === 10 || minutes === 15 ? { minutes } : {}),
       ...(params.extra === "1" ? { extra_new: true } : {}),
     };
-  const session = useStartSession(input);
+  const session = useStartSession(input, params.run);
 
   // Карточка «Сегодня» пересчитается, когда человек вернётся к словарю.
   useEffect(() => () => void client.invalidateQueries({ queryKey: queryKeys.today }), [client]);
@@ -66,7 +66,7 @@ export default function StudyScreen() {
       session={session.data}
       folderId={params.folder ?? null}
       onClose={close}
-      onRestart={(next) => router.replace({ pathname: "/study", params: next })}
+      onRestart={(next) => router.replace({ pathname: "/study", params: { ...next, run: String(Date.now()) } })}
     />
   );
 }

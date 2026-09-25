@@ -10,6 +10,13 @@ import { pauseAfter, portionCount, type Logged } from "./summary";
 /** Одна на приложение: ответы в пути переживают выход с экрана (exercise.design.md §3.4). */
 const outbox = createOutbox((input) => studyRepository.submit(input));
 
+/**
+ * Все отправленные ответы дошли (или окончательно отказаны). Новое занятие
+ * собираем после этого: иначе сервер не знает, что слова прошлого раунда уже
+ * начаты, и выдаст их снова.
+ */
+export const answersDrained = () => outbox.drained();
+
 export interface Answered {
   task: Exercise;
   given: StudyAnswer;

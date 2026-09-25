@@ -1,4 +1,5 @@
 import { StudySessionSchema, type Exercise, type StudySession } from "@yuny/shared";
+import { uuid } from "@/shared/lib/uuid";
 
 /**
  * Mock-сессия (#67): по заданию на каждый формат экрана упражнений
@@ -136,7 +137,8 @@ export function mockStudySession(
     c2Gui(1),
   ];
   return StudySessionSchema.parse({
-    session_id: "00000000-0000-4000-8000-0000000000aa",
+    // Каждый заход — своё занятие, как у сервера («Ещё 7» не должно вернуть прошлое).
+    session_id: uuid(),
     mode: kind.mode,
     folder_mode: kind.folder_mode,
     exercises,
