@@ -3,28 +3,40 @@ import { FlatList, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
+  ActionRow,
   Button,
+  Chip,
   EmptyState,
   ErrorState,
   FeedbackBanner,
+  IconButton,
   LoadingState,
   Sheet,
+  StageBar,
+  StageLegend,
+  STAGE_ORDER,
   Text,
+  WordTile,
+  type Stage,
 } from "@/shared/ui";
-import { useDeleteFolder, useFolders, useRenameFolder, useSavedItems } from "@/shared/api";
-import { spacing } from "@/shared/config/tokens";
+import { useDeleteFolder, useFolderMap, useFolders, useRenameFolder, useSavedItems } from "@/shared/api";
+import { sizing, spacing } from "@/shared/config/tokens";
 import { t } from "@/shared/i18n";
 import { ArticleSheet, type SheetWord } from "@/features/dictionary/ArticleSheet";
-import { EntryRow } from "@/features/dictionary/EntryRow";
 import { FolderNameSheet } from "@/features/dictionary/FolderNameSheet";
-import { groupSavedWords } from "@/features/dictionary/saved";
+import { groupSavedWords, wordKey, type SavedWord } from "@/features/dictionary/saved";
 import { useRowRefs } from "@/features/dictionary/useRowRefs";
 import { FolderStudyBlock } from "@/features/study/FolderStudyBlock";
 
+/** Стадии от самой прочной — так полоска «заполняется» слева направо (folder-map.design.md §3.2). */
+const LEGEND_ORDER: readonly Stage[] = [...STAGE_ORDER].reverse();
+
 /**
- * Папка своего словаря (#38): слова в ней, новые первыми, переименование и
- * удаление. Отдельный экран вне табов, как `/module/[id]`. Слово открывает ту
- * же статью, что и поиск; снятая там галочка этой папки убирает слово отсюда.
+ * Папка своего словаря (#38, карта — #70): полоска стадий, блок учёбы и
+ * мозаика слов — насыщенность плитки = стадия, пунктир — «пора освежить»,
+ * метка — пара путаницы (folder-map.design.md). Стадии и сроки — с сервера
+ * (`learning-overview`). Переименовать и удалить — в листе «⋯». Плитка
+ * открывает ту же статью, что и поиск, с прогрессом слова.
  */
 export default function FolderScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -35,11 +47,13 @@ export default function FolderScreen() {
   const rename = useRenameFolder();
   const remove = useDeleteFolder();
 
+  const map = useFolderMap(id);
+  const [gridWidth, setGridWidth] = useState(0);
+  const [actionsOpen, setActionsOpen] = useState(false);
+  const moreRef = useRef<View>(null);
   const [renaming, setRenaming] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [deleteError, setDeleteError] = useState(false);
-  const renameRef = useRef<View>(null);
-  const deleteRef = useRef<View>(null);
 
   const [openWord, setOpenWord] = useState<SheetWord | null>(null);
   const [focusKey, setFocusKey] = useState<string | null>(null);
@@ -59,15 +73,31 @@ export default function FolderScreen() {
   const header = (
     // Без своего отступа: у кнопки-призрака он уже `lg`, и текст «Назад»
     // встаёт на одну линию с заголовком и строками (review m8).
-    <View className="flex-row items-center pt-md">
+    <View className="flex-row items-center justify-between pr-md pt-md">
       <Button
         label={t("dictionary.folder.back")}
         accessibilityLabel={t("dictionary.folder.backA11y")}
         variant="ghost"
         onPress={goBack}
       />
+      {folder ? (
+        <IconButton ref={moreRef} icon="more" accessibilityLabel={t("learn.map.more")} onPress={() => setActionsOpen(true)} />
+      ) : null}
     </View>
   );
+
+  // Стадия, «пора освежить» и пара — с сервера, по ключу слова; нет сводки — плитка «новая».
+  const progressByKey = useMemo(
+    () => new Map((map.data?.words ?? []).map((w) => [wordKey(w.headword, w.reading), w])),
+    [map.data],
+  );
+  const columns = Math.max(
+    3,
+    Math.floor((gridWidth - 2 * spacing.lg + spacing.sm) / (sizing.wordTile + spacing.sm)),
+  );
+  // Последний ряд дополняется пустыми ячейками, чтобы плитки не растягивались.
+  const cells: (SavedWord | null)[] = [...words];
+  while (cells.length % columns !== 0) cells.push(null);
 
   function renderBody() {
     if (folders.isPending || items.isPending) {
@@ -90,44 +120,63 @@ export default function FolderScreen() {
       return <EmptyState className="flex-1" message={t("dictionary.folder.notFound")} />;
     }
 
+    const counts = map.data?.stage_counts ?? null;
+    const legend = counts
+      ? LEGEND_ORDER.filter((stage) => counts[stage] > 0).map((stage) => ({
+        stage,
+        label: t("learn.map.legendItem", { stage: t(`learn.stage.${stage}`), count: counts[stage] }),
+      }))
+      : [];
+
     return (
       <FlatList
-        data={words}
-        keyExtractor={(word) => word.key}
+        key={columns}
+        data={cells}
+        numColumns={columns}
+        keyExtractor={(word, i) => word?.key ?? `empty-${i}`}
         contentContainerClassName="px-lg pb-xl"
+        columnWrapperClassName="gap-sm"
         ItemSeparatorComponent={() => <View style={{ height: spacing.sm }} />}
         ListHeaderComponent={
-          <View className="gap-md pb-lg">
-            <Text variant="title" accessibilityRole="header">
-              {folder.name}
-            </Text>
-            <Text variant="caption" tone="muted">
-              {t("dictionary.mine.words", { count: words.length })}
-            </Text>
-            <View className="flex-row flex-wrap gap-sm">
-              <Button
-                ref={renameRef}
-                label={t("dictionary.folder.rename")}
-                variant="secondary"
-                onPress={() => setRenaming(true)}
-              />
-              <Button
-                ref={deleteRef}
-                label={t("dictionary.folder.delete")}
-                variant="ghost"
-                // `md` вместо `lg`: на 390 обе кнопки помещаются в одну строку.
-                className="px-md"
-                onPress={() => {
-                  setDeleteError(false);
-                  setConfirmingDelete(true);
-                }}
-              />
+          <View className="gap-md pb-sm">
+            <View className="gap-xs">
+              <Text variant="display" accessibilityRole="header">
+                {folder.name}
+              </Text>
+              <View className="flex-row flex-wrap items-center gap-sm">
+                <Text variant="caption" tone="muted">
+                  {t("dictionary.mine.words", { count: words.length })}
+                </Text>
+                {map.data && map.data.due_count > 0 ? (
+                  <Chip size="micro" variant="attention" label={t("learn.map.due", { count: map.data.due_count })} />
+                ) : null}
+              </View>
             </View>
+            {counts && words.length > 0 ? (
+              <View
+                accessible
+                accessibilityRole="image"
+                accessibilityLabel={t("learn.map.stageBarA11y", { list: legend.map((l) => l.label).join(", ") })}
+                className="gap-sm"
+              >
+                <StageBar counts={counts} />
+                <View aria-hidden>
+                  <StageLegend items={legend} />
+                </View>
+              </View>
+            ) : null}
             {words.length > 0 ? (
-              <FolderStudyBlock
-                folderId={folder.id}
-                onStart={(mode) => router.push({ pathname: "/study", params: { folder: folder.id, mode } })}
-              />
+              <View className="pt-sm">
+                <FolderStudyBlock
+                  folderId={folder.id}
+                  onStart={(mode) => router.push({ pathname: "/study", params: { folder: folder.id, mode } })}
+                />
+              </View>
+            ) : null}
+            {words.length > 0 ? (
+              <Text variant="eyebrow" tone="muted" className="pt-lg uppercase">
+                {t("learn.map.words")}
+              </Text>
             ) : null}
           </View>
         }
@@ -138,23 +187,46 @@ export default function FolderScreen() {
             onAction={() => router.navigate("/dictionary")}
           />
         }
-        renderItem={({ item: word }) => (
-          <EntryRow
-            ref={refFor(word.key)}
-            word={word.entry ?? { ...word, senses: [], compact: [] }}
-            translation={word.translation}
-            onPress={() => {
-              setFocusKey(word.key);
-              setOpenWord(word);
-            }}
-          />
-        )}
+        renderItem={({ item: word }) => {
+          if (!word) return <View className="flex-1" />;
+          const p = progressByKey.get(word.key);
+          const stage: Stage = p?.stage ?? "new";
+          const label = [
+            word.headword,
+            word.reading,
+            word.translation,
+            t(`learn.stage.${stage}`),
+            p?.due ? t("learn.map.tileDue") : null,
+            p?.pair_partner ? t("learn.map.tilePair", { partner: p.pair_partner }) : null,
+          ]
+            .filter(Boolean)
+            .join(". ");
+          return (
+            <WordTile
+              ref={refFor(word.key)}
+              headword={word.headword}
+              stage={stage}
+              due={p?.due ?? false}
+              pairPartner={p?.pair_partner ?? undefined}
+              accessibilityLabel={label}
+              onPress={() => {
+                setFocusKey(word.key);
+                setOpenWord(word);
+              }}
+              className="flex-1"
+            />
+          );
+        }}
       />
     );
   }
 
   return (
-    <View className="flex-1 bg-background dark:bg-background-dark" style={{ paddingTop: insets.top }}>
+    <View
+      className="flex-1 bg-background dark:bg-background-dark"
+      style={{ paddingTop: insets.top }}
+      onLayout={(event) => setGridWidth(event.nativeEvent.layout.width)}
+    >
       {header}
       {renderBody()}
 
@@ -162,7 +234,41 @@ export default function FolderScreen() {
         word={openWord}
         onClose={() => setOpenWord(null)}
         returnFocusRef={focusKey !== null ? refFor(focusKey) : undefined}
+        currentFolder={folder ? { id: folder.id, name: folder.name } : null}
       />
+
+      {/* «⋯»: редкие действия с папкой (folder-map.design.md §3.6). */}
+      <Sheet
+        visible={actionsOpen && folder !== null}
+        onClose={() => setActionsOpen(false)}
+        accessibilityLabel={t("learn.map.more")}
+        returnFocusRef={moreRef}
+      >
+        {folder ? (
+          <View className="gap-sm">
+            <Text variant="heading" accessibilityRole="header">
+              {folder.name}
+            </Text>
+            <ActionRow
+              icon="edit"
+              label={t("dictionary.folder.rename")}
+              onPress={() => {
+                setActionsOpen(false);
+                setRenaming(true);
+              }}
+            />
+            <ActionRow
+              icon="trash"
+              label={t("dictionary.folder.delete")}
+              onPress={() => {
+                setActionsOpen(false);
+                setDeleteError(false);
+                setConfirmingDelete(true);
+              }}
+            />
+          </View>
+        ) : null}
+      </Sheet>
 
       {folder ? (
         <FolderNameSheet
@@ -174,7 +280,7 @@ export default function FolderScreen() {
             await rename.mutateAsync({ id: folder.id, name });
             setRenaming(false);
           }}
-          returnFocusRef={renameRef}
+          returnFocusRef={moreRef}
         />
       ) : null}
 
@@ -182,7 +288,7 @@ export default function FolderScreen() {
         visible={confirmingDelete && folder !== null}
         onClose={() => setConfirmingDelete(false)}
         accessibilityLabel={folder ? t("dictionary.folder.confirmTitle", { name: folder.name }) : ""}
-        returnFocusRef={deleteRef}
+        returnFocusRef={moreRef}
       >
         {folder ? (
           <View className="gap-lg">

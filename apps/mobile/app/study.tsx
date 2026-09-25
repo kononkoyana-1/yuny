@@ -93,6 +93,7 @@ function StudyRun({ session, folderId, onClose, onRestart }: StudyRunProps) {
     if (!run.finished) return;
     void client.invalidateQueries({ queryKey: queryKeys.today });
     void client.invalidateQueries({ queryKey: ["study", "folder"] });
+    void client.invalidateQueries({ queryKey: queryKeys.overview });
   }, [run.finished, client]);
 
   if (session.exercises.length === 0) {

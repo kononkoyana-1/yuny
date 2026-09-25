@@ -1,4 +1,12 @@
-import { AnswerResultSchema, FolderStudyPlanSchema, SessionPreviewSchema, StudySessionSchema } from "@yuny/shared";
+import {
+  AnswerResultSchema,
+  FolderMapSchema,
+  FolderProgressListSchema,
+  FolderStudyPlanSchema,
+  SessionPreviewSchema,
+  StudySessionSchema,
+  WordProgressSchema,
+} from "@yuny/shared";
 import { invokeEdge } from "@/shared/lib/edge";
 import type { StudyRepository } from "../study.repository";
 
@@ -9,6 +17,30 @@ export const supabaseStudyRepository: StudyRepository = {
   async preview() {
     const data = await invokeEdge<unknown>("session-build", { action: "preview", tz_offset_min: tzOffsetMin() });
     return SessionPreviewSchema.parse(data);
+  },
+
+  async folderProgress() {
+    const data = await invokeEdge<unknown>("learning-overview", { action: "folders", tz_offset_min: tzOffsetMin() });
+    return FolderProgressListSchema.parse(data).folders;
+  },
+
+  async folderMap(folderId) {
+    const data = await invokeEdge<unknown>("learning-overview", {
+      action: "folder",
+      folder_id: folderId,
+      tz_offset_min: tzOffsetMin(),
+    });
+    return FolderMapSchema.parse(data);
+  },
+
+  async wordProgress(word) {
+    const data = await invokeEdge<unknown>("learning-overview", {
+      action: "word",
+      headword: word.headword,
+      reading: word.reading,
+      tz_offset_min: tzOffsetMin(),
+    });
+    return WordProgressSchema.parse(data);
   },
 
   async folderPlan(folderId) {

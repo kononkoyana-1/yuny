@@ -160,6 +160,51 @@ export const FolderStudyPlanSchema = z.object({
   load_warning: z.object({ tomorrow_tasks: z.number().int() }).nullable(),
 });
 
+export const StageSchema = z.enum(["new", "meeting", "recognize", "recall", "use", "stable"]);
+const StageCountsSchema = z.record(StageSchema, z.number().int());
+
+/** Стадии и «пора освежить» по папке — карточка папки в «Моём словаре» (#70). */
+export const FolderProgressSchema = z.object({
+  folder_id: z.uuid(),
+  word_count: z.number().int(),
+  due_count: z.number().int(),
+  stage_counts: StageCountsSchema,
+});
+export const FolderProgressListSchema = z.object({ folders: z.array(FolderProgressSchema) });
+
+/** Карта папки (#70, folder-map.design.md §1): у каждого слова стадия, «пора освежить», пара. */
+export const FolderMapSchema = z.object({
+  word_count: z.number().int(),
+  due_count: z.number().int(),
+  stage_counts: StageCountsSchema,
+  words: z.array(z.object({
+    headword: z.string(),
+    reading: z.string().nullable(),
+    stage: StageSchema,
+    due: z.boolean(),
+    pair_partner: z.string().nullable(),
+  })),
+});
+
+export const SkillLevelSchema = z.enum(["not_started", "fresh", "holding", "stable"]);
+
+/** Карточка слова (#70): стадия, 4 навыка, ближайшее повторение, пары путаницы. `found: false` — слово ещё не в папках. */
+export const WordProgressSchema = z.union([
+  z.object({ found: z.literal(false) }),
+  z.object({
+    found: z.literal(true),
+    stage: StageSchema,
+    skills: z.object({ read: SkillLevelSchema, pinyin: SkillLevelSchema, write: SkillLevelSchema, use: SkillLevelSchema }),
+    next_review_days: z.number().int().nullable(),
+    confusions: z.array(z.object({
+      partner: z.string(),
+      partner_reading: z.string().nullable(),
+      status: z.enum(["active", "watch", "resolved"]),
+      resolved_on: z.iso.date().nullable(),
+    })),
+  }),
+]);
+
 export const StudyAnswerSchema = z.union([
   z.object({ option_id: z.string() }),
   z.object({ text: z.string() }),
@@ -211,6 +256,11 @@ export type SessionPreview = z.infer<typeof SessionPreviewSchema>;
 export type TodayState = z.infer<typeof TodayStateSchema>;
 export type FolderMode = z.infer<typeof FolderModeSchema>;
 export type FolderStudyPlan = z.infer<typeof FolderStudyPlanSchema>;
+export type Stage = z.infer<typeof StageSchema>;
+export type FolderProgress = z.infer<typeof FolderProgressSchema>;
+export type FolderMap = z.infer<typeof FolderMapSchema>;
+export type SkillLevel = z.infer<typeof SkillLevelSchema>;
+export type WordProgress = z.infer<typeof WordProgressSchema>;
 export type StudyAnswer = z.infer<typeof StudyAnswerSchema>;
 export type AnswerResult = z.infer<typeof AnswerResultSchema>;
 export type PlanReason = z.infer<typeof PlanReasonSchema>;

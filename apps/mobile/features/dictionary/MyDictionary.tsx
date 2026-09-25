@@ -1,9 +1,9 @@
 import { useImperativeHandle, useRef, useState, type ReactNode, type Ref } from "react";
 import { Pressable, ScrollView, View } from "react-native";
 import { useRouter } from "expo-router";
-import type { UserDictionaryFolder } from "@yuny/shared";
-import { Button, EmptyState, ErrorState, LoadingState, Text } from "@/shared/ui";
-import { useCreateFolder, useFolders, useSavedItems } from "@/shared/api";
+import type { FolderProgress, UserDictionaryFolder } from "@yuny/shared";
+import { Button, Chip, EmptyState, ErrorState, LoadingState, StageBar, Text } from "@/shared/ui";
+import { useCreateFolder, useFolderProgress, useFolders, useSavedItems } from "@/shared/api";
 import { focusRef } from "@/shared/platform/focusRef";
 import { t } from "@/shared/i18n";
 import { FolderNameSheet } from "./FolderNameSheet";
@@ -34,6 +34,8 @@ export function MyDictionary({ header, newFolderVariant = "primary", ref }: MyDi
   const folders = useFolders();
   const items = useSavedItems();
   const create = useCreateFolder();
+  // Стадии и «пора освежить» по папкам (#70); не пришли — карточки без полоски.
+  const progress = useFolderProgress();
   const [creating, setCreating] = useState(false);
   const newFolderRef = useRef<View>(null);
   const scrollRef = useRef<ScrollView>(null);
@@ -108,6 +110,7 @@ export function MyDictionary({ header, newFolderVariant = "primary", ref }: MyDi
               key={folder.id}
               folder={folder}
               count={counts.get(folder.id) ?? 0}
+              progress={progress.data?.find((p) => p.folder_id === folder.id) ?? null}
               onPress={() => router.push({ pathname: "/folder/[id]", params: { id: folder.id } })}
             />
           ))}
@@ -135,36 +138,55 @@ export function MyDictionary({ header, newFolderVariant = "primary", ref }: MyDi
   );
 }
 
+/**
+ * Карточка папки (folder-map.design.md §3.7): название, число слов, мини-полоска
+ * стадий и «N пора освежить». Сводки нет — только название и число.
+ */
 function FolderRow({
   folder,
   count,
+  progress,
   onPress,
 }: {
   folder: UserDictionaryFolder;
   count: number;
+  progress: FolderProgress | null;
   onPress: () => void;
 }) {
   const [pressed, setPressed] = useState(false);
   const words = t("dictionary.mine.words", { count });
+  const due = progress && progress.due_count > 0 ? t("learn.map.due", { count: progress.due_count }) : null;
 
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`${folder.name}. ${words}`}
+      accessibilityLabel={[folder.name, words, due].filter(Boolean).join(". ")}
       accessibilityHint={t("dictionary.mine.folderA11yHint")}
       onPressIn={() => setPressed(true)}
       onPressOut={() => setPressed(false)}
       onPress={onPress}
-      className={`min-h-tap flex-row items-center gap-md rounded-md px-md py-md ${
+      className={`min-h-tap gap-sm rounded-tile px-md py-md ${
         pressed ? "bg-surface-alt dark:bg-surface-alt-dark" : "bg-surface dark:bg-surface-dark"
       }`}
     >
-      <Text variant="body" className="flex-1 font-semibold" numberOfLines={1}>
-        {folder.name}
-      </Text>
-      <Text variant="caption" tone="muted">
-        {words}
-      </Text>
+      <View className="flex-row items-center gap-md">
+        <Text variant="body" className="flex-1 font-semibold" numberOfLines={1}>
+          {folder.name}
+        </Text>
+        <Text variant="caption" tone="muted">
+          {words}
+        </Text>
+      </View>
+      {progress && progress.word_count > 0 ? (
+        <View aria-hidden>
+          <StageBar counts={progress.stage_counts} size="mini" />
+        </View>
+      ) : null}
+      {due ? (
+        <View className="flex-row">
+          <Chip size="micro" variant="attention" label={due} />
+        </View>
+      ) : null}
     </Pressable>
   );
 }

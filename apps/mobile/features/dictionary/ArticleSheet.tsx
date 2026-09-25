@@ -21,6 +21,7 @@ import { CheckMark, CheckRow } from "./CheckMark";
 import { shortMeaning } from "./article";
 import { EntryArticle } from "./EntryArticle";
 import { translationLine, wordKey } from "./saved";
+import { WordProgressBlock } from "@/features/study/WordProgressBlock";
 
 /** Слово, которое открыто в листе: из выдачи БКРС или из папки своего словаря. */
 export interface SheetWord {
@@ -38,6 +39,10 @@ export interface ArticleSheetProps {
   word: SheetWord | null;
   onClose: () => void;
   returnFocusRef?: RefObject<View | null>;
+  /** Лист открыт с экрана этой папки: «Убрать из «…»» (folder-map.design.md §3.5). */
+  currentFolder?: { id: string; name: string } | null;
+  /** Слово убрано из `currentFolder` — лист закрывается, экран сам решает, куда поставить фокус. */
+  onRemoved?: () => void;
 }
 
 /**
@@ -46,7 +51,7 @@ export interface ArticleSheetProps {
  * папки: и там и там из статьи можно разложить слово по папкам, а снятая
  * галочка убирает его из папки.
  */
-export function ArticleSheet({ word, onClose, returnFocusRef }: ArticleSheetProps) {
+export function ArticleSheet({ word, onClose, returnFocusRef, currentFolder = null, onRemoved }: ArticleSheetProps) {
   return (
     <Sheet
       visible={word !== null}
@@ -55,13 +60,33 @@ export function ArticleSheet({ word, onClose, returnFocusRef }: ArticleSheetProp
       returnFocusRef={returnFocusRef}
     >
       {/* `key` сбрасывает режим листа на статью, когда открывают другое слово. */}
-      {word ? <ArticleSheetBody key={wordKey(word.headword, word.reading)} word={word} onClose={onClose} /> : null}
+      {word ? (
+        <ArticleSheetBody
+          key={wordKey(word.headword, word.reading)}
+          word={word}
+          onClose={onClose}
+          currentFolder={currentFolder}
+          onRemoved={onRemoved}
+        />
+      ) : null}
     </Sheet>
   );
 }
 
-function ArticleSheetBody({ word, onClose }: { word: SheetWord; onClose: () => void }) {
+function ArticleSheetBody({
+  word,
+  onClose,
+  currentFolder,
+  onRemoved,
+}: {
+  word: SheetWord;
+  onClose: () => void;
+  currentFolder: { id: string; name: string } | null;
+  onRemoved?: () => void;
+}) {
   const [mode, setMode] = useState<"article" | "folders">("article");
+  const remove = useRemoveFromFolder();
+  const [removeError, setRemoveError] = useState(false);
   const folders = useFolders();
   const items = useSavedItems();
   const actionRef = useRef<View>(null);
@@ -83,6 +108,19 @@ function ArticleSheetBody({ word, onClose }: { word: SheetWord; onClose: () => v
   const savedFolderNames = (folders.data ?? [])
     .filter((f) => wordItems.some((i) => i.folder_id === f.id))
     .map((f) => f.name);
+  const inCurrent = currentFolder ? wordItems.find((i) => i.folder_id === currentFolder.id) : undefined;
+
+  async function removeFromCurrent() {
+    if (!inCurrent) return;
+    setRemoveError(false);
+    try {
+      await remove.mutateAsync(inCurrent.id);
+      onRemoved?.();
+      onClose();
+    } catch {
+      setRemoveError(true);
+    }
+  }
 
   return (
     <View className="gap-lg">
@@ -109,6 +147,8 @@ function ArticleSheetBody({ word, onClose }: { word: SheetWord; onClose: () => v
         <FolderPicker word={word} onDone={() => setMode("article")} />
       ) : (
         <>
+          {/* Одно слово — одна память: прогресс виден, где бы слово ни открыли (#70). */}
+          {wordItems.length > 0 ? <WordProgressBlock word={word} /> : null}
           <View className="gap-sm">
             {savedFolderNames.length > 0 ? (
               <Text variant="body" tone="brand">
@@ -121,6 +161,16 @@ function ArticleSheetBody({ word, onClose }: { word: SheetWord; onClose: () => v
               variant={savedFolderNames.length > 0 ? "secondary" : "primary"}
               onPress={() => setMode("folders")}
             />
+            {inCurrent && currentFolder ? (
+              <Button
+                label={t("learn.word.removeFromFolder", { folder: currentFolder.name })}
+                variant="ghost"
+                accessibilityHint={t("learn.word.removeHint")}
+                loading={remove.isPending}
+                onPress={() => void removeFromCurrent()}
+              />
+            ) : null}
+            {removeError ? <FeedbackBanner tone="encouraging" message={t("dictionary.picker.error")} /> : null}
           </View>
           {word.entry ? (
             <EntryArticle entry={word.entry} />

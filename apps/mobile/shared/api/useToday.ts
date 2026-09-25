@@ -63,3 +63,26 @@ export function useFolderPlan(folderId: string | undefined) {
     enabled: Boolean(folderId),
   });
 }
+
+/** Стадии и «пора освежить» по каждой папке — «Мой словарь» (#70). */
+export function useFolderProgress() {
+  return useQuery({ queryKey: queryKeys.folderProgress, queryFn: () => studyRepository.folderProgress() });
+}
+
+/** Карта папки (#70). */
+export function useFolderMap(folderId: string | undefined) {
+  return useQuery({
+    queryKey: queryKeys.folderMap(folderId ?? ""),
+    queryFn: () => studyRepository.folderMap(folderId!),
+    enabled: Boolean(folderId),
+  });
+}
+
+/** Карточка слова (#70); `null` — слово не выбрано. */
+export function useWordProgress(word: { headword: string; reading: string | null } | null) {
+  return useQuery({
+    queryKey: queryKeys.wordProgress(word?.headword ?? "", word?.reading ?? null),
+    queryFn: () => studyRepository.wordProgress(word!),
+    enabled: word !== null,
+  });
+}

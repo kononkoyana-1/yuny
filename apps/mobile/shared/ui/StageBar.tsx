@@ -3,8 +3,11 @@ import { STAGE_FILL_CLASS, STAGE_ORDER, type Stage } from "./stage";
 
 export type StageBarSize = "default" | "mini";
 
+/** folder-map.design.md §3.2: самое прочное слева — папка «заполняется» слева направо. */
+const BAR_ORDER: readonly Stage[] = [...STAGE_ORDER].reverse();
+
 export interface StageBarProps {
-  /** Word count per stage. Segments render in `STAGE_ORDER`, per §3.2. */
+  /** Word count per stage. Segments render from the most solid (`stable`) to `new`, per §3.2. */
   counts: Record<Stage, number>;
   size?: StageBarSize;
   className?: string;
@@ -27,7 +30,7 @@ export function StageBar({ counts, size = "default", className = "" }: StageBarP
       aria-hidden
       className={`flex-row overflow-hidden rounded-pill bg-background dark:bg-background-dark ${heightClass} ${className}`}
     >
-      {STAGE_ORDER.map((stage) => {
+      {BAR_ORDER.map((stage) => {
         const count = counts[stage];
         if (total <= 0 || count <= 0) return null;
         return (

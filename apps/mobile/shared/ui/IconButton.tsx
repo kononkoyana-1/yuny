@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Pressable, type PressableProps } from "react-native";
+import { useState, type Ref } from "react";
+import { Pressable, type PressableProps, type View } from "react-native";
 import { Icon, type IconName } from "./Icon";
 import { useTheme } from "@/shared/lib/useTheme";
 
@@ -9,6 +9,8 @@ export interface IconButtonProps extends Omit<PressableProps, "children" | "acce
   accessibilityLabel: string;
   disabled?: boolean;
   className?: string;
+  /** Для возврата фокуса сюда, когда закроется открытый ею лист (React 19: `ref` — обычный проп). */
+  ref?: Ref<View>;
 }
 
 /**

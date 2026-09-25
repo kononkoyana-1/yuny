@@ -95,3 +95,4 @@ export {
 export { KNOWN_STABILITY } from "./submit.ts";
 export { estimateMinutes, type PlanDigest, planDigest, recallNow, todayState, type TodayState } from "./today.ts";
 export { extraNewOffer, type FolderModeOffer, type FolderPlan, folderPlan } from "./folder.ts";
+export { type ConfusionView, folderOverview, type FolderOverview, type SkillLevel, skillLevel, stageOf, type WordOnMap, wordProgress, type WordProgress } from "./overview.ts";

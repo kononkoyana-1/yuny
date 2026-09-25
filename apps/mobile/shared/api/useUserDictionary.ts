@@ -31,6 +31,9 @@ function useInvalidateUserDictionary() {
     Promise.all([
       client.invalidateQueries({ queryKey: queryKeys.userDictionaryFolders }),
       client.invalidateQueries({ queryKey: queryKeys.userDictionaryItems }),
+      // Слова в папках сменились — стадии и «пора освежить» по папкам тоже (#70).
+      client.invalidateQueries({ queryKey: queryKeys.overview }),
+      client.invalidateQueries({ queryKey: queryKeys.today }),
     ]);
 }
 

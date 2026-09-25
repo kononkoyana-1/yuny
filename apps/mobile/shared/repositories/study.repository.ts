@@ -1,11 +1,14 @@
 import type {
   AnswerResult,
+  FolderMap,
   FolderMode,
+  FolderProgress,
   FolderStudyPlan,
   SessionMinutes,
   SessionPreview,
   StudyAnswer,
   StudySession,
+  WordProgress,
 } from "@yuny/shared";
 
 export type StartStudyInput =
@@ -29,6 +32,12 @@ export interface SubmitAnswerInput {
 export interface StudyRepository {
   /** Карточка «Сегодня» и три плана окна «Повторим?» — без записи. */
   preview(): Promise<SessionPreview>;
+  /** Стадии и «пора освежить» по каждой папке — «Мой словарь» (#70). */
+  folderProgress(): Promise<FolderProgress[]>;
+  /** Карта папки: стадия, «пора освежить», пара у каждого слова (#70). */
+  folderMap(folderId: string): Promise<FolderMap>;
+  /** Карточка слова: стадия, навыки, повторение, пары (#70). */
+  wordProgress(word: { headword: string; reading: string | null }): Promise<WordProgress>;
   /** Что предложить на экране папки: главный режим, остальные, нагрузка (#69). */
   folderPlan(folderId: string): Promise<FolderStudyPlan>;
   /** Задания сессии «Сегодня» или папки. */

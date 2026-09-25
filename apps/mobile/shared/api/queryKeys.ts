@@ -11,5 +11,10 @@ export const queryKeys = {
   learningSettings: ["learningSettings"] as const,
   today: ["study", "today"] as const,
   folderPlan: (folderId: string) => ["study", "folder", folderId] as const,
+  /** Сводки из памяти слов (#70): сбрасываются разом после занятия и правок словаря. */
+  overview: ["study", "overview"] as const,
+  folderProgress: ["study", "overview", "folders"] as const,
+  folderMap: (folderId: string) => ["study", "overview", "folder", folderId] as const,
+  wordProgress: (headword: string, reading: string | null) => ["study", "overview", "word", headword, reading ?? ""] as const,
   accountEmail: ["account", "email"] as const,
 };

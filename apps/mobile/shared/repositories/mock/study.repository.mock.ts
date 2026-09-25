@@ -5,6 +5,7 @@ import type { StudyRepository } from "../study.repository";
 import { delay } from "./delay";
 import { TODAY_FIXTURES, todayFixture, type TodayFixture } from "./study.fixtures";
 import { mockLearningSettingsRepository } from "./learningSettings.repository.mock";
+import { mockFolderMap, mockFolderProgress, mockWordProgress } from "./study.overview.mock";
 import { mockStudySession, pairCard, pairTasks, r1 } from "./study.session.fixtures";
 
 /**
@@ -62,6 +63,18 @@ export const mockStudyRepository: StudyRepository = {
       }
       : today;
     return delay(preview, MOCK_TODAY === "slow" ? 3000 : 400);
+  },
+
+  async folderProgress() {
+    return delay(await mockFolderProgress(), 300);
+  },
+
+  async folderMap(folderId) {
+    return delay(await mockFolderMap(folderId), 400);
+  },
+
+  async wordProgress(word) {
+    return delay(mockWordProgress(word), 300);
   },
 
   async folderPlan() {

@@ -1,3 +1,4 @@
+import type { Ref } from "react";
 import { View } from "react-native";
 import { useTheme } from "@/shared/lib/useTheme";
 import { usePressScale } from "@/shared/lib/usePressScale";
@@ -18,6 +19,8 @@ export interface WordTileProps {
   onPress: () => void;
   accessibilityLabel: string;
   className?: string;
+  /** Для возврата фокуса на плитку после закрытия карточки слова. */
+  ref?: Ref<View>;
 }
 
 /**
@@ -40,6 +43,7 @@ export function WordTile({
   onPress,
   accessibilityLabel,
   className = "",
+  ref,
 }: WordTileProps) {
   const { colors } = useTheme();
   const { style, onPressIn, onPressOut } = usePressScale();
@@ -47,6 +51,7 @@ export function WordTile({
 
   return (
     <AnimatedPressable
+      ref={ref}
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
       onPress={onPress}
