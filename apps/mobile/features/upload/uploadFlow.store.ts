@@ -54,7 +54,11 @@ export interface UploadFlowActions {
    * restarts it once it is stale, so waiting never ends on a dead job.
    */
   checkAgain(): Promise<void>;
-  /** `sending` / `reading`: «Отмена» — back to `selecting` with the files kept; the server drops the job and the upload. */
+  /**
+   * «Отмена» — back to `selecting` with the files kept; the server drops the
+   * job and the upload. From `sending` / `reading`, and from the `failed`
+   * screens of a parse (`parse_failed`, `parse_slow`).
+   */
   cancel(): void;
   /** `failed` + `send_failed`: redoes the whole send with the same `material_id`. */
   retrySend(): Promise<void>;
@@ -356,7 +360,9 @@ export const useUploadFlowStore = create<UploadFlowStore>((set, get) => ({
 
   cancel() {
     const state = get();
-    if (state.phase !== "sending" && state.phase !== "reading") return;
+    const cancellableFailure =
+      state.phase === "failed" && (state.failureKind === "parse_failed" || state.failureKind === "parse_slow");
+    if (state.phase !== "sending" && state.phase !== "reading" && !cancellableFailure) return;
     const oldMaterialId = state.materialId;
     // A fresh `material_id` on the next send: the old one is being dropped
     // server-side. `jobId: null` makes any in-flight wait ignore its result.

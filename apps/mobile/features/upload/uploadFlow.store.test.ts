@@ -80,6 +80,22 @@ describe("uploadFlow.store — words from a file", () => {
     expect(state.result).toBeNull();
   });
 
+  it("«Отмена» on a failed parse: back to the file list, fresh material, server told", async () => {
+    mockAwaitWords.mockImplementationOnce(async () => {
+      throw new BackendError("ai_unavailable");
+    });
+    useUploadFlowStore.setState({ files: [file] });
+    await useUploadFlowStore.getState().submit();
+    expect(useUploadFlowStore.getState().failureKind).toBe("parse_failed");
+
+    useUploadFlowStore.getState().cancel();
+    const state = useUploadFlowStore.getState();
+    expect(state.phase).toBe("selecting");
+    expect(state.files).toEqual([file]);
+    expect(state.materialId).toBeNull();
+    expect(mockCancel).toHaveBeenCalledWith("00000000-0000-4000-8000-000000000000");
+  });
+
   it("«Подождать ещё» asks words-extract again instead of re-waiting a dead job", async () => {
     mockAwaitWords.mockImplementationOnce(async () => {
       throw new BackendError("timeout");

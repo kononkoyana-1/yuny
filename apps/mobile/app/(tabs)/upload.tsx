@@ -240,6 +240,7 @@ function FailedScreen() {
   const checkAgain = useUploadFlowStore((s) => s.checkAgain);
   const retrySend = useUploadFlowStore((s) => s.retrySend);
   const backToSelecting = useUploadFlowStore((s) => s.backToSelecting);
+  const cancel = useUploadFlowStore((s) => s.cancel);
 
   switch (failureKind) {
     case "material_rejected":
@@ -270,6 +271,8 @@ function FailedScreen() {
           detail={t("upload.fail.parse.detail")}
           onRetry={() => void retryParse()}
           retryLabel={t("upload.fail.parse.action")}
+          onContinueAnyway={cancel}
+          continueLabel={t("upload.wait.cancel")}
         />
       );
     case "parse_slow":
@@ -280,6 +283,8 @@ function FailedScreen() {
           detail={t("upload.fail.slow.detail")}
           onRetry={() => void checkAgain()}
           retryLabel={t("upload.fail.slow.action")}
+          onContinueAnyway={cancel}
+          continueLabel={t("upload.wait.cancel")}
         />
       );
     case "send_failed":
