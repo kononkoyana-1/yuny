@@ -1,7 +1,10 @@
+import { AnswerResultSchema, type AnswerResult, type Exercise } from "@yuny/shared";
 import { BackendError } from "@/shared/lib/backendError";
+import { correctAnswerText, localVerdict } from "@/shared/lib/studyVerdict";
 import type { StudyRepository } from "../study.repository";
 import { delay } from "./delay";
 import { TODAY_FIXTURES, todayFixture, type TodayFixture } from "./study.fixtures";
+import { mockStudySession, pairCard, pairTasks, r1 } from "./study.session.fixtures";
 
 /**
  * Состояние карточки «Сегодня» в mock-режиме, по образцу
@@ -9,6 +12,36 @@ import { TODAY_FIXTURES, todayFixture, type TodayFixture } from "./study.fixture
  * `nothing_due`, `no_words`, `error`, `slow`.
  */
 const MOCK_TODAY = process.env.EXPO_PUBLIC_MOCK_TODAY;
+
+/**
+ * Сессия: `start_error` — задания не собрались; `flaky` — каждый второй
+ * ответ теряется в сети (очередь отправки); `slow` — ответ идёт 2 секунды.
+ */
+const MOCK_STUDY = process.env.EXPO_PUBLIC_MOCK_STUDY;
+
+/** Выданные задания — mock проверяет ответ по ним, как сервер по билету. */
+const issued = new Map<string, Exercise>();
+let submits = 0;
+
+function remember(list: Exercise[]): Exercise[] {
+  for (const e of list) issued.set(e.task_id, e);
+  return list;
+}
+
+function result(over: Partial<AnswerResult>): AnswerResult {
+  return AnswerResultSchema.parse({
+    outcome: "seen",
+    correct: {},
+    error_type: null,
+    partner: null,
+    explanation: [],
+    next: [],
+    stage: null,
+    known: false,
+    duplicate: false,
+    ...over,
+  });
+}
 
 export const mockStudyRepository: StudyRepository = {
   async preview() {
@@ -18,5 +51,63 @@ export const mockStudyRepository: StudyRepository = {
     }
     const name: TodayFixture = MOCK_TODAY && MOCK_TODAY in TODAY_FIXTURES ? (MOCK_TODAY as TodayFixture) : "ready";
     return delay(todayFixture(name), MOCK_TODAY === "slow" ? 3000 : 400);
+  },
+
+  async start() {
+    if (MOCK_STUDY === "start_error") {
+      await delay(null);
+      throw new BackendError("network_error");
+    }
+    const session = mockStudySession();
+    remember(session.exercises);
+    return delay(session, 600);
+  },
+
+  async submit({ task_id, answer }) {
+    await delay(null, MOCK_STUDY === "slow" ? 2000 : 250);
+    if (MOCK_STUDY === "flaky" && ++submits % 2 === 1) throw new BackendError("network_error");
+    const e = issued.get(task_id);
+    if (!e) throw new BackendError("ticket_invalid");
+
+    if ("choice" in answer) return result({ outcome: "seen" });
+    if ("self" in answer) return result({ outcome: answer.self === "recalled" ? "correct" : "wrong" });
+
+    const verdict = localVerdict(e, answer) ?? "wrong";
+    const correct = { ...e.key, text: correctAnswerText(e, null) ?? undefined };
+    if (verdict === "correct") return result({ outcome: "correct", correct, stage: "recognize" });
+
+    // Ошибка: слово вернётся через пару заданий в лёгком формате.
+    const retry = e.lexeme?.headword === "卖" ? r1("mai4", 0, true) : r1("mai", 0, true);
+    const confused = e.code === "R1" && "option_id" in answer && answer.option_id === "o1" && e.lexeme?.headword === "买";
+    if (confused) {
+      return result({
+        outcome: "wrong",
+        correct,
+        error_type: "confusion",
+        partner: { headword: "卖", reading: "mài", meaning: "продавать" },
+        explanation: ["买 mǎi — «покупать», 卖 mài — «продавать».", "У 卖 сверху есть 十."],
+        next: remember([pairCard(), ...pairTasks(), retry]),
+      });
+    }
+    if (verdict === "partial") {
+      return result({
+        outcome: "partial",
+        correct,
+        error_type: "tone",
+        explanation: [`Слог верный, тон — ${e.lexeme?.tone_label ?? "другой"}: ${e.lexeme?.reading ?? ""}`],
+        next: remember([retry]),
+      });
+    }
+    return result({
+      outcome: "wrong",
+      correct,
+      error_type: "blank" in answer ? "blank" : "wrong",
+      explanation: e.lexeme ? [`${e.lexeme.headword} ${e.lexeme.reading ?? ""} — «${e.lexeme.translation ?? ""}».`] : [],
+      next: remember([retry]),
+    });
+  },
+
+  async pairStart() {
+    await delay(null, 200);
   },
 };

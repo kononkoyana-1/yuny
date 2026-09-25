@@ -12,6 +12,7 @@ import { useTheme } from "@/shared/lib/useTheme";
 import { usePressScale } from "@/shared/lib/usePressScale";
 import { Text, type TextTone } from "./Text";
 import { AnimatedPressable } from "./animated";
+import { FOCUS_RING_CLASS } from "./focusRing";
 
 export type ButtonVariant = "primary" | "secondary" | "ghost" | "destructive" | "hero";
 
@@ -98,7 +99,7 @@ export function Button({
       accessibilityLabel={label}
       accessibilityState={{ disabled: isDisabled, busy: loading }}
       disabled={isDisabled}
-      className={`min-h-[56px] items-center justify-center rounded-pill px-lg py-md ${CONTAINER_CLASS[variant]} ${isDisabled ? "opacity-50" : ""} ${className}`}
+      className={`min-h-[56px] items-center justify-center rounded-pill px-lg py-md ${CONTAINER_CLASS[variant]} ${FOCUS_RING_CLASS} ${isDisabled ? "opacity-50" : ""} ${className}`}
       style={[gradientStyle, isHero ? pressStyle : null, style]}
       onPressIn={(e) => {
         if (isHero) startPressScale();

@@ -34,7 +34,12 @@ export function PhraseTile({ text, placeholder = false, onPress, accessibilityLa
       <Animated.View
         aria-hidden
         className={`min-h-tap items-center justify-center rounded-tile border border-dashed border-border bg-surface-alt px-md py-sm opacity-50 dark:border-border-dark dark:bg-surface-alt-dark ${className}`}
-      />
+      >
+        {/* Невидимый текст держит ширину ушедшей плитки: банк не прыгает. */}
+        <HanziText variant="sentence" className="opacity-0">
+          {text}
+        </HanziText>
+      </Animated.View>
     );
   }
 

@@ -54,4 +54,4 @@ export type { DictionaryRepository } from "./dictionary.repository";
 export type { UserDictionaryRepository, SaveWordInput } from "./userDictionary.repository";
 export type { WordsRepository } from "./words.repository";
 export type { LearningSettingsRepository, LearningSettingsUpdate } from "./learningSettings.repository";
-export type { StudyRepository } from "./study.repository";
+export type { StudyRepository, StartStudyInput, SubmitAnswerInput } from "./study.repository";

@@ -7,13 +7,13 @@ export type OptionTileLayout = "row" | "square";
 export type OptionTileState = "idle" | "submitted" | "correct" | "wrongSelected" | "dimmed";
 
 const STATE_CONTAINER_CLASS: Record<OptionTileState, string> = {
-  idle: "bg-surface border border-border shadow-raised dark:border-border-dark dark:shadow-none hover:border-primary dark:hover:border-primary-dark",
+  idle: "bg-surface border border-border shadow-raised dark:bg-surface-dark dark:border-border-dark dark:shadow-none hover:border-primary dark:hover:border-primary-dark",
   // Толщина рамки — `sizing.focusRingWidth` (те же 3px, что и у focus-ring).
   submitted: "bg-primary-soft border-[3px] border-primary dark:bg-primary-soft-dark dark:border-primary-dark",
   correct: "bg-success-soft border border-success dark:bg-success-soft-dark dark:border-success-dark",
   wrongSelected: "bg-attention-soft border border-attention dark:bg-attention-soft-dark dark:border-attention-dark",
   // Text stays `text` (not `textMuted`) at this opacity — `opacity.dimmed`'s own comment in tokens.ts.
-  dimmed: "bg-surface border border-border opacity-dimmed dark:border-border-dark",
+  dimmed: "bg-surface border border-border opacity-dimmed dark:bg-surface-dark dark:border-border-dark",
 };
 
 const LAYOUT_CLASS: Record<OptionTileLayout, string> = {

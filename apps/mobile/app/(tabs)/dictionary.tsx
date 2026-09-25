@@ -1,5 +1,6 @@
 import { useMemo, useRef, useState } from "react";
 import { FlatList, View, type TextInput } from "react-native";
+import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Button, EmptyState, ErrorState, IconButton, Input, LoadingState, Text } from "@/shared/ui";
 import { useDictionarySearch, useSavedItems, useToday } from "@/shared/api";
@@ -33,6 +34,7 @@ const SEARCH_DEBOUNCE_MS = 300;
  */
 export default function DictionaryTab() {
   const insets = useSafeAreaInsets();
+  const router = useRouter();
   const [input, setInput] = useState("");
   const inputRef = useRef<TextInput>(null);
   const query = useDebouncedValue(input.trim(), SEARCH_DEBOUNCE_MS);
@@ -190,8 +192,7 @@ export default function DictionaryTab() {
         today={today.data}
         isError={today.isError}
         onRetry={() => void today.refetch()}
-        // Экран занятия — #67/#68.
-        onStart={() => {}}
+        onStart={() => router.push("/study")}
         onToFolders={() => myDictionaryRef.current?.showFolders()}
       />
     );
