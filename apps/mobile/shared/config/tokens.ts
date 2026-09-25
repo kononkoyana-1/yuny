@@ -11,13 +11,12 @@
 export const colors = {
   light: {
     /**
-     * Darkened from #7B6BD6 so white label text clears WCAG AA (TZ.md §13).
-     * The old value gave 4.27:1 against white — under the 4.5 floor for the
-     * 18px semibold button label, which is not large text by WCAG's rule.
-     * #6B5AC9 gives 5.34:1 and is the same hue.
+     * #65 (today-session.design.md V.7): sочнее prior #6B5AC9. White text on
+     * it is 6.12:1.
      */
-    primary: "#6B5AC9",
-    primarySoft: "#EFECFB",
+    primary: "#5B3DF5",
+    /** #65 V.7: `primary` on this backdrop is 5.12:1. */
+    primarySoft: "#ECE8FF",
     /**
      * `ProgressRing`'s track (home.design.md v2, §Theming). `primarySoft`
      * itself only reaches 1.02:1 against `background` — at 0/N progress the
@@ -35,7 +34,8 @@ export const colors = {
      */
     accentSoft: "#FCF3E8",
     info: "#6BC0EC",
-    success: "#4A9B6E",
+    /** #65 V.7: ≥ 3.2:1 to `background`. Fill/icons only — text uses `successInk`. */
+    success: "#0F9D6B",
     warning: "#E8A54B",
     danger: "#D96A6A",
     /**
@@ -48,21 +48,16 @@ export const colors = {
     destructive: "#B4232F",
     /** Backdrop for the "нельзя отменить" panel; `destructive` on it is 5.82:1. */
     destructiveSoft: "#FFEEF0",
-    // Cool lavender, replacing the warm cream #FAF7F2. The dark theme was
-    // already cool (#17142A), so the two modes now agree instead of reading
-    // as different products.
-    background: "#F1EFFC",
+    /** #65 V.7: almost-white, cool. Deep enough for `gradients.hero` to glow against. */
+    background: "#F6F5FB",
     surface: "#FFFFFF",
-    surfaceAlt: "#F5F3FE",
-    border: "#E8E4F8",
-    text: "#241F3D",
-    /**
-     * Cooled from #7A7391, which failed AA in the old palette too: 4.19:1 on
-     * the warm background and 4.48:1 on white, both under 4.5. #6E6890 gives
-     * 4.57:1 and 5.19:1. This fixes a pre-existing defect, not one the new
-     * palette introduced.
-     */
-    textMuted: "#6E6890",
+    /** #65 V.7: "утопленная" поверхность — C2 tile bank, stage-track backdrop. */
+    surfaceAlt: "#EEECF6",
+    border: "#E3E0F0",
+    /** #65 V.7: 16.26:1 on `background`. */
+    text: "#1A1433",
+    /** #65 V.7: ≥ 5.56:1 on `surfaceAlt`. */
+    textMuted: "#5F5A7A",
     textInverse: "#FFFFFF",
     /**
      * `Sheet`'s full-screen dimming layer (home.design.md §Composition, new
@@ -74,10 +69,60 @@ export const colors = {
      * own, per the spec's requirement.
      */
     scrim: "#3C2D7899",
+
+    // --- #65 V.7: new tokens ---------------------------------------------
+    /** Text on `successSoft`, 4.79:1. "Верно" heading, correct-answer copy. */
+    successInk: "#0B7A53",
+    /** Correct-answer tray/tile fill. */
+    successSoft: "#E3F7EE",
+    /** "Пора освежить" dashed border, soft-review outline. 3.84:1 to `background`. */
+    attention: "#C2620A",
+    /** Text on `attentionSoft`, 4.51:1. */
+    attentionInk: "#B45309",
+    /** Soft-review tray/debt banner fill. */
+    attentionSoft: "#FFF1DC",
+    /** Confusion-pair marker/accent. 4.62:1 to `surface`. */
+    pair: "#D6336C",
+    /** Text on `pairSoft`, 5.25:1. */
+    pairInk: "#B4235A",
+    /** Confusion-pair label backdrop. */
+    pairSoft: "#FFE3EE",
+    /** Text on `gradients.hero`, ≥ 5.9:1 at every stop. */
+    heroInk: "#FFFFFF",
+    /** Secondary text on `gradients.hero`, ≥ 4.78:1. */
+    heroInkMuted: "#E9E4FF",
+    /** `HeroButton` fill (inverse of the hero gradient). */
+    heroAction: "#FFFFFF",
+    /** `HeroButton` label, 6.12:1 on `heroAction`. */
+    heroActionInk: "#5B3DF5",
+    /** Focus ring outside a `HeroCard` (inside one, the ring is `heroInk`). */
+    focusRing: "#5B3DF5",
+    /** Stage scale, step 1 «Новое» — empty tile. */
+    stageNew: "#FFFFFF",
+    /** Stage scale, step 2 «Знакомлюсь». */
+    stageMeeting: "#EEE9FF",
+    /** Stage scale, step 3 «Узнаю». */
+    stageRecognize: "#D6CCFF",
+    /** Stage scale, step 4 «Вспоминаю». */
+    stageRecall: "#A391FF",
+    /** Stage scale, step 5 «Использую». */
+    stageUse: "#6A4DF2",
+    /** Stage scale, step 6 «Устойчиво». */
+    stageStable: "#4A2BD6",
+    /** Text on stage steps 1–4. Worst case 6.76:1 (`stageRecall`). */
+    onStageLight: "#1A1433",
+    /** Text on stage steps 5–6. Worst case 5.31:1 (`stageUse`). */
+    onStageDeep: "#FFFFFF",
+    /** Border on stage-step tiles 1–3, otherwise they merge into `background`. */
+    stageEdge: "#C9C3E0",
+    /** «Устойчиво» star mark, 5.1:1 on `stageStable`. */
+    stageStableMark: "#FFC53D",
   },
   dark: {
-    primary: "#9B8FE3",
-    primarySoft: "#2B2547",
+    /** #65 V.7. `textInverse-dark` on it is 5.91:1. */
+    primary: "#8F7BFF",
+    /** #65 V.7: `primary-dark` (`#C4B8FF`) on this backdrop is 7.97:1. */
+    primarySoft: "#2A2256",
     /**
      * Dark counterpart of `ringTrack` above. Dark `primarySoft` itself was
      * the spec's reference floor at 1.2465:1 — under the 1.25:1 requirement
@@ -95,20 +140,23 @@ export const colors = {
      */
     accentSoft: "#31294A",
     info: "#6BC0EC",
-    success: "#5FB584",
+    /** #65 V.7. Fill/icons only — text uses `successInk-dark`. */
+    success: "#34D399",
     warning: "#E8A54B",
     danger: "#E58585",
     /** Dark counterpart of `destructive` above — 7.03:1 as text on `surface`. */
     destructive: "#FF8A8A",
     /** Dark counterpart of `destructiveSoft` — `destructive` on it is 7.03:1. */
     destructiveSoft: "#3A1620",
-    background: "#17142A",
-    surface: "#221E3B",
-    surfaceAlt: "#2B2547",
-    border: "#332D52",
-    text: "#F2EFF8",
-    textMuted: "#A9A2C4",
-    textInverse: "#17142A",
+    /** #65 V.7: deeper than before so `gradients.hero` and the stage scale glow. */
+    background: "#0F0C1D",
+    surface: "#1A1630",
+    surfaceAlt: "#231E3D",
+    border: "#2E2850",
+    text: "#F4F1FF",
+    /** #65 V.7: ≥ 6.71:1 on `surfaceAlt-dark`. */
+    textMuted: "#ABA4C9",
+    textInverse: "#0F0C1D",
     /**
      * Dark-theme scrim. `surface-dark` (#221E3B) sits close to
      * `background-dark` (#17142A), so separating the two without a shadow
@@ -118,6 +166,42 @@ export const colors = {
      * than a fresh guess.
      */
     scrim: "#100E20CC",
+
+    // --- #65 V.7: new tokens ---------------------------------------------
+    /** Text on `successSoft-dark`, 9.57:1. */
+    successInk: "#6EE7B7",
+    successSoft: "#0F2E26",
+    /** 9.95:1 to `surface-dark`. */
+    attention: "#FFB547",
+    /** Text on `attentionSoft-dark`, 9.04:1. */
+    attentionInk: "#FFC46B",
+    attentionSoft: "#3A2710",
+    /** 6.53:1 to `surface-dark`. */
+    pair: "#FF6B9E",
+    /** Text on `pairSoft-dark`, 7.42:1. */
+    pairInk: "#FF8FB8",
+    pairSoft: "#3A1530",
+    heroInk: "#FFFFFF",
+    heroInkMuted: "#EDE9FF",
+    heroAction: "#F4F1FF",
+    /** 7.02:1 on `heroAction-dark`. */
+    heroActionInk: "#4A2DDB",
+    focusRing: "#C4B8FF",
+    /** Stage scale in dark theme is inverted: step 1 is the darkest tile. */
+    stageNew: "#1A1630",
+    stageMeeting: "#2A2350",
+    stageRecognize: "#3D3278",
+    stageRecall: "#5A48B8",
+    stageUse: "#8C7AF5",
+    /** Lightest step — the folder «наливается светом» toward «Устойчиво». */
+    stageStable: "#C4B8FF",
+    /** Worst case 6.18:1 (`stageRecall-dark`). */
+    onStageLight: "#F4F1FF",
+    /** Worst case 5.70:1 (`stageUse-dark`). */
+    onStageDeep: "#0F0C1D",
+    stageEdge: "#4A4270",
+    /** 10.68:1 on `stageStable-dark`. */
+    stageStableMark: "#0F0C1D",
   },
 } as const;
 
@@ -125,22 +209,14 @@ export const colors = {
  * Primary-action gradient. Both stops must clear WCAG AA against the label
  * colour that sits on top of the whole sweep.
  *
- * Light theme label is `text-inverse` (#FFFFFF): #5E4BBA is 6.58:1 and
- * #7566CE is 4.62:1.
- *
- * Dark theme label is `text-inverse-dark` (#17142A — dark text, reused from
- * the badge/pill "inverse" role for a light-tinted background). The first
- * stop was #7E6FD8, which gave only 4.40:1 against that dark label — under
- * the 4.5 floor. Lightened to #8273D9 (4.62:1); the second stop (#9384E4,
- * 5.69:1) already cleared AA and is unchanged.
- *
- * The visual reference used #8B7BE8 → #A78BFA, which measures 3.44:1 and
- * 2.72:1 (light theme) — copying it verbatim would have shipped an
- * unreadable button.
+ * #65 V.7 replaces both stops: light-theme white label is 6.12:1 / 6.32:1,
+ * dark-theme `text-inverse-dark` label is 6.94:1 / 8.45:1. The prior stops
+ * (#5E4BBA/#7566CE, #8273D9/#9384E4) are gone — this is a value change, not
+ * an addition, so `Button variant="primary"` recolours automatically.
  */
 export const gradients = {
-  primary: ["#5E4BBA", "#7566CE"] as const,
-  primaryDark: ["#8273D9", "#9384E4"] as const,
+  primary: ["#5B3DF5", "#7B2FE0"] as const,
+  primaryDark: ["#9D8BFF", "#B79CFF"] as const,
   /**
    * Full-bleed backdrop for the entry screen — a barely-there vertical wash
    * that lifts the top of the page. Both stops sit within a shade of
@@ -148,6 +224,18 @@ export const gradients = {
    */
   welcome: ["#F5F3FE", "#EAE6F9"] as const,
   welcomeDark: ["#1B1733", "#141126"] as const,
+  /**
+   * #65 V.7: `HeroCard`'s backdrop (today-session.design.md §3.3), 135°.
+   * `heroInk` (white) clears ≥ 5.9:1 against every stop in both themes.
+   */
+  hero: ["#5B3DF5", "#8E2FD9", "#AD2F86"] as const,
+  heroDark: ["#4F2FD0", "#7A2AB8", "#9A2F7A"] as const,
+  /**
+   * #65 V.7: radial sheen decal on `HeroCard`, from the top-right corner.
+   * 8-digit hex alpha — see `atmosphere` above for why `rgba()` is avoided.
+   */
+  heroSheen: ["#FFFFFF33", "#FFFFFF00"] as const,
+  heroSheenDark: ["#FFFFFF1F", "#FFFFFF00"] as const,
 };
 
 /**
@@ -231,6 +319,56 @@ export const sizing = {
   avatar: 64,
   /** Settings (#40): max width of the single settings column, both breakpoints. */
   settingsColumn: 640,
+
+  // --- #65 V.7 (today-session.design.md) --------------------------------
+  /** Minimum tap target, TZ §11. Replaces the `min-h-[44px]` literal — use `min-h-tap` / `h-tap` / `w-tap`. */
+  tapTarget: 44,
+  /** `ProgressRing` inside the "Сегодня" hero, `in_progress` state. */
+  todayRing: 64,
+  /** Pause/day-summary column width on the wide breakpoint. */
+  readingColumn: 560,
+  /** Left ("Сегодня") column width on the wide "Словарь" layout. */
+  heroColumn: 400,
+  /** Focus-ring stroke width; the ring sits `2` outside the element it wraps. */
+  focusRingWidth: 3,
+
+  // --- exercise.design.md §9 ---------------------------------------------
+  /** `ExerciseShell` content column on the wide breakpoint. */
+  exerciseColumn: 640,
+  /** `OptionTile` minimum height. */
+  optionMinHeight: 64,
+  /** Square side of a W1/W2 hanzi-choice tile. */
+  hanziChoice: 88,
+  /** `StudyProgress` thickness. */
+  progressHeight: 10,
+
+  // --- folder-study.design.md §8 ------------------------------------------
+  /** `StudyButton`'s two-line height. */
+  studyButton: 72,
+
+  // --- folder-map.design.md §8 --------------------------------------------
+  /** `WordTile` minimum width/height on the word-grid. */
+  wordTile: 106,
+  /** Dashed "due" border thickness on a `WordTile`. */
+  dueBorder: 2,
+  /** `StageBar`, default size, in a folder's header. */
+  stageBar: 12,
+  /** `StageBar`, `mini` size, on a `FolderCard`. */
+  stageBarMini: 6,
+  /** `SkillMeter` pip height. */
+  skillPip: 6,
+  /** Minimum `FolderCard` width in the folder grid. */
+  folderCardMin: 280,
+} as const;
+
+/**
+ * #65 V.7 (exercise.design.md §9): opacity for a dimmed/inert element — an
+ * `OptionTile` that is neither the chosen nor the correct answer, once one
+ * has been submitted. `text` (not `textMuted`) is the label colour paired
+ * with it, since `textMuted` at this opacity would drop under 4.5:1.
+ */
+export const opacity = {
+  dimmed: 0.6,
 } as const;
 
 /**
@@ -246,6 +384,24 @@ export const sizing = {
 export const motion = {
   /** How long `SaveStatus`'s "Сохранено" stays on screen before fading. */
   statusHold: 1600,
+
+  // --- #65 V.7 (today-session.design.md §V.6) -----------------------------
+  /** Press, selection change. */
+  fast: 120,
+  /** Tray slide, task change, bar fill. */
+  base: 220,
+  /** Stage-up celebration, summary appearance. */
+  slow: 420,
+  /** Every entrance. A cubic-bezier string — `Animated.timing`'s `easing` on
+   *  native takes a function, so this is read only by the web/CSS path
+   *  (`shared/platform/`); native call sites use `Easing.out(Easing.quad)`,
+   *  the closest RN built-in to the same curve. */
+  easeOut: "cubic-bezier(0.2, 0.8, 0.2, 1)",
+  /** The "pружина" on a correct option / a revealed card — a Reanimated
+   *  `withSpring` config, not a duration. */
+  spring: { damping: 16, stiffness: 240, mass: 1 },
+  /** Scale-down on press. */
+  pressScale: 0.97,
 } as const;
 
 /**
@@ -266,6 +422,44 @@ export const radius = {
   card: 22,
   xl: 24,
   pill: 999,
+  /** #65 V.7: `OptionTile`, `WordTile`, other answer/word tiles. */
+  tile: 18,
+  /** #65 V.7: `HeroCard`, `AnswerTray`. */
+  hero: 32,
+} as const;
+
+/**
+ * #65 V.7: raised-surface depth. `raised` is the everyday card/tile shadow;
+ * `glow` is the coloured shadow under `HeroCard` and `AnswerTray` — in the
+ * dark theme it reads as a glow rather than a shadow, per V.5/V.6.
+ *
+ * Shaped as RN shadow props (`shadowColor`/`shadowOffset`/`shadowOpacity`/
+ * `shadowRadius`) rather than a CSS string: this is the one place a raw
+ * value is needed outside a `className` (a `style` prop on native), same
+ * reasoning as `shadowColor` above. The `className` mirror lives in
+ * `tailwind.config.js`'s `boxShadow` (`shadow-raised` / `shadow-glow`).
+ */
+export const elevation = {
+  raised: {
+    shadowColor,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+  },
+  glow: {
+    light: {
+      shadowColor: "#5B3DF5",
+      shadowOffset: { width: 0, height: 16 },
+      shadowOpacity: 0.28,
+      shadowRadius: 40,
+    },
+    dark: {
+      shadowColor: "#8F7BFF",
+      shadowOffset: { width: 0, height: 16 },
+      shadowOpacity: 0.22,
+      shadowRadius: 48,
+    },
+  },
 } as const;
 
 /**
@@ -276,13 +470,31 @@ export const radius = {
  * Android and a faked smear on iOS. So each weight in the scale below maps
  * to its own loaded family, and `Text` picks the family rather than setting
  * a numeric weight.
+ *
+ * #65 V.2/V.7 (DS13): Plus Jakarta Sans is replaced by Inter — `fc-query`
+ * against `assets/fonts/PlusJakartaSans-*.ttf` found no Cyrillic block
+ * (`0400–04FF`) and no third-tone pinyin letters (`U+01CD–U+01DC`), so the
+ * whole Russian UI and half the pinyin alphabet were rendering in the
+ * browser's fallback face, not Plus Jakarta, and `mǎi` mixed two fonts in
+ * one word. Inter carries both. The keys are unchanged (`regular` …
+ * `extrabold`) — every existing `font-*` className recolours^Wreflows to
+ * Inter automatically, no call-site edits needed.
+ *
+ * `hanziRegular` / `hanziMedium` / `hanziBold` back `HanziText` — Noto Sans
+ * SC (OFL), the only family in `fontFamily` that isn't `fontFamily.ui`.
+ * Family strings match the export names `@expo-google-fonts/*` registers
+ * with `useFonts` (`app/_layout.tsx`), which is what an RN `fontFamily`
+ * style must equal.
  */
 export const fontFamily = {
-  regular: "PlusJakartaSans-Regular",
-  medium: "PlusJakartaSans-Medium",
-  semibold: "PlusJakartaSans-SemiBold",
-  bold: "PlusJakartaSans-Bold",
-  extrabold: "PlusJakartaSans-ExtraBold",
+  regular: "Inter_400Regular",
+  medium: "Inter_500Medium",
+  semibold: "Inter_600SemiBold",
+  bold: "Inter_700Bold",
+  extrabold: "Inter_800ExtraBold",
+  hanziRegular: "NotoSansSC_400Regular",
+  hanziMedium: "NotoSansSC_500Medium",
+  hanziBold: "NotoSansSC_700Bold",
 } as const;
 
 /**
@@ -316,6 +528,29 @@ export const typography = {
    * 11px body copy would fail readability everywhere else in the app.
    */
   tabLabel: { size: 11, weight: "600", lineHeight: 14, letterSpacing: 0.1 },
+
+  // --- #65 V.7/V.3: new sizes, набраны `fontFamily.ui` --------------------
+  /** The task count in the "Сегодня" hero (`CountUp`). Tabular figures. */
+  numberHero: { size: 56, weight: "800", lineHeight: 60, letterSpacing: -1.5, tabularNums: true },
+  /** Uppercase section label ("СЕГОДНЯ", "НОВОЕ СЛОВО"). */
+  eyebrow: { size: 12, weight: "700", lineHeight: 16, letterSpacing: 1.2 },
+  /** Pinyin reading under `typography.hanziHero`. */
+  pinyinHero: { size: 24, weight: "500", lineHeight: 30, letterSpacing: 0 },
+
+  // --- #65 V.7/V.3: hanzi type scale, набрана `fontFamily.hanzi` ----------
+  // Read only by `HanziText` (DS5) — plain `Text` has no `variant` for these.
+  /** Exercise/intro hero character, 1–2 знака. */
+  hanziHero: { size: 96, weight: "500", lineHeight: 116, letterSpacing: 0 },
+  /** Same role, 3+ знака — `HanziText variant="hero"` switches to this by length. */
+  hanziHeroLong: { size: 64, weight: "500", lineHeight: 80, letterSpacing: 0 },
+  /** Answer options (W1/W2, C1), C2 tiles. */
+  hanziOption: { size: 40, weight: "500", lineHeight: 52, letterSpacing: 0 },
+  /** Chinese sentences — examples, collocations, C1/C2. Line height ×1.57 per TZ §15. */
+  hanziSentence: { size: 28, weight: "400", lineHeight: 44, letterSpacing: 0 },
+  /** Folder-map word tile. */
+  hanziTile: { size: 30, weight: "500", lineHeight: 38, letterSpacing: 0 },
+  /** A character inline inside a Russian sentence. */
+  hanziInline: { size: 20, weight: "500", lineHeight: 28, letterSpacing: 0 },
 } as const;
 
 export type ColorScheme = keyof typeof colors;

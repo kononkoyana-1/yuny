@@ -22,6 +22,17 @@ export function linearGradient(from: string, to: string, angle = "135deg"): View
 }
 
 /**
+ * #65 (today-session.design.md §3.3): `gradients.hero` has three stops, not
+ * two — `linearGradient` above only takes a from/to pair. Stops are spread
+ * evenly via `spread` (the same helper `verticalGradient`/`radialGlow` use).
+ */
+export function angledGradient(stops: readonly string[], angle = "135deg"): ViewStyle {
+  return {
+    experimental_backgroundImage: `linear-gradient(${angle}, ${spread(stops)})`,
+  } as ViewStyle;
+}
+
+/**
  * A multi-stop vertical wash. Stops are spread evenly, which is all the
  * atmospheric backgrounds need and keeps call sites from hand-computing
  * percentages.

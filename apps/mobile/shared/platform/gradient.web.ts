@@ -15,6 +15,13 @@ export function linearGradient(from: string, to: string, angle = "135deg"): View
   } as ViewStyle;
 }
 
+/** Web counterpart of `gradient.ts`'s `angledGradient` — see there for why it exists. */
+export function angledGradient(stops: readonly string[], angle = "135deg"): ViewStyle {
+  return {
+    backgroundImage: `linear-gradient(${angle}, ${spread(stops)})`,
+  } as ViewStyle;
+}
+
 export function verticalGradient(stops: readonly string[]): ViewStyle {
   return {
     backgroundImage: `linear-gradient(180deg, ${spread(stops)})`,
