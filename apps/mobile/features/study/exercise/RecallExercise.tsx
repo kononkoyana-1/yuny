@@ -4,6 +4,7 @@ import { Button, HanziText, OptionTile, Text } from "@/shared/ui";
 import { t } from "@/shared/i18n";
 import type { ExerciseProps } from "./types";
 import { Scene } from "./Scene";
+import { voiceText } from "./voice";
 
 /**
  * R2 (exercise.design.md §4.3): вспомнить → «Показать ответ» → оценить себя
@@ -28,6 +29,7 @@ export function RecallExercise({ task, onAnswer, progressLabel, revealed, onReve
         task={task}
         eyebrow={t("learn.ex.r2.eyebrow")}
         accessibilityLabel={`${progressLabel}. ${t("learn.ex.r2.eyebrow")}: ${lexeme?.headword ?? ""}`}
+        voice={voiceText(task, revealed)}
       >
         <View className="items-center gap-lg py-lg">
           <HanziText variant="hero">{lexeme?.headword ?? ""}</HanziText>

@@ -5,6 +5,7 @@ import { hasHanzi, pinyinWithMarks } from "@/shared/lib/dictionaryText";
 import { t } from "@/shared/i18n";
 import type { ExerciseProps } from "./types";
 import { Scene } from "./Scene";
+import { voiceText } from "./voice";
 
 /**
  * P2 (exercise.design.md §4.5): набрать пиньинь. Предпросмотр `mai3 → mǎi`
@@ -27,7 +28,13 @@ export function PinyinExercise({ task, answered, onAnswer, progressLabel }: Exer
 
   return (
     <View className="gap-xl">
-      <Scene task={task} eyebrow={t("learn.ex.p2.eyebrow")} accessibilityLabel={progressLabel} autoFocus={false}>
+      <Scene
+        task={task}
+        eyebrow={t("learn.ex.p2.eyebrow")}
+        accessibilityLabel={progressLabel}
+        autoFocus={false}
+        voice={voiceText(task, answered !== null)}
+      >
         <View className="items-center py-lg">
           <HanziText variant="hero">{lexeme?.headword ?? ""}</HanziText>
         </View>

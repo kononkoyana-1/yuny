@@ -4,6 +4,7 @@ import { HanziText, KeyHint, OptionTile, Text, type OptionTileState } from "@/sh
 import { t } from "@/shared/i18n";
 import type { ExerciseProps } from "./types";
 import { Scene } from "./Scene";
+import { voiceText } from "./voice";
 
 type ChoiceCode = "R1" | "P1" | "W1" | "W2" | "C1";
 
@@ -43,7 +44,12 @@ export function ChoiceExercise({ task, answered, onAnswer, wide, progressLabel }
 
   return (
     <View className="gap-xl">
-      <Scene task={task} eyebrow={t(EYEBROW[code])} accessibilityLabel={`${progressLabel}. ${t(EYEBROW[code])} ${prompt}`}>
+      <Scene
+        task={task}
+        eyebrow={t(EYEBROW[code])}
+        accessibilityLabel={`${progressLabel}. ${t(EYEBROW[code])} ${prompt}`}
+        voice={voiceText(task, answered !== null)}
+      >
         <ChoiceScene task={task} code={code} filled={answered ? chosenText(task, answered) : null} />
       </Scene>
 

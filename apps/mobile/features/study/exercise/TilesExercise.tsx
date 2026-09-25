@@ -5,6 +5,7 @@ import { useKeyboardShortcuts } from "@/shared/platform/keyboardShortcuts";
 import { t } from "@/shared/i18n";
 import type { ExerciseProps } from "./types";
 import { Scene } from "./Scene";
+import { voiceText } from "./voice";
 
 /**
  * C2 (exercise.design.md §4.8): собрать фразу из плиток. Нажатие в банке
@@ -33,7 +34,12 @@ export function TilesExercise({ task, answered, onAnswer, progressLabel }: Exerc
 
   return (
     <View className="gap-lg">
-      <Scene task={task} eyebrow={t("learn.ex.c2.eyebrow")} accessibilityLabel={`${progressLabel}. ${task.sentence?.ru ?? ""}`}>
+      <Scene
+        task={task}
+        eyebrow={t("learn.ex.c2.eyebrow")}
+        accessibilityLabel={`${progressLabel}. ${task.sentence?.ru ?? ""}`}
+        voice={voiceText(task, answered !== null)}
+      >
         <Text variant="title">{task.sentence?.ru ?? ""}</Text>
       </Scene>
 

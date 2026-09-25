@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { View } from "react-native";
-import { AnswerTray, AudioButton, Button, HanziText, Icon, Text } from "@/shared/ui";
+import { AnswerTray, Button, HanziText, Icon, Text } from "@/shared/ui";
 import { correctAnswerText, trayOutcome } from "@/shared/lib/studyVerdict";
 import { useTheme } from "@/shared/lib/useTheme";
 import { motion } from "@/shared/config/tokens";
@@ -76,7 +76,6 @@ export function Feedback({ answered, onNext }: { answered: Answered; onNext: () 
         <View className="flex-row flex-wrap items-baseline gap-sm">
           <HanziText variant="inline">{lexeme.headword}</HanziText>
           <Text variant="body">{[lexeme.reading, lexeme.translation].filter(Boolean).join(" · ")}</Text>
-          <AudioButton text={lexeme.headword} />
         </View>
       ) : null}
       {outcome !== "correct"
