@@ -12,6 +12,7 @@ const MAI = { headword: "买", reading: "mǎi", tone_label: "3-й тон", trans
 const MAI4 = { headword: "卖", reading: "mài", tone_label: "4-й тон", translation: "продавать" };
 const GUI = { headword: "贵", reading: "guì", tone_label: "4-й тон", translation: "дорогой" };
 const PIANYI = { headword: "便宜", reading: "piányi", tone_label: "2-й + лёгкий", translation: "дешёвый" };
+const SHUFU = { headword: "舒服", reading: "shūfu", tone_label: "1-й + лёгкий", translation: "удобный" };
 
 let seq = 0;
 const id = (code: string) => `mock.${code}.${++seq}`;
@@ -21,18 +22,76 @@ const base = (code: Exercise["code"], lexeme: Exercise["lexeme"], portion: numbe
   code,
   lexeme,
   is_retry: false,
+  is_check: false,
   portion,
 });
 
-export function introMai(portion = 0): Exercise {
+type IntroActions = NonNullable<Exercise["intro"]>["actions"];
+
+/**
+ * Знакомство с 舒服 (#88): 舒 — новый знак, 服 уже есть в словах
+ * пользователя. В 舒服 服 читается лёгким тоном, в заметке — как в статье знака.
+ */
+export function introShufu(portion = 0, actions: IntroActions = "ok"): Exercise {
+  return {
+    ...base("intro", SHUFU, portion),
+    intro: {
+      example: null,
+      char_notes: [
+        { char: "舒", reading: "shū", meaning: "вольготный", known_in: [] },
+        {
+          char: "服",
+          reading: "fú",
+          meaning: "одежда; подчиняться",
+          known_in: [
+            { headword: "衣服", reading: "yīfu" },
+            { headword: "服务", reading: "fúwù" },
+          ],
+        },
+      ],
+      actions,
+    },
+  };
+}
+
+export function introMai(portion = 0, actions: IntroActions = "ok"): Exercise {
   return {
     ...base("intro", MAI, portion),
     intro: {
       example: { zh: "我想买咖啡。", pinyin: "wǒ xiǎng mǎi kāfēi", ru: "Я хочу купить кофе." },
-      char_notes: [{ char: "买", known_in: ["买东西", "买单"] }],
-      actions: "ok",
+      char_notes: [
+        {
+          char: "买",
+          reading: "mǎi",
+          meaning: "покупать",
+          known_in: [
+            { headword: "买东西", reading: "mǎi dōngxi" },
+            { headword: "买单", reading: "mǎidān" },
+          ],
+        },
+      ],
+      actions,
     },
   };
+}
+
+/** Ключ P2 для слов знакомства — для проверки «Уже знаю». */
+const PINYIN_KEY: Record<string, string> = { 买: "mai3", 舒服: "shu1 fu5" };
+
+/** «Уже знаю»: трудная проверка — вспомнить значение и набрать пиньинь (R2 + P2). */
+export function knowCheck(intro: Exercise): Exercise[] {
+  const lexeme = intro.lexeme;
+  if (!lexeme) return [];
+  return [
+    { ...base("R2", lexeme, intro.portion), is_check: true },
+    { ...base("P2", lexeme, intro.portion), key: { pinyin: PINYIN_KEY[lexeme.headword] ?? "" }, is_check: true },
+  ];
+}
+
+/** Проверка не пройдена — «Тогда запомним»: то же знакомство с одной кнопкой «Запомню». */
+export function introAgain(task: Exercise): Exercise | null {
+  const make = task.lexeme?.headword === "舒服" ? introShufu : task.lexeme?.headword === "买" ? introMai : null;
+  return make ? make(task.portion, "remember") : null;
 }
 
 export function r1(word: "mai" | "mai4", portion = 0, retry = false): Exercise {
@@ -125,8 +184,11 @@ export function pairTasks(): Exercise[] {
 export function mockStudySession(
   kind: { mode: "today" | "folder"; folder_mode: "review" | "new" | "practice" | null } = { mode: "today", folder_mode: null },
 ): StudySession {
+  // В раунде знакомства — «Запомню» / «Уже знаю», в «Сегодня» — «Понятно».
+  const actions: IntroActions = kind.folder_mode === "new" ? "know_or_remember" : "ok";
   const exercises = [
-    introMai(0),
+    introShufu(0, actions),
+    introMai(0, actions),
     r1("mai", 0),
     p1Gui(0),
     r2Pianyi(0),
@@ -142,7 +204,7 @@ export function mockStudySession(
     mode: kind.mode,
     folder_mode: kind.folder_mode,
     exercises,
-    portions: [5, 4],
+    portions: [6, 4],
     stats: { budget: 40, due_now: 26, new_quota: 5, new_taken: 1, reason: null, due_tomorrow: 30 },
   });
 }

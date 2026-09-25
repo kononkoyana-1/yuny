@@ -10,7 +10,7 @@ import type { StartStudyInput } from "@/shared/repositories";
 import { ExerciseShell } from "@/features/study/exercise/ExerciseShell";
 import { useStartSession } from "@/features/study/session/useStartSession";
 import { useStudySession } from "@/features/study/session/useStudySession";
-import { daySummary, portionSummary, roundSummary } from "@/features/study/session/summary";
+import { daySummary, portionSummary, roundProgress, roundSummary } from "@/features/study/session/summary";
 import { PauseScreen } from "@/features/study/PauseScreen";
 import { DaySummaryScreen } from "@/features/study/DaySummaryScreen";
 import { RoundSummaryScreen } from "@/features/study/RoundSummaryScreen";
@@ -171,7 +171,9 @@ function StudyRun({ session, folderId, onClose, onRestart }: StudyRunProps) {
     );
   }
 
-  return <ExerciseShell session={run} onClose={onClose} />;
+  // Раунд знакомства: в шапке «3 из 7 слов» (folder-study.design.md §4 п. 1).
+  const round = session.folder_mode === "new" ? roundProgress(session.exercises, run.log) : null;
+  return <ExerciseShell session={run} onClose={onClose} round={round?.total ? round : null} />;
 }
 
 /** «Повторили: N из M» для итога повторения и практики папки — по всем порциям. */

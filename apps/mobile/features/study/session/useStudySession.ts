@@ -3,9 +3,12 @@ import type { AnswerResult, Exercise, StudyAnswer } from "@yuny/shared";
 import { studyRepository } from "@/shared/repositories";
 import { localVerdict, type Verdict } from "@/shared/lib/studyVerdict";
 import { uuid } from "@/shared/lib/uuid";
-import { anchorOf, dropWord, insertNext, pairBlockLength, wordKey } from "./queue";
+import { advancesImmediately, anchorOf, checkFailed, dropChecks, dropWord, insertNext, pairBlockLength, wordKey } from "./queue";
 import { createOutbox } from "./outbox";
 import { pauseAfter, portionCount, type Logged } from "./summary";
+
+/** Сколько знакомство после «Уже знаю» ждёт задания проверки от сервера. */
+const KNOW_WAIT_MS = 3000;
 
 /** Одна на приложение: ответы в пути переживают выход с экрана (exercise.design.md §3.4). */
 const outbox = createOutbox((input) => studyRepository.submit(input));
@@ -55,13 +58,16 @@ function reducer(state: State, action: Action): State {
       const task = state.items[state.index];
       if (!task || state.answered) return state;
       const answered: Answered = { task, given: action.given, local: localVerdict(task, action.given), result: null, failed: false };
-      return { ...state, answered, log: [...state.log, { ...answered, portion: state.portion }] };
+      const key = wordKey(task);
+      const items = checkFailed(answered) && key ? dropChecks(state.items, state.index, key) : state.items;
+      return { ...state, items, answered, log: [...state.log, { ...answered, portion: state.portion }] };
     }
     case "result": {
       let items = insertNext(state.items, anchorOf(state.items, action.taskId, state.index), action.result.next);
       const task = items.find((e) => e.task_id === action.taskId);
       const key = task ? wordKey(task) : null;
       if (action.result.known && key) items = dropWord(items, state.index, key);
+      if (task?.is_check && action.result.outcome !== "correct" && key) items = dropChecks(items, state.index, key);
       const answered =
         state.answered?.task.task_id === action.taskId ? { ...state.answered, result: action.result } : state.answered;
       const log = state.log.map((a) => (a.task.task_id === action.taskId ? { ...a, result: action.result } : a));
@@ -86,11 +92,6 @@ function reducer(state: State, action: Action): State {
     case "resume":
       return { ...state, pause: null };
   }
-}
-
-/** Задания без лотка: после ответа сразу следующее (exercise.design.md §4.1, §4.3, §4.9). */
-export function advancesImmediately(e: Exercise, given: StudyAnswer): boolean {
-  return e.code === "intro" || e.code === "pair_card" || "self" in given;
 }
 
 /**
@@ -125,7 +126,7 @@ export function useStudySession(initial: readonly Exercise[]) {
       const latency_ms = Date.now() - shownAt.current;
       dispatch({ type: "answer", given });
 
-      outbox
+      const delivered = outbox
         .submit({ task_id: task.task_id, request_id: uuid(), answer: given, latency_ms })
         .then((result) => dispatch({ type: "result", taskId: task.task_id, result }))
         .catch(() => dispatch({ type: "failed", taskId: task.task_id }));
@@ -143,7 +144,21 @@ export function useStudySession(initial: readonly Exercise[]) {
         }
       }
 
-      if (advancesImmediately(task, given)) dispatch({ type: "advance" });
+      if (!advancesImmediately(task, given)) return;
+      if ("choice" in given && given.choice === "know") {
+        // «Уже знаю»: проверка должна идти сразу за знакомством, а её задания
+        // присылает сервер — ждём его ответ, но не дольше KNOW_WAIT_MS.
+        let moved = false;
+        const advance = () => {
+          if (moved) return;
+          moved = true;
+          dispatch({ type: "advance" });
+        };
+        void delivered.finally(advance);
+        setTimeout(advance, KNOW_WAIT_MS);
+        return;
+      }
+      dispatch({ type: "advance" });
     },
     [state.items, state.index, state.answered],
   );

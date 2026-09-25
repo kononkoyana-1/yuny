@@ -18,7 +18,8 @@ export interface SceneProps {
 
 /**
  * Верх задания (exercise.design.md §3.1): метка формата, «Ещё раз» у
- * повтора после ошибки и «сцена» — объект задания. При новом задании фокус
+ * повтора после ошибки или «Проверка» после «Уже знаю» (folder-study.design.md
+ * §4) и «сцена» — объект задания. При новом задании фокус
  * — на заголовок сцены (§7).
  */
 export function Scene({ task, eyebrow, accessibilityLabel, autoFocus = true, eyebrowTone = "muted", children }: SceneProps) {
@@ -44,7 +45,11 @@ export function Scene({ task, eyebrow, accessibilityLabel, autoFocus = true, eye
             {eyebrow}
           </Text>
         </View>
-        {task.is_retry ? <Chip size="micro" variant="attention" label={t("learn.ex.retry")} /> : null}
+        {task.is_check ? (
+          <Chip size="micro" label={t("learn.round.check")} />
+        ) : task.is_retry ? (
+          <Chip size="micro" variant="attention" label={t("learn.ex.retry")} />
+        ) : null}
       </View>
       {children}
     </View>

@@ -1,4 +1,4 @@
-import { AnswerResultSchema, FolderStudyPlanSchema, type AnswerResult, type Exercise } from "@yuny/shared";
+import { AnswerResultSchema, FolderStudyPlanSchema, type AnswerResult, type Exercise, type StudyAnswer } from "@yuny/shared";
 import { BackendError } from "@/shared/lib/backendError";
 import { correctAnswerText, localVerdict } from "@/shared/lib/studyVerdict";
 import type { StudyRepository } from "../study.repository";
@@ -6,7 +6,7 @@ import { delay } from "./delay";
 import { TODAY_FIXTURES, todayFixture, type TodayFixture } from "./study.fixtures";
 import { mockLearningSettingsRepository } from "./learningSettings.repository.mock";
 import { mockFolderMap, mockFolderProgress, mockWordProgress } from "./study.overview.mock";
-import { mockStudySession, pairCard, pairTasks, r1 } from "./study.session.fixtures";
+import { introAgain, knowCheck, mockStudySession, pairCard, pairTasks, r1 } from "./study.session.fixtures";
 
 /**
  * Состояние карточки «Сегодня» в mock-режиме, по образцу
@@ -43,6 +43,28 @@ function result(over: Partial<AnswerResult>): AnswerResult {
     duplicate: false,
     ...over,
   });
+}
+
+/** Слова, у которых вспоминание в проверке «Уже знаю» пройдено. */
+const checkRecalled = new Set<string>();
+
+/**
+ * Проверка «Уже знаю», как у сервера: обе части пройдены — `known`, слово
+ * уходит из раунда; не пройдена — «Тогда запомним» и снова знакомство.
+ */
+function checkResult(e: Exercise, answer: StudyAnswer): AnswerResult {
+  const word = e.lexeme?.headword ?? "";
+  const passed = "self" in answer ? answer.self === "recalled" : localVerdict(e, answer) === "correct";
+  if (!passed) {
+    const again = introAgain(e);
+    return result({
+      outcome: "self" in answer ? "wrong" : (localVerdict(e, answer) ?? "wrong"),
+      correct: { ...e.key, text: correctAnswerText(e, null) ?? undefined },
+      next: again ? remember([again]) : [],
+    });
+  }
+  if (e.code === "R2") checkRecalled.add(word);
+  return result({ outcome: "correct", known: e.code === "P2" && checkRecalled.has(word) });
 }
 
 export const mockStudyRepository: StudyRepository = {
@@ -116,7 +138,11 @@ export const mockStudyRepository: StudyRepository = {
     const e = issued.get(task_id);
     if (!e) throw new BackendError("ticket_invalid");
 
-    if ("choice" in answer) return result({ outcome: "seen" });
+    if ("choice" in answer) {
+      // «Уже знаю» — трудная проверка сразу за знакомством.
+      return result({ outcome: "seen", next: answer.choice === "know" ? remember(knowCheck(e)) : [] });
+    }
+    if (e.is_check) return checkResult(e, answer);
     if ("self" in answer) {
       return answer.self === "recalled"
         ? result({ outcome: "correct", stage_before: "recognize", stage: "recall" })

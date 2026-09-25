@@ -127,3 +127,34 @@ export function roundSummary(log: readonly Answered[]): RoundSummary {
     known: [...known.values()].map((l) => ({ headword: l.headword, reading: l.reading })),
   };
 }
+
+/** Сколько верных вспоминаний нужно слову раунда, чтобы считаться запомненным. */
+export const ROUND_RECALLS = 2;
+
+export interface RoundProgress {
+  learned: number;
+  total: number;
+}
+
+/**
+ * Счётчик раунда знакомства «3 из 7 слов» (folder-study.design.md §4 п. 1):
+ * слова раунда — знакомства, с которыми он начался; слово запомнено, когда
+ * набрало два верных вспоминания (почти — тоже вспомнил, как в итоге порции)
+ * или подтвердило «Уже знаю». Задания проверки в вспоминания не идут.
+ */
+export function roundProgress(exercises: readonly Exercise[], log: readonly Answered[]): RoundProgress {
+  const key = (l: { headword: string; reading: string | null }) => `${l.headword}|${l.reading ?? ""}`;
+  const words = new Set(exercises.filter((e) => e.code === "intro" && e.lexeme).map((e) => key(e.lexeme!)));
+  const recalls = new Map<string, number>();
+  const done = new Set<string>();
+  for (const a of log) {
+    const l = a.task.lexeme;
+    if (!l || !words.has(key(l))) continue;
+    if (a.result?.known) done.add(key(l));
+    if (a.task.code === "intro" || a.task.is_check || recalled(a) !== true) continue;
+    const n = (recalls.get(key(l)) ?? 0) + 1;
+    recalls.set(key(l), n);
+    if (n >= ROUND_RECALLS) done.add(key(l));
+  }
+  return { learned: done.size, total: words.size };
+}

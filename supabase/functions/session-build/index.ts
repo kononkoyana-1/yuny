@@ -36,6 +36,7 @@ import {
 } from "../_shared/learning/mod.ts";
 import {
   issue,
+  loadCharEntries,
   loadPool,
   must,
   type Row,
@@ -137,9 +138,11 @@ async function start(
     if (!pools.has(l.id)) pools.set(l.id, loadPool(admin, userId, l, l.hskLevel));
     return pools.get(l.id)!;
   };
-  const ownHeadwords = lexemes.map((l) => l.headword);
+  const ownWords = lexemes.map((l) => ({ headword: l.headword, reading: l.reading }));
   // Первый круг раунда: слова этого раунда в варианты не берём.
   const roundWords = plan.tasks.filter((t) => t.kind === "intro").map((t) => byId.get(t.lexemeId)!.headword);
+  // Знаки новых слов: чтение и значение в заметках знакомства (#88).
+  const charEntries = await loadCharEntries(admin, roundWords);
   const pairById = new Map(input.pairs.map((p) => [p.id, p]));
   const sessionId = crypto.randomUUID();
 
@@ -183,7 +186,7 @@ async function start(
     }
     const l = byId.get(t.lexemeId)!;
     const word = studyWord(l);
-    if (t.kind === "intro") return buildExercise({ code: "intro", word, candidates: [], seed, ownHeadwords });
+    if (t.kind === "intro") return buildExercise({ code: "intro", word, candidates: [], seed, ownWords, charEntries });
     const needsPool = ["R1", "P1", "W1", "W2"].includes(t.code);
     const candidates = needsPool ? await pool(l) : [];
     const exclude = t.round === 1 ? roundWords : undefined;

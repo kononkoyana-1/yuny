@@ -44,7 +44,7 @@ import {
   type WordKey,
   wordStage,
 } from "../_shared/learning/mod.ts";
-import { issue, loadPool, russianGloss } from "../_shared/studyData.ts";
+import { issue, loadCharEntries, loadPool, loadWordsWithChars, russianGloss } from "../_shared/studyData.ts";
 import { ensureContrast, loadContrast } from "../_shared/contrastCards.ts";
 
 const CONFUSIONS = ["confusion", "form_similar", "homophone"];
@@ -384,6 +384,15 @@ async function result(
       const b = buildExercise({ code, word, candidates: [], seed, check: "known" });
       if (b) next.push(b);
     }
+  } else if (ticket.check === "known" && lex && outcome !== "correct") {
+    // Проверка «Уже знаю» не пройдена — «Тогда запомним»: та же карточка
+    // знакомства, но с одной кнопкой «Запомню» (folder-study.design.md §4 п. 3).
+    const [ownWords, charEntries] = await Promise.all([
+      loadWordsWithChars(admin, userId, word.headword),
+      loadCharEntries(admin, [word.headword]),
+    ]);
+    const b = buildExercise({ code: "intro", word, candidates: [], seed, ownWords, charEntries, introActions: "remember" });
+    if (b) next.push(b);
   } else if (outcome !== "correct" && outcome !== "seen" && !ticket.retry && !ticket.check &&
     !ticket.exercise.startsWith("X")) {
     // Переобучение: это же слово ещё раз, лёгким форматом, через пару заданий.
