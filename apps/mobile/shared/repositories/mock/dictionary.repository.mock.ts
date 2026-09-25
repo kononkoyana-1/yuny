@@ -3,6 +3,8 @@ import {
   DictionaryArticleSchema,
   DictionarySearchRequestSchema,
   DictionarySearchResponseSchema,
+  PhraseTranslationSchema,
+  type PhraseWord,
   type DictionaryEntry,
   type DictionaryQueryKind,
 } from "@yuny/shared";
@@ -42,6 +44,13 @@ function rankOf(entry: Omit<DictionaryEntry, "rank">, query: string, kind: Dicti
 }
 
 const HAN = /\p{Script=Han}/u;
+
+/** Переводы фраз для mock-режима; остальные — заглушкой. */
+const MOCK_PHRASES: Record<string, string> = {
+  "我想买咖啡。": "Хочу купить кофе.",
+  "我想买咖啡": "Хочу купить кофе",
+  "这个多少钱": "Сколько это стоит?",
+};
 const VOWEL = "aeiouüāáǎàēéěèīíǐìōóǒòūúǔùǖǘǚǜ";
 /** Слог пиньиня: согласные, гласные, конечные n / ng / r, если за ними не гласная. */
 const SYLLABLE = new RegExp(`[^${VOWEL}\\s']*[${VOWEL}]+(?:ng|n(?![${VOWEL}])|r(?![${VOWEL}]))?`, "gi");
@@ -141,6 +150,45 @@ export const mockDictionaryRepository: DictionaryRepository = {
       hsk_level: entry?.hsk_level ?? null,
       composition,
       char_words: charWords,
+    });
+  },
+  async translatePhrase(text) {
+    await delay(undefined, 600);
+    const zhSource = HAN.test(text);
+    // Перевод — заглушка; разбор — самым длинным словом словаря слева направо, как на сервере.
+    const zh = zhSource ? text.replace(/\s+/g, "") : "我想买咖啡。";
+    const translation = zhSource ? (MOCK_PHRASES[zh] ?? `Перевод: «${zh}»`) : zh;
+    const chars = [...zh];
+    const words: PhraseWord[] = [];
+    for (let i = 0; i < chars.length; ) {
+      if (!HAN.test(chars[i]!)) {
+        words.push({ text: chars[i]!, reading: null, meaning: null, in_dictionary: false, punct: true });
+        i++;
+        continue;
+      }
+      let len = Math.min(4, chars.length - i);
+      let entry: (typeof mockDictionary)[number] | undefined;
+      for (; len > 1; len--) {
+        entry = mockDictionary.find((e) => e.headword === chars.slice(i, i + len).join(""));
+        if (entry) break;
+      }
+      const word = chars.slice(i, i + len).join("");
+      entry ??= mockDictionary.find((e) => e.headword === word);
+      words.push({
+        text: word,
+        reading: entry?.reading?.split(",")[0]?.trim() ?? null,
+        meaning: shortGloss(entry?.compact[0]),
+        in_dictionary: !!entry,
+        punct: false,
+      });
+      i += len;
+    }
+    return PhraseTranslationSchema.parse({
+      direction: zhSource ? "zh-ru" : "ru-zh",
+      translation,
+      zh,
+      pinyin: words.filter((w) => !w.punct).map((w) => w.reading ?? "?").join(" "),
+      words,
     });
   },
 };

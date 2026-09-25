@@ -3,13 +3,15 @@ import { FlatList, View, type TextInput } from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Button, EmptyState, ErrorState, LoadingState, Text } from "@/shared/ui";
-import { useDictionarySearch, useSavedItems, useToday, useTodayActions } from "@/shared/api";
+import { useDictionarySearch, usePhraseTranslation, useSavedItems, useToday, useTodayActions } from "@/shared/api";
 import { useDebouncedValue } from "@/shared/lib/useDebouncedValue";
 import { breakpoints, spacing } from "@/shared/config/tokens";
 import { t } from "@/shared/i18n";
 import { ArticleSheet, type SheetWord } from "@/features/dictionary/ArticleSheet";
 import { EntryRow } from "@/features/dictionary/EntryRow";
 import { SearchField } from "@/features/dictionary/SearchField";
+import { PhraseCard } from "@/features/dictionary/PhraseCard";
+import { isPhraseQuery } from "@/features/dictionary/phrase";
 import { MyDictionary, type MyDictionaryHandle } from "@/features/dictionary/MyDictionary";
 import { TodayHero } from "@/features/study/TodayHero";
 import { BudgetSheet } from "@/features/study/BudgetSheet";
@@ -90,6 +92,22 @@ export default function DictionaryTab() {
   const items = data?.pages.flatMap((page) => page.items) ?? [];
   const kind = data?.pages[0]?.kind;
 
+  // Фраза, а не слово (#76): перевод и слова фразы — над обычной выдачей.
+  // Решаем по уже пришедшей выдаче этого запроса, не по прошлой.
+  const phrase = query !== "" && !isPending && !isPlaceholderData && isPhraseQuery(query, items);
+  const phraseQuery = usePhraseTranslation(query, phrase);
+  const phraseCard = phrase ? (
+    <View className="pb-md">
+      <PhraseCard
+        data={phraseQuery.data}
+        isPending={phraseQuery.isPending}
+        error={phraseQuery.error}
+        onRetry={() => void phraseQuery.refetch()}
+        onOpenWord={(w) => open(`phrase:${w.headword}`, { headword: w.headword, reading: w.reading })}
+      />
+    </View>
+  ) : null;
+
   function renderBody() {
     // Пустое поле — свой словарь. Проверяется первым: выключенный запрос
     // тоже в состоянии `pending`.
@@ -108,7 +126,7 @@ export default function DictionaryTab() {
         />
       );
     }
-    if (items.length === 0 && ownMatches.length === 0 && kind) {
+    if (items.length === 0 && ownMatches.length === 0 && kind && !phrase) {
       return <EmptyState className="flex-1" message={t(`dictionary.empty.${kind}`)} />;
     }
 
@@ -128,32 +146,35 @@ export default function DictionaryTab() {
           if (hasNextPage && !isFetchingNextPage && !isFetchNextPageError) void fetchNextPage();
         }}
         ListHeaderComponent={
-          ownMatches.length > 0 ? (
-            // Под заголовком «Словарь БКРС» — тот же `sm`, что под «В моём
-            // словаре»: заголовок прилипает к своим строкам (review m7).
-            <View className={`gap-sm ${items.length > 0 ? "pb-sm" : "pb-lg"}`}>
-              <Text variant="heading" accessibilityRole="header">
-                {t("dictionary.mine.found")}
-              </Text>
-              {ownMatches.map((word) => {
-                const rowKey = `saved:${word.key}`;
-                return (
-                  <EntryRow
-                    key={rowKey}
-                    ref={refFor(rowKey)}
-                    word={word.entry ?? { ...word, senses: [], compact: [] }}
-                    translation={word.translation}
-                    onPress={() => open(rowKey, word)}
-                  />
-                );
-              })}
-              {items.length > 0 ? (
-                <Text variant="heading" accessibilityRole="header" className="pt-md">
-                  {t("dictionary.mine.bkrs")}
+          <>
+            {phraseCard}
+            {ownMatches.length > 0 ? (
+              // Под заголовком «Словарь БКРС» — тот же `sm`, что под «В моём
+              // словаре»: заголовок прилипает к своим строкам (review m7).
+              <View className={`gap-sm ${items.length > 0 ? "pb-sm" : "pb-lg"}`}>
+                <Text variant="heading" accessibilityRole="header">
+                  {t("dictionary.mine.found")}
                 </Text>
-              ) : null}
-            </View>
-          ) : null
+                {ownMatches.map((word) => {
+                  const rowKey = `saved:${word.key}`;
+                  return (
+                    <EntryRow
+                      key={rowKey}
+                      ref={refFor(rowKey)}
+                      word={word.entry ?? { ...word, senses: [], compact: [] }}
+                      translation={word.translation}
+                      onPress={() => open(rowKey, word)}
+                    />
+                  );
+                })}
+                {items.length > 0 ? (
+                  <Text variant="heading" accessibilityRole="header" className="pt-md">
+                    {t("dictionary.mine.bkrs")}
+                  </Text>
+                ) : null}
+              </View>
+            ) : null}
+          </>
         }
         renderItem={({ item }) => {
           const rowKey = `bkrs:${item.id}`;

@@ -22,5 +22,7 @@ export const queryKeys = {
    */
   dictionaryArticle: (headword: string, reading: string | null) =>
     ["study", "overview", "article", headword, reading ?? ""] as const,
+  /** Перевод фразы из поиска (#76): общий кэш на сервере, не меняется. */
+  phraseTranslation: (text: string) => ["dictionary", "phrase", text] as const,
   accountEmail: ["account", "email"] as const,
 };

@@ -142,3 +142,4 @@ export {
   sharedComponents,
   wordDifference,
 } from "./hanzi.ts";
+export { LABEL_ONLY, NARROW, usableGloss } from "./gloss.ts";

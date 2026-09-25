@@ -3,6 +3,7 @@ import type {
   DictionaryArticleRequest,
   DictionarySearchRequest,
   DictionarySearchResponse,
+  PhraseTranslation,
 } from "@yuny/shared";
 
 /**
@@ -22,4 +23,6 @@ export interface DictionaryRepository {
    * `DictionaryArticleSchema`.
    */
   article(req: DictionaryArticleRequest): Promise<DictionaryArticle>;
+  /** Перевод фразы из поиска и слова, из которых она состоит (#76, `phrase-translate`). */
+  translatePhrase(text: string): Promise<PhraseTranslation>;
 }

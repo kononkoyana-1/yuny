@@ -11,6 +11,7 @@ export {
 export type { SaveState } from "./useSettings";
 export { useDictionarySearch } from "./useDictionarySearch";
 export { useDictionaryArticle } from "./useDictionaryArticle";
+export { usePhraseTranslation } from "./usePhraseTranslation";
 export {
   useFolders,
   useSavedItems,

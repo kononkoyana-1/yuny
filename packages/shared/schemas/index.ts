@@ -20,6 +20,8 @@ export {
   DictionaryArticleSchema,
 } from "./dictionaryArticle";
 export type { DictionaryArticleRequest, CompositionChar, CharWord, DictionaryArticle } from "./dictionaryArticle";
+export { PhraseWordSchema, PhraseTranslationSchema } from "./phrase";
+export type { PhraseWord, PhraseTranslation } from "./phrase";
 export {
   FolderNameSchema,
   UserDictionaryFolderSchema,
