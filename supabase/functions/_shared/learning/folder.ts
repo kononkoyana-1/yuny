@@ -8,7 +8,7 @@ import { estimateMinutes } from "./today.ts";
 
 export interface FolderModeOffer {
   mode: FolderMode;
-  /** review — сколько пора повторить; new — слов в раунде; practice — `null`. */
+  /** review — сколько слов пора повторить (не навыков); new — слов в раунде; practice — `null`. */
   count: number | null;
   /** new — сколько новых слов в папке всего. */
   totalNew: number | null;
@@ -28,7 +28,9 @@ type Input = Omit<PlanInput, "mode" | "folderId" | "folderMode" | "minutes">;
 
 export function folderPlan(input: Input, folderId: string, minutes: number): FolderPlan {
   const base: PlanInput = { ...input, mode: "folder", folderId, minutes };
-  const due = dueSkills(base, folderId).length;
+  // Слов, а не навыков: у слова пора бывает и «Читаю», и «Пиньинь» — на кнопке
+  // «Повторить · 65» при 50 словах в папке читалось как ошибка.
+  const due = new Set(dueSkills(base, folderId).map((d) => d.lexemeId)).size;
   const queue = newQueue(base, folderId).length;
   const practiceable = input.lexemes.some((l) => l.folderIds.includes(folderId) && input.states[l.id]?.read);
 

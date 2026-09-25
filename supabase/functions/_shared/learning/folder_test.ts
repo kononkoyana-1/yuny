@@ -79,3 +79,12 @@ Deno.test("«Ещё 7 новых»: папка первого нового сл�
   assert(offer!.tomorrowDelta > 0);
   assertEquals(extraNewOffer(base([]), 10), null);
 });
+
+Deno.test("папка: «Повторить» считает слова, а не навыки", () => {
+  const lexemes = [lex("a", "f"), lex("b", "f")];
+  // У каждого слова пора и «Читаю», и «Пиньинь» — навыков 4, слов 2.
+  const states = { a: { read: st(2, 5), pinyin: st(2, 5) }, b: { read: st(2, 5), pinyin: st(2, 5) } };
+  const plan = folderPlan(base(lexemes, states), "f", 10);
+  assertEquals(plan.primary?.mode, "review");
+  assertEquals(plan.primary?.count, 2);
+});

@@ -557,7 +557,9 @@ export const ru = {
     },
     folder: {
       mode: {
-        review: "Повторить · {{count}}",
+        review_one: "Повторить · {{count}} слово",
+        review_few: "Повторить · {{count}} слова",
+        review_many: "Повторить · {{count}} слов",
         new: "Новые слова · {{count}} из {{total}}",
         practice: "Практика",
       },
@@ -569,7 +571,9 @@ export const ru = {
       or: "или:",
       altA11y: "Другие занятия",
       chip: {
-        review: "Повторить · {{count}}",
+        review_one: "Повторить · {{count}} слово",
+        review_few: "Повторить · {{count}} слова",
+        review_many: "Повторить · {{count}} слов",
         new: "Новые слова",
         practice: "Практика",
       },
