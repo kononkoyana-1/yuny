@@ -39,6 +39,12 @@ export interface SheetProps {
    * the user with no way to see the outcome.
    */
   dismissible?: boolean;
+  /**
+   * Лист со стеком экранов (статья знака поверх статьи слова, #79): Escape и
+   * системное «назад» зовут его вместо `onClose` — шаг назад, а не закрытие.
+   * Нажатие на подложку по-прежнему закрывает лист целиком.
+   */
+  onBack?: () => void;
 }
 
 /**
@@ -59,6 +65,7 @@ export function Sheet({
   initialFocusRef,
   className = "",
   dismissible = true,
+  onBack,
 }: SheetProps) {
   const { width, height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
@@ -111,8 +118,8 @@ export function Sheet({
 
   useEffect(() => {
     if (!visible || !dismissible) return undefined;
-    return attachEscapeListener(onClose);
-  }, [visible, dismissible, onClose]);
+    return attachEscapeListener(onBack ?? onClose);
+  }, [visible, dismissible, onClose, onBack]);
 
   // S6: swallows the scrim tap, `Modal`'s `onRequestClose` (Android
   // hardware/gesture back), and Escape (via the effect above) alike.
@@ -132,7 +139,9 @@ export function Sheet({
       visible={visible}
       transparent
       animationType="none"
-      onRequestClose={requestClose}
+      onRequestClose={() => {
+        if (dismissible) (onBack ?? onClose)();
+      }}
       // Second, final return of focus. On the web the Modal stays in the DOM
       // until its own exit animation ends, and its focus trap pulls focus
       // back inside — so the return from the effect above can land and be

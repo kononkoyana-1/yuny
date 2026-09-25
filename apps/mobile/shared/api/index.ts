@@ -10,6 +10,7 @@ export {
 } from "./useSettings";
 export type { SaveState } from "./useSettings";
 export { useDictionarySearch } from "./useDictionarySearch";
+export { useDictionaryArticle } from "./useDictionaryArticle";
 export {
   useFolders,
   useSavedItems,

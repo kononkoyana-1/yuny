@@ -1,12 +1,17 @@
 import { forwardRef, useState } from "react";
 import { Pressable, View } from "react-native";
 import type { SavedEntry } from "@yuny/shared";
-import { Text } from "@/shared/ui";
+import { Chip, Text } from "@/shared/ui";
 import { t } from "@/shared/i18n";
 import { entrySummary } from "./article";
 
-/** Что строке нужно от слова. У слова из папки без статьи `senses` и `compact` пусты. */
-export type EntryRowWord = Pick<SavedEntry, "headword" | "reading" | "senses" | "compact">;
+/**
+ * Что строке нужно от слова. У слова из папки без статьи `senses` и `compact`
+ * пусты; `hsk_level` есть у строки выдачи словаря.
+ */
+export type EntryRowWord = Pick<SavedEntry, "headword" | "reading" | "senses" | "compact"> & {
+  hsk_level?: number | null;
+};
 
 export interface EntryRowProps {
   word: EntryRowWord;
@@ -18,9 +23,9 @@ export interface EntryRowProps {
 }
 
 /**
- * Строка выдачи словаря: слово, чтение и первые значения. Полная статья
- * открывается по нажатию. Уровень HSK не показывается нигде на экране
- * словаря (TZ.md §4), хотя в ответе он есть.
+ * Строка выдачи словаря: слово, чтение, уровень HSK (#80, решение владельца
+ * от 2026-09-25 — прежний запрет TZ.md §19 снят) и первые значения. Полная
+ * статья открывается по нажатию.
  */
 export const EntryRow = forwardRef<View, EntryRowProps>(function EntryRow(
   { word, onPress, saved = false, translation = null },
@@ -29,12 +34,19 @@ export const EntryRow = forwardRef<View, EntryRowProps>(function EntryRow(
   const [pressed, setPressed] = useState(false);
   const summary = translation ?? entrySummary(word);
   const savedLabel = saved ? t("dictionary.entry.saved") : null;
+  const hsk = word.hsk_level ?? null;
 
   return (
     <Pressable
       ref={ref}
       accessibilityRole="button"
-      accessibilityLabel={[word.headword, word.reading, summary || t("dictionary.article.noRussian"), savedLabel]
+      accessibilityLabel={[
+        word.headword,
+        word.reading,
+        hsk ? t("dictionary.article.hskA11y", { level: hsk }) : null,
+        summary || t("dictionary.article.noRussian"),
+        savedLabel,
+      ]
         .filter(Boolean)
         .join(". ")}
       accessibilityHint={t("dictionary.entry.a11yHint")}
@@ -52,6 +64,7 @@ export const EntryRow = forwardRef<View, EntryRowProps>(function EntryRow(
             {word.reading}
           </Text>
         ) : null}
+        {hsk ? <Chip size="micro" label={t("dictionary.article.hsk", { level: hsk })} className="self-center" /> : null}
       </View>
       {savedLabel ? (
         <Text variant="caption" tone="brand">

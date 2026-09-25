@@ -1,14 +1,17 @@
-import { useEffect, useRef, useState, type RefObject } from "react";
-import { View, type TextInput } from "react-native";
+import { useCallback, useEffect, useRef, useState, type RefObject } from "react";
+import { Pressable, View, type TextInput } from "react-native";
 import {
   FolderNameSchema,
   type SavedEntry,
   type SavedTranslationSource,
   type UserDictionaryFolder,
 } from "@yuny/shared";
-import { Button, FeedbackBanner, IconButton, Input, Sheet, Text } from "@/shared/ui";
+import { Button, Chip, FeedbackBanner, HanziText, Icon, IconButton, Input, Sheet, Text } from "@/shared/ui";
+import { FOCUS_RING_CLASS } from "@/shared/ui/focusRing";
+import { useTheme } from "@/shared/lib/useTheme";
 import {
   useAddToFolder,
+  useDictionaryArticle,
   useCreateFolder,
   useFolders,
   useRemoveFromFolder,
@@ -19,7 +22,9 @@ import { returnFocusTo } from "@/shared/platform/sheetA11y";
 import { t } from "@/shared/i18n";
 import { CheckMark, CheckRow } from "./CheckMark";
 import { shortMeaning } from "./article";
+import { CharGraph } from "./CharGraph";
 import { EntryArticle } from "./EntryArticle";
+import { WordComposition } from "./WordComposition";
 import { translationLine, wordKey } from "./saved";
 import { WordProgressBlock } from "@/features/study/WordProgressBlock";
 
@@ -27,8 +32,12 @@ import { WordProgressBlock } from "@/features/study/WordProgressBlock";
 export interface SheetWord {
   headword: string;
   reading: string | null;
-  /** `null` — у слова из папки, чья статья пропала после перезаливки словаря. */
-  entry: SavedEntry | null;
+  /**
+   * `null` — у слова из папки, чья статья пропала после перезаливки словаря.
+   * Не задана — слово открыто из состава или графа знака (#79, #84): статью
+   * приносит запрос статьи.
+   */
+  entry?: SavedEntry | null;
   /** Сохранённое значение слова, если оно уже лежит в какой-то папке. */
   translation?: string | null;
   /** Откуда `translation`: из файла, из статьи или от модели. */
@@ -52,20 +61,38 @@ export interface ArticleSheetProps {
  * галочка убирает его из папки.
  */
 export function ArticleSheet({ word, onClose, returnFocusRef, currentFolder = null, onRemoved }: ArticleSheetProps) {
+  // Стек статей (#79, #84): знак из состава или слово из графа открываются
+  // поверх, «назад» и Escape возвращают к предыдущей. Новое слово снаружи —
+  // стек с нуля.
+  const [stack, setStack] = useState<SheetWord[]>([]);
+  const [root, setRoot] = useState(word);
+  if (root !== word) {
+    setRoot(word);
+    setStack([]);
+  }
+  const current = stack.at(-1) ?? word;
+  const previous = stack.length > 1 ? stack.at(-2)! : stack.length === 1 ? word : null;
+  const back = useCallback(() => setStack((s) => s.slice(0, -1)), []);
+
   return (
     <Sheet
       visible={word !== null}
       onClose={onClose}
-      accessibilityLabel={word?.headword ?? ""}
+      onBack={stack.length > 0 ? back : undefined}
+      accessibilityLabel={current?.headword ?? ""}
       returnFocusRef={returnFocusRef}
     >
       {/* `key` сбрасывает режим листа на статью, когда открывают другое слово. */}
-      {word ? (
+      {current ? (
         <ArticleSheetBody
-          key={wordKey(word.headword, word.reading)}
-          word={word}
+          key={`${stack.length}:${wordKey(current.headword, current.reading)}`}
+          word={current}
+          previous={previous}
+          onBack={back}
+          onOpen={(next) => setStack((s) => [...s, next])}
           onClose={onClose}
-          currentFolder={currentFolder}
+          // «Убрать из папки» — только у слова, с которым лист открыли.
+          currentFolder={stack.length === 0 ? currentFolder : null}
           onRemoved={onRemoved}
         />
       ) : null}
@@ -74,12 +101,19 @@ export function ArticleSheet({ word, onClose, returnFocusRef, currentFolder = nu
 }
 
 function ArticleSheetBody({
-  word,
+  word: opened,
+  previous,
+  onBack,
+  onOpen,
   onClose,
   currentFolder,
   onRemoved,
 }: {
   word: SheetWord;
+  /** Статья под этой в стеке — для кнопки «Назад к …». */
+  previous: SheetWord | null;
+  onBack: () => void;
+  onOpen: (word: SheetWord) => void;
   onClose: () => void;
   currentFolder: { id: string; name: string } | null;
   onRemoved?: () => void;
@@ -91,6 +125,21 @@ function ArticleSheetBody({
   const items = useSavedItems();
   const actionRef = useRef<View>(null);
   const cameBack = useRef(false);
+  const headerRef = useRef<View>(null);
+  const article = useDictionaryArticle(opened.headword, opened.reading);
+  // Статья слова из состава или графа приходит запросом статьи.
+  const word: SheetWord & { entry: SavedEntry | null } = {
+    ...opened,
+    entry: opened.entry !== undefined ? opened.entry : (article.data?.entry ?? null),
+  };
+  const loadingEntry = opened.entry === undefined && article.isPending;
+  const hsk = article.data?.hsk_level ?? null;
+
+  // Открыли статью поверх другой (или вернулись) — фокус на кнопку «назад»,
+  // иначе он остался бы на нажатой плитке, которой уже нет.
+  useEffect(() => {
+    if (previous) returnFocusTo(headerRef);
+  }, [previous]);
 
   // Вернулись из выбора папок — фокус на кнопку, которая туда вела: кнопки
   // «Готово» уже нет, и без этого фокус падал на страницу (review n1).
@@ -124,15 +173,28 @@ function ArticleSheetBody({
 
   return (
     <View className="gap-lg">
+      {previous ? (
+        <BackLink ref={headerRef} to={previous.headword} onPress={onBack} />
+      ) : null}
       <View className="flex-row items-start gap-md">
         <View className="flex-1 gap-xs">
           <Text variant="display" accessibilityRole="header">
             {word.headword}
           </Text>
-          {word.reading ? (
-            <Text variant="heading" tone="muted">
-              {word.reading}
-            </Text>
+          {word.reading || hsk ? (
+            <View className="flex-row flex-wrap items-center gap-sm">
+              {word.reading ? (
+                <Text variant="heading" tone="muted">
+                  {word.reading}
+                </Text>
+              ) : null}
+              {/* #80: уровень HSK в карточке слова — решение владельца от 2026-09-25. */}
+              {hsk ? (
+                <View accessible accessibilityLabel={t("dictionary.article.hskA11y", { level: hsk })}>
+                  <Chip size="micro" label={t("dictionary.article.hsk", { level: hsk })} />
+                </View>
+              ) : null}
+            </View>
           ) : null}
           {line ? (
             <Text variant="body" className="pt-xs">
@@ -145,8 +207,18 @@ function ArticleSheetBody({
 
       {mode === "folders" ? (
         <FolderPicker word={word} onDone={() => setMode("article")} />
+      ) : loadingEntry ? (
+        <Text variant="body" tone="muted">
+          {t("dictionary.article.loading")}
+        </Text>
       ) : (
         <>
+          {article.data && article.data.composition.length > 0 ? (
+            <WordComposition
+              chars={article.data.composition}
+              onOpen={(c) => onOpen({ headword: c.char, reading: c.entry_reading ?? c.reading })}
+            />
+          ) : null}
           {/* Одно слово — одна память: прогресс виден, где бы слово ни открыли (#70). */}
           {wordItems.length > 0 ? <WordProgressBlock word={word} /> : null}
           <View className="gap-sm">
@@ -179,9 +251,43 @@ function ArticleSheetBody({
               {t(word.translation ? "dictionary.article.noEntry" : "dictionary.article.missing")}
             </Text>
           )}
+          {article.data?.char_words ? (
+            <CharGraph
+              char={word.headword}
+              words={article.data.char_words}
+              onOpen={(w) => onOpen({ headword: w.headword, reading: w.reading })}
+            />
+          ) : null}
         </>
       )}
     </View>
+  );
+}
+
+/** «← Назад к 电脑»: шаг назад по стеку статей (#79). Escape делает то же. */
+function BackLink({ to, onPress, ref }: { to: string; onPress: () => void; ref?: RefObject<View | null> }) {
+  const { colors } = useTheme();
+  const [pressed, setPressed] = useState(false);
+  return (
+    <Pressable
+      ref={ref}
+      accessibilityRole="button"
+      accessibilityLabel={t("dictionary.article.backA11y", { word: to })}
+      onPressIn={() => setPressed(true)}
+      onPressOut={() => setPressed(false)}
+      onPress={onPress}
+      className={`min-h-tap flex-row items-center gap-xs self-start rounded-md pr-sm ${
+        pressed ? "opacity-70" : ""
+      } ${FOCUS_RING_CLASS}`}
+    >
+      <Icon name="arrowLeft" size={18} color={colors.primary} />
+      <Text variant="body" tone="brand">
+        {t("dictionary.article.back")}
+      </Text>
+      <HanziText variant="inline" tone="brand">
+        {to}
+      </HanziText>
+    </Pressable>
   );
 }
 

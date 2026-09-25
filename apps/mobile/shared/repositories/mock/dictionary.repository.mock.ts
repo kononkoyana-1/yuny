@@ -1,4 +1,6 @@
 import {
+  DictionaryArticleRequestSchema,
+  DictionaryArticleSchema,
   DictionarySearchRequestSchema,
   DictionarySearchResponseSchema,
   type DictionaryEntry,
@@ -9,6 +11,8 @@ import { pinyinPlain, queryKind, readingsPlain } from "@/shared/lib/dictionaryTe
 import type { DictionaryRepository } from "../dictionary.repository";
 import { delay } from "./delay";
 import { mockDictionary } from "./dictionary.fixtures";
+import { wordFacts } from "./study.overview.mock";
+import { mockUserDictionaryRepository } from "./userDictionary.repository.mock";
 
 /**
  * Переключатель ошибки поиска, по образцу `EXPO_PUBLIC_MOCK_MODULES_EMPTY`:
@@ -37,6 +41,29 @@ function rankOf(entry: Omit<DictionaryEntry, "rank">, query: string, kind: Dicti
   return entry.senses.some((s) => s.gloss.toLocaleLowerCase("ru").includes(needle)) ? 2 : null;
 }
 
+const HAN = /\p{Script=Han}/u;
+const VOWEL = "aeiouüāáǎàēéěèīíǐìōóǒòūúǔùǖǘǚǜ";
+/** Слог пиньиня: согласные, гласные, конечные n / ng / r, если за ними не гласная. */
+const SYLLABLE = new RegExp(`[^${VOWEL}\\s']*[${VOWEL}]+(?:ng|n(?![${VOWEL}])|r(?![${VOWEL}]))?`, "gi");
+
+/** Упрощённый разбор чтения слова по слогам — сервер делает это строже (`parsePinyin`). */
+function syllables(reading: string | null): string[] {
+  const first = (reading ?? "").split(/[,;]/)[0] ?? "";
+  return first.match(SYLLABLE)?.map((x) => x.toLowerCase()) ?? [];
+}
+
+/** Как `shortGloss` на сервере: первый пункт, не больше двух вариантов, без скобок. */
+function shortGloss(gloss: string | undefined): string | null {
+  if (!gloss) return null;
+  const first = gloss.split(";")[0]!.replace(/\([^()]*\)/g, " ").replace(/\s+/g, " ").trim();
+  return first.split(/\s*,\s*/).slice(0, 2).join(", ") || null;
+}
+
+function charPosition(headword: string, char: string) {
+  const chars = [...headword];
+  return chars[0] === char ? "start" : chars.at(-1) === char ? "end" : "middle";
+}
+
 export const mockDictionaryRepository: DictionaryRepository = {
   async search(req) {
     const { query, limit = DEFAULT_LIMIT, offset = 0 } = DictionarySearchRequestSchema.parse(req);
@@ -56,6 +83,63 @@ export const mockDictionaryRepository: DictionaryRepository = {
       offset,
       has_more: ranked.length > offset + limit,
       items: ranked.slice(offset, offset + limit),
+    });
+  },
+  async article(req) {
+    const { headword, reading } = DictionaryArticleRequestSchema.parse(req);
+    await delay(undefined, 250);
+    if (MOCK_DICTIONARY_ERROR) throw new BackendError("dictionary_unavailable");
+
+    const entry =
+      mockDictionary.find((e) => e.headword === headword && e.reading === reading) ??
+      mockDictionary.find((e) => e.headword === headword) ??
+      null;
+    const chars = [...headword];
+    const wordReading = reading ?? entry?.reading ?? null;
+    const syl = syllables(wordReading);
+
+    const composition =
+      chars.filter((c) => HAN.test(c)).length < 2
+        ? []
+        : chars.filter((c) => HAN.test(c)).map((char, index) => {
+            const charEntry = mockDictionary.find((e) => e.headword === char);
+            const own = syl.length === chars.length ? syl[index]! : null;
+            return {
+              char,
+              reading: own ?? charEntry?.reading?.split(",")[0]?.trim() ?? null,
+              meaning: shortGloss(charEntry?.compact[0]),
+              entry_reading: charEntry?.reading ?? null,
+            };
+          });
+
+    let charWords = null;
+    if (chars.length === 1 && HAN.test(headword)) {
+      const saved = await mockUserDictionaryRepository.listItems();
+      const mine = new Set(saved.map((i) => i.headword));
+      charWords = mockDictionary
+        .filter((e) => e.headword !== headword && e.headword.includes(headword) && [...e.headword].length <= 3)
+        .map((e) => ({ e, mine: mine.has(e.headword) }))
+        .sort((a, b) => Number(b.mine) - Number(a.mine) || (a.e.hsk_level ?? 99) - (b.e.hsk_level ?? 99))
+        .map(({ e, mine: isMine }) => ({
+          headword: e.headword,
+          reading: e.reading,
+          meaning: shortGloss(e.compact[0]),
+          hsk_level: e.hsk_level,
+          position: charPosition(e.headword, headword),
+          mine: isMine,
+          stage: isMine ? wordFacts(e.headword).stage : null,
+        }));
+    }
+
+    return DictionaryArticleSchema.parse({
+      headword,
+      reading: wordReading,
+      entry: entry
+        ? { id: entry.id, headword: entry.headword, reading: entry.reading, senses: entry.senses, compact: entry.compact }
+        : null,
+      hsk_level: entry?.hsk_level ?? null,
+      composition,
+      char_words: charWords,
     });
   },
 };
