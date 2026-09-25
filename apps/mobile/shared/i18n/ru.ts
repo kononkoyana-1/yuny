@@ -466,7 +466,7 @@ export const ru = {
       nothingDueDetail: "Следующее повторение — завтра.",
       doneDetail: "Завтра ~{{tomorrow}} заданий · вспомните ~{{recalled}} из {{total}}",
       doneDetailTomorrow: "Завтра ~{{tomorrow}} заданий",
-      toFolders: "Можно поучить папку →",
+      toFolders: "Можно поучить папку",
       loading: "Собираем занятие на сегодня",
       error: "Не получилось собрать занятие на сегодня. Проверьте интернет.",
       retry: "Попробовать ещё раз",

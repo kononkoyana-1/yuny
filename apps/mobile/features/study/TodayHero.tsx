@@ -1,7 +1,7 @@
 import type { Ref } from "react";
-import { View } from "react-native";
+import { Pressable, View } from "react-native";
 import type { SessionPreview } from "@yuny/shared";
-import { Button, Card, Chip, CountUp, HanziText, HeroCard, Icon, StatLine, Text } from "@/shared/ui";
+import { Button, Card, Chip, CountUp, FOCUS_RING_CLASS, HanziText, HeroCard, Icon, StatLine, Text } from "@/shared/ui";
 import { useTheme } from "@/shared/lib/useTheme";
 import { t } from "@/shared/i18n";
 import {
@@ -160,9 +160,17 @@ function TodayDone({
       <Text variant="body" tone="muted">
         {done && plan ? doneDetailText(today, plan) : t("learn.today.nothingDueDetail")}
       </Text>
-      <View className="flex-row">
-        <Button variant="ghost" label={t("learn.today.toFolders")} onPress={onToFolders} />
-      </View>
+      {/* Ссылка, а не кнопка: ровно по левому краю текста, без полей кнопки. */}
+      <Pressable
+        accessibilityRole="link"
+        onPress={onToFolders}
+        className={`min-h-tap flex-row items-center gap-xs self-start rounded-sm ${FOCUS_RING_CLASS}`}
+      >
+        <Text variant="heading" tone="brand">
+          {t("learn.today.toFolders")}
+        </Text>
+        <Icon name="arrowRight" size={18} color={colors.primary} />
+      </Pressable>
     </Card>
   );
 }
