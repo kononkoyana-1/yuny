@@ -26,6 +26,10 @@ export interface Ticket {
   target: WordKey;
   options?: OptionMeta[];
   expected_orders?: string[][];
+  /** C2: тексты плиток в порядке показа; `tile_ids` ответа — `t0`, `t1`… — номера в нём. */
+  tiles?: string[];
+  /** C1, C2: предложение из кэша `context_sentences` (#64). */
+  context_id?: string;
   /** Правильный ответ, как его показать и записать в журнал. */
   expected: string;
   /** Что было на экране: вопрос, предложение, подсказки — в журнал как есть. */

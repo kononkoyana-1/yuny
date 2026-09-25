@@ -47,6 +47,7 @@ import {
 } from "../_shared/learning/mod.ts";
 import { issue, loadCharEntries, loadPool, loadWordsWithChars, russianGloss } from "../_shared/studyData.ts";
 import { ensureContrast, loadContrast } from "../_shared/contrastCards.ts";
+import { loadSentence } from "../_shared/contextSentences.ts";
 import { loadHanzi } from "../_shared/hanziChars.ts";
 
 const CONFUSIONS = ["confusion", "form_similar", "homophone"];
@@ -62,9 +63,9 @@ function secret(): string {
 // ------------------------------------------------------------------ вход
 
 /**
- * Ответ клиента (`StudyAnswerSchema`): `{option_id}`, `{text}`, `{self}`,
- * `{blank}`, `{choice}` — в форму классификатора. Вариант — по номеру в
- * билете: текст варианта знает сервер, а не клиент.
+ * Ответ клиента (`StudyAnswerSchema`): `{option_id}`, `{text}`, `{tile_ids}`,
+ * `{self}`, `{blank}`, `{choice}` — в форму классификатора. Вариант и плитка —
+ * по номеру в билете: их текст знает сервер, а не клиент.
  */
 function parseAnswer(raw: unknown, ticket: Ticket): Answer {
   const a = raw as Record<string, unknown> | null;
@@ -77,6 +78,14 @@ function parseAnswer(raw: unknown, ticket: Ticket): Answer {
     return { kind: "choice", value: opt.value };
   }
   if (typeof a.text === "string" && a.text.length <= 200) return { kind: "pinyin", text: a.text };
+  if (Array.isArray(a.tile_ids)) {
+    // C2: плитки по номерам билета (`t0`, `t1`…), каждая — не больше раза.
+    const ids = a.tile_ids;
+    if (!ticket.tiles || ids.length > ticket.tiles.length || new Set(ids).size !== ids.length) throw bad();
+    const tokens = ids.map((id) => (typeof id === "string" ? ticket.tiles![Number(id.replace(/^t/, ""))] : undefined));
+    if (tokens.some((t) => t === undefined)) throw bad();
+    return { kind: "order", tokens: tokens as string[] };
+  }
   if (a.self === "recalled" || a.self === "forgot") return { kind: "self", remembered: a.self === "recalled" };
   if (a.choice === "ok" || a.choice === "know" || a.choice === "remember") return { kind: "seen" };
   if (a.blank === true) {
@@ -399,8 +408,10 @@ async function result(
   } else if (outcome !== "correct" && outcome !== "seen" && !ticket.retry && !ticket.check &&
     !ticket.exercise.startsWith("X")) {
     // Переобучение: это же слово ещё раз, лёгким форматом, через пару заданий.
+    // Предложение (C1, C2) — то же: другое ещё не проверено на покрытие.
     const code = easierCode(ticket.exercise);
-    const b = code ? buildExercise({ code, word, candidates: await pool(), seed, retry: true }) : null;
+    const sentence = ticket.context_id ? await loadSentence(admin, ticket.context_id) : null;
+    const b = code ? buildExercise({ code, word, candidates: await pool(), seed, retry: true, sentence }) : null;
     if (b) next.push(b);
   }
   if (p && ctx.confusionWritten && !ctx.interventionPairId) {
@@ -432,7 +443,11 @@ async function result(
 
   return {
     outcome,
-    correct: { ...(rightIndex >= 0 ? { option_id: `o${rightIndex}` } : {}), text: ticket.expected },
+    correct: {
+      ...(rightIndex >= 0 ? { option_id: `o${rightIndex}` } : {}),
+      ...(ticket.expected_orders?.length ? { tokens: ticket.expected_orders[0] } : {}),
+      text: ticket.expected,
+    },
     error_type: classified.grade?.kind === "error" ? classified.grade.error : null,
     partner: p ? { headword: p.headword, reading: p.reading, meaning: partnerMeaning } : null,
     explanation: explanation(classified, word, partnerMeaning),

@@ -11,6 +11,8 @@
  *   tz_offset_min? — смещение часов пользователя от UTC (граница дня)
  *
  * Решает чистый `buildSession`; здесь чтение, варианты ответа и билеты.
+ * Предложения (#64) — только из проверенного кэша: чего нет, заказывается в
+ * фоне (`sessionContexts`), занятие его не ждёт.
  * Контракт — `packages/shared/schemas/study.ts`.
  */
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
@@ -26,11 +28,13 @@ import {
   type FolderMode,
   type FolderModeOffer,
   folderPlan,
+  newQueue,
   type PlanInput,
   type PlanTask,
   planDigest,
   queueView,
   recallNow,
+  ROUND_SIZE,
   todayState,
   withoutOptions,
 } from "../_shared/learning/mod.ts";
@@ -46,6 +50,28 @@ import {
 import { loadInput } from "../_shared/studyInput.ts";
 import { ensureContrast, loadContrast } from "../_shared/contrastCards.ts";
 import { loadHanzi } from "../_shared/hanziChars.ts";
+import { type SessionContexts, sessionContexts } from "../_shared/contextSentences.ts";
+
+type BaseInput = Omit<PlanInput, "mode" | "minutes">;
+
+/**
+ * Предложения для плана: слова с открытым «Использую» и ближайшие новые (для
+ * «Сегодня» — очередь, для папки — её очередь). Готовность слов к контексту
+ * уходит в план.
+ */
+async function withContexts(
+  admin: SupabaseClient,
+  userId: string,
+  input: BaseInput,
+  lexemes: StudyLexeme[],
+  folderId: string | null,
+): Promise<{ input: BaseInput; contexts: SessionContexts }> {
+  const byId = new Map(lexemes.map((l) => [l.id, l]));
+  const upcoming = newQueue(input, folderId).slice(0, folderId ? ROUND_SIZE : input.maxNew)
+    .map((l) => byId.get(l.id)!).filter(Boolean);
+  const contexts = await sessionContexts(admin, userId, input, lexemes, upcoming);
+  return { input: { ...input, contextReady: contexts.ready }, contexts };
+}
 
 const MINUTES = [5, 10, 15] as const;
 async function preview(
@@ -117,13 +143,13 @@ async function start(
   admin: SupabaseClient,
   userId: string,
   body: Record<string, unknown>,
-  input: Omit<PlanInput, "mode" | "minutes">,
+  baseInput: BaseInput,
   lexemes: StudyLexeme[],
   defaultMinutes: number,
 ) {
   const minutes = MINUTES.includes(body.minutes as 5) ? (body.minutes as number) : defaultMinutes;
   // «Ещё 7 новых слов» после «Сегодня» — раунд знакомства в папке, где новые слова есть.
-  const extra = body.mode !== "folder" && body.extra_new === true ? extraNewOffer(input, minutes) : null;
+  const extra = body.mode !== "folder" && body.extra_new === true ? extraNewOffer(baseInput, minutes) : null;
   const mode = body.mode === "folder" || extra ? "folder" : "today";
   const folderId = extra ? extra.folderId : mode === "folder" ? requireUuid(body, "folder_id") : undefined;
   const folderMode = extra
@@ -131,6 +157,7 @@ async function start(
     : ["review", "new", "practice"].includes(body.folder_mode as string)
     ? (body.folder_mode as FolderMode)
     : undefined;
+  const { input, contexts } = await withContexts(admin, userId, baseInput, lexemes, folderId ?? null);
   const plan = buildSession({ ...input, mode, minutes, folderId, folderMode });
 
   const byId = new Map(lexemes.map((l) => [l.id, l]));
@@ -144,6 +171,8 @@ async function start(
   const roundWords = plan.tasks.filter((t) => t.kind === "intro").map((t) => byId.get(t.lexemeId)!.headword);
   // Знаки новых слов: чтение и значение в заметках знакомства (#88).
   const charEntries = await loadCharEntries(admin, roundWords);
+  // Пример в знакомстве (#64) — для слов плана, которых не было среди ближайших.
+  await contexts.load(plan.tasks.filter((t) => t.kind === "intro").map((t) => byId.get(t.lexemeId)!));
   const pairById = new Map(input.pairs.map((p) => [p.id, p]));
   const sessionId = crypto.randomUUID();
 
@@ -187,7 +216,18 @@ async function start(
     }
     const l = byId.get(t.lexemeId)!;
     const word = studyWord(l);
-    if (t.kind === "intro") return buildExercise({ code: "intro", word, candidates: [], seed, ownWords, charEntries });
+    if (t.kind === "intro") {
+      const sentence = contexts.pick(l, "example", seed);
+      return buildExercise({ code: "intro", word, candidates: [], seed, ownWords, charEntries, sentence });
+    }
+    if (t.code === "C1" || t.code === "C2") {
+      // Сборка фразы, а если её не собрать (коллокация, две плитки) — пропуск.
+      const s2 = t.code === "C2" ? contexts.pick(l, "C2", seed) : null;
+      const c2 = s2 ? buildExercise({ code: "C2", word, candidates: [], seed, sentence: s2 }) : null;
+      if (c2) return c2;
+      const s1 = contexts.pick(l, "C1", seed);
+      return s1 ? buildExercise({ code: "C1", word, candidates: await pool(l), seed, sentence: s1 }) : null;
+    }
     const needsPool = ["R1", "P1", "W1", "W2"].includes(t.code);
     const candidates = needsPool ? await pool(l) : [];
     const exclude = t.round === 1 ? roundWords : undefined;
@@ -236,10 +276,13 @@ Deno.serve(
   handler(async ({ userId, admin, body }) => {
     const { input, lexemes, defaultMinutes, today, lastPromptOn } = await loadInput(admin, userId, body);
     if (body.action === "folder_preview") {
-      return folderPreview(input, requireUuid(body, "folder_id"), defaultMinutes);
+      const folderId = requireUuid(body, "folder_id");
+      const ready = await withContexts(admin, userId, input, lexemes, folderId);
+      return folderPreview(ready.input, folderId, defaultMinutes);
     }
     if (body.action === "preview") {
-      return await preview(admin, userId, input, defaultMinutes, { today, lastPromptOn });
+      const ready = await withContexts(admin, userId, input, lexemes, null);
+      return await preview(admin, userId, ready.input, defaultMinutes, { today, lastPromptOn });
     }
     if (body.action !== "start") throw new HandlerError("invalid_request", 400);
     return await start(admin, userId, body, input, lexemes, defaultMinutes);

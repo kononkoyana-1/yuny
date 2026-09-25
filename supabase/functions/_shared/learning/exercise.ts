@@ -5,8 +5,9 @@
  */
 import type { ExerciseCode } from "./config.ts";
 import type { Collocation, ContrastBody } from "./contrast.ts";
+import { type ContextSentence, sentenceTiles } from "./context.ts";
 import type { Classified, OptionMeta, WordKey } from "./classify.ts";
-import { type Candidate, type OptionKind, pickOptions } from "./distractors.ts";
+import { type Candidate, type OptionKind, pickOptions, synonym } from "./distractors.ts";
 import { type HanziMap, wordDifference } from "./hanzi.ts";
 import { formatPinyin, normalizePinyin, parsePinyin, type Syllable } from "./pinyin.ts";
 import type { Ticket, TicketExercise } from "./ticket.ts";
@@ -22,8 +23,12 @@ export interface ExerciseBody {
   code: RenderCode;
   lexeme: { headword: string; reading: string | null; tone_label: string | null; translation: string | null } | null;
   options?: { id: string; text: string; kind: "ru" | "pinyin" | "hanzi"; a11y: string }[];
+  /** C1 — предложение с пропуском; C2 — только перевод (фраза собирается из плиток). */
+  sentence?: { tokens: string[]; blank_index: number | null; ru: string; pinyin?: string };
+  tiles?: { id: string; text: string }[];
   intro?: {
-    example: null;
+    /** Пример из проверенного кэша (#64); нет покрытого предложения — `null`. */
+    example: { zh: string; pinyin: string; ru: string } | null;
     char_notes: CharNote[];
     actions: IntroActions;
   };
@@ -35,7 +40,8 @@ export interface ExerciseBody {
     collocations: [string, string] | null;
     collocation_notes: [Collocation, Collocation] | null;
   };
-  key?: { option_id?: string; pinyin?: string };
+  /** C2: `tokens` — порядок из предложения, `orders` — все допустимые (он первый). */
+  key?: { option_id?: string; pinyin?: string; tokens?: string[]; orders?: string[][] };
   is_retry: boolean;
   /** Трудная проверка «Уже знаю» — у клиента чип «Проверка». */
   is_check: boolean;
@@ -218,6 +224,42 @@ export interface BuildInput {
   introActions?: IntroActions;
   /** Задание на пару: рендерер обычный, в память — как X*. */
   render?: RenderCode;
+  /**
+   * Предложение из кэша (#64), уже проверенное на покрытие: для C1, C2 и
+   * примера в знакомстве.
+   */
+  sentence?: ContextSentence | null;
+}
+
+function rngOf(seed: number): () => number {
+  let a = seed >>> 0;
+  return () => {
+    a = (a + 0x6d2b79f5) >>> 0;
+    let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+/**
+ * Плитки C2 вперемешку: порядок не совпадает ни с одним допустимым, иначе
+ * фраза собрана заранее. Все перестановки допустимы (два слова местами) —
+ * `null`.
+ */
+export function shuffleTiles(tiles: string[], orders: string[][], seed: number): string[] | null {
+  const rand = rngOf(seed);
+  const same = (xs: string[]) => orders.some((o) => o.join("\u0000") === xs.join("\u0000"));
+  for (let attempt = 0; attempt < 12; attempt++) {
+    const out = [...tiles];
+    for (let i = out.length - 1; i > 0; i--) {
+      const j = Math.floor(rand() * (i + 1));
+      [out[i], out[j]] = [out[j], out[i]];
+    }
+    if (!same(out)) return out;
+  }
+  const reversed = [...tiles].reverse();
+  return same(reversed) ? null : reversed;
 }
 
 /** Задание по коду; `null` — вариантов не хватило, нужен другой формат. */
@@ -259,7 +301,9 @@ export function buildExercise(input: BuildInput): Built | null {
           code: "intro",
           lexeme: lexemeOf(word),
           intro: {
-            example: null,
+            example: input.sentence
+              ? { zh: input.sentence.zh, pinyin: input.sentence.pinyin, ru: input.sentence.ru }
+              : null,
             char_notes: charNotes(word, input.ownWords ?? [], input.charEntries),
             actions: input.introActions ?? "know_or_remember",
           },
@@ -287,6 +331,70 @@ export function buildExercise(input: BuildInput): Built | null {
         ticket: ticket("P2", word.reading!),
       };
     }
+    case "C1": {
+      // Пропуск с выбором: варианты — знаки (как в W*), но не слова самой
+      // фразы и не синонимы: второй верный ответ в пропуск встал бы тоже.
+      const s = input.sentence;
+      if (!s) return null;
+      const inSentence = new Set(s.tokens);
+      const candidates = input.candidates.filter((c) =>
+        !inSentence.has(c.headword) && !(c.gloss && word.translation && synonym(c.gloss.split(";")[0], word.translation))
+      );
+      const opts = pickOptions({
+        kind: "hanzi",
+        target: { headword: word.headword, reading: word.reading, gloss: word.translation },
+        candidates,
+        count: 3,
+        exclude: input.exclude,
+        seed: input.seed,
+      });
+      if (!opts) return null;
+      const right = opts.findIndex((o) => o.headword === word.headword && o.reading === word.reading);
+      return {
+        body: {
+          ...base,
+          code: "C1",
+          lexeme: lexemeOf(word),
+          // Пропуск пустой, пиньинь фразы не показываем: в нём чтение пропущенного слова.
+          sentence: { tokens: s.tokens.map((t, i) => (i === s.targetIndex ? "" : t)), blank_index: s.targetIndex, ru: s.ru },
+          options: choiceOptions("hanzi", opts),
+          key: { option_id: `o${right}` },
+        },
+        ticket: {
+          ...ticket("C1", opts[right].value, opts),
+          ...(s.id ? { context_id: s.id } : {}),
+          prompt: { zh: s.zh, ru: s.ru },
+        },
+      };
+    }
+    case "C2": {
+      // Сборка фразы: плитки — слова без пунктуации; верны порядок фразы и
+      // допустимые порядки от генератора.
+      const s = input.sentence;
+      if (!s || s.tier !== "T2") return null;
+      const tiles = sentenceTiles(s);
+      if (tiles.length < 3) return null;
+      const orders = [tiles, ...s.altOrders];
+      const shown = shuffleTiles(tiles, orders, input.seed);
+      if (!shown) return null;
+      return {
+        body: {
+          ...base,
+          code: "C2",
+          lexeme: lexemeOf(word),
+          sentence: { tokens: [], blank_index: null, ru: s.ru },
+          tiles: shown.map((text, i) => ({ id: `t${i}`, text })),
+          key: { tokens: tiles, orders },
+        },
+        ticket: {
+          ...ticket("C2", s.zh),
+          expected_orders: orders,
+          tiles: shown,
+          ...(s.id ? { context_id: s.id } : {}),
+          prompt: { zh: s.zh, ru: s.ru },
+        },
+      };
+    }
     case "X1":
       return choice(input.render ?? "R1", "meaning", 3, "X1");
     case "X2":
@@ -298,7 +406,16 @@ export function buildExercise(input: BuildInput): Built | null {
 
 /** Лёгкий формат того же навыка — для повтора после ошибки и когда трудный не собрать. */
 export function easierCode(code: ExerciseCode | "intro"): ExerciseCode | null {
-  const m: Partial<Record<string, ExerciseCode>> = { R2: "R1", P2: "P1", W2: "W1", R1: "R1", P1: "P1", W1: "W1" };
+  const m: Partial<Record<string, ExerciseCode>> = {
+    R2: "R1",
+    P2: "P1",
+    W2: "W1",
+    R1: "R1",
+    P1: "P1",
+    W1: "W1",
+    C2: "C1",
+    C1: "C1",
+  };
   return m[code] ?? null;
 }
 
@@ -393,6 +510,8 @@ export function explanation(
       if (c.outcome === "form_similar") lines.push("Знаки похожи — присмотритесь к различию.");
       return lines;
     }
+    case "order":
+      return ["Слова верные, порядок другой."];
     case "blank":
     case "wrong":
       return meaning ? [`${target.headword}${reading ? ` ${reading}` : ""} — «${meaning}».`] : [];
