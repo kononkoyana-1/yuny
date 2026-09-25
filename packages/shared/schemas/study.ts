@@ -47,6 +47,8 @@ export const IntroSchema = z.object({
   actions: z.enum(["ok", "know_or_remember"]),
 });
 
+const CollocationSchema = z.object({ zh: z.string(), pinyin: z.string(), ru: z.string() });
+
 const PairSideSchema = z.object({
   headword: z.string(),
   reading: z.string().nullable(),
@@ -61,6 +63,11 @@ export const PairCardSchema = z.object({
   difference: z.string().nullable(),
   mnemonic: z.string().nullable(),
   collocations: z.tuple([z.string(), z.string()]).nullable(),
+  /** Те же коллокации с пиньинем и переводом: [для A, для B] (#71). */
+  collocation_notes: z
+    .tuple([CollocationSchema, CollocationSchema])
+    .nullable()
+    .default(null),
 });
 
 /** Ключ ответа: для мгновенного итога на клиенте. Пиньинь — в виде `mai3`. */

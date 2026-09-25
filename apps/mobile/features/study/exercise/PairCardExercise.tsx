@@ -42,7 +42,28 @@ export function PairCardExercise({ task, onAnswer, progressLabel }: ExerciseProp
         </View>
       ) : null}
 
-      {pair.collocations ? <HanziText variant="sentence">{pair.collocations.join(" · ")}</HanziText> : null}
+      {pair.collocation_notes ? (
+        <View className="flex-row gap-sm">
+          {pair.collocation_notes.map((c) => (
+            <View
+              key={c.zh}
+              accessible
+              accessibilityLabel={`${c.zh}, ${c.pinyin}, ${c.ru}`}
+              className="flex-1 items-center gap-xs"
+            >
+              <HanziText variant="sentence">{c.zh}</HanziText>
+              <Text variant="caption" tone="muted" className="text-center">
+                {c.pinyin}
+              </Text>
+              <Text variant="body" className="text-center">
+                {c.ru}
+              </Text>
+            </View>
+          ))}
+        </View>
+      ) : pair.collocations ? (
+        <HanziText variant="sentence">{pair.collocations.join(" · ")}</HanziText>
+      ) : null}
 
       <Button label={t("learn.ex.pair.go")} onPress={() => onAnswer({ choice: "ok" })} />
     </View>

@@ -43,8 +43,8 @@ describe("очередь", () => {
     expect(anchorOf(items, "c", 0)).toBe(2);
   });
 
-  it("блок пары не длиннее трёх и конца очереди", () => {
-    expect(pairBlockLength(items, 0)).toBe(3);
+  it("блок пары не длиннее четырёх и конца очереди", () => {
+    expect(pairBlockLength(items, 0)).toBe(4);
     expect(pairBlockLength(items, 3)).toBe(1);
   });
 });

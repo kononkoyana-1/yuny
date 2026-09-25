@@ -13,8 +13,8 @@ import type { Exercise } from "@yuny/shared";
 /** Сколько других заданий пройдёт до повтора после ошибки. */
 export const RETRY_GAP = 2;
 
-/** Сколько заданий на различение идёт за карточкой пары. */
-export const PAIR_BLOCK_SIZE = 3;
+/** Сколько заданий на различение идёт за карточкой пары (как `pairBlockSides` на сервере). */
+export const PAIR_BLOCK_SIZE = 4;
 
 export function insertNext(items: readonly Exercise[], anchor: number, next: readonly Exercise[]): Exercise[] {
   if (next.length === 0) return [...items];

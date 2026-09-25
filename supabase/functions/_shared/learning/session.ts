@@ -62,7 +62,14 @@ export type PlanTask =
     round?: 1 | 2;
   }
   | { kind: "pair_card"; pairId: string; code: "pair_card" }
-  | { kind: "pair"; pairId: string; lexemeId: string | null; code: "X1" };
+  | {
+    kind: "pair";
+    pairId: string;
+    lexemeId: string | null;
+    /** Чей знак спрашиваем: слово A или B пары. */
+    side: "a" | "b";
+    code: "X1";
+  };
 
 export type PlanReason = "debt" | "quota_spent" | "no_new_words" | null;
 
@@ -93,7 +100,14 @@ export const ROUND_MIXINS = 3;
 export const NEW_WORD_COST = 6;
 /** Из одной папки не больше стольких новых в день, если есть другие. */
 export const PER_FOLDER_NEW = 3;
-const PAIR_BLOCK = ["pair_card", "X1", "X1", "X1"] as const;
+
+/**
+ * Блок различения после карточки: 4 задания, правильный ответ то A, то B —
+ * не 4 раза подряд одно, иначе тренируется «жми левый» (vocabulary-engine.md §5).
+ */
+export function pairBlockSides(seed: number): ("a" | "b")[] {
+  return seed % 2 ? ["a", "b", "b", "a"] : ["b", "a", "a", "b"];
+}
 
 const EASY: Record<Exclude<Skill, "use">, ExerciseCode> = { read: "R1", pinyin: "P1", write: "W1" };
 const HARD: Record<Exclude<Skill, "use">, ExerciseCode> = { read: "R2", pinyin: "P2", write: "W2" };
@@ -357,23 +371,30 @@ function pairSlots(input: PlanInput, budget: number): { slots: Slot[]; cost: num
   const slots: Slot[] = [];
   let cost = 0;
   let due = 0;
-  for (const p of input.pairs) {
-    if (input.reviewedToday.has(p.id)) continue;
+  let cards = 0;
+  input.pairs.forEach((p, i) => {
+    if (input.reviewedToday.has(p.id)) return;
     const card = needsCard(p, input.now);
     const isDue = pairDue(p, input.now, input.retention);
-    if (!card && !isDue) continue;
+    if (!card && !isDue) return;
     due++;
+    const x1 = (side: "a" | "b"): PlanTask => ({
+      kind: "pair",
+      pairId: p.id,
+      lexemeId: side === "a" ? p.lexemeA : p.lexemeB,
+      side,
+      code: "X1",
+    });
+    // Карточек не больше двух за занятие: остальные пары дождутся следующего.
+    if (card && cards >= MODEL.pair.maxInterventions) return;
     const tasks: PlanTask[] = card
-      ? PAIR_BLOCK.map((code) =>
-        code === "pair_card"
-          ? { kind: "pair_card", pairId: p.id, code }
-          : { kind: "pair", pairId: p.id, lexemeId: p.lexemeA, code }
-      )
-      : [{ kind: "pair", pairId: p.id, lexemeId: p.lexemeA, code: "X1" }];
-    if (cost + tasks.length > budget) continue;
+      ? [{ kind: "pair_card", pairId: p.id, code: "pair_card" }, ...pairBlockSides(input.seed + i).map(x1)]
+      : [x1((input.seed + i) % 2 ? "a" : "b")];
+    if (cost + tasks.length > budget) return;
+    if (card) cards++;
     cost += tasks.length;
     slots.push({ key: `pair:${p.id}`, task: tasks[0], lexemeId: null, rank: -1, block: tasks });
-  }
+  });
   return { slots, cost, due };
 }
 

@@ -43,6 +43,7 @@ import {
   studyWord,
 } from "../_shared/studyData.ts";
 import { loadInput } from "../_shared/studyInput.ts";
+import { ensureContrast, loadContrast } from "../_shared/contrastCards.ts";
 
 const MINUTES = [5, 10, 15] as const;
 async function preview(
@@ -162,9 +163,16 @@ async function start(
       };
       const a = side(p.lexemeA, p.a);
       const b = side(p.lexemeB, p.b);
-      if (t.kind === "pair_card") return buildPairCard(a, b, p.id);
-      // Различение: партнёр — всегда среди вариантов.
-      const target = seed % 2 ? a : b;
+      if (t.kind === "pair_card") {
+        const contrast = await loadContrast(admin, p.a, p.b);
+        // Карточки ещё нет (пара старше кэша) — покажем без коллокаций и закажем на следующий раз.
+        if (!contrast) {
+          await ensureContrast(admin, { ...p.a, meaning: a.translation }, { ...p.b, meaning: b.translation });
+        }
+        return buildPairCard(a, b, p.id, contrast);
+      }
+      // Различение: партнёр — всегда среди вариантов; чей знак спрашиваем — решил план.
+      const target = t.side === "a" ? a : b;
       const other = target === a ? b : a;
       const l = target.lexemeId ? byId.get(target.lexemeId) : undefined;
       const candidates: Candidate[] = [

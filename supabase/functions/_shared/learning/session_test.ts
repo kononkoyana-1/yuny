@@ -175,7 +175,11 @@ Deno.test("пара на карточку — блок целиком в нач�
   const plan = buildSession(base({ lexemes: due.lexemes, states: due.states, pairs }));
   const codes = plan.tasks.map((t) => t.code);
   const card = codes.indexOf("pair_card");
-  assertEquals(codes.slice(card, card + 4), ["pair_card", "X1", "X1", "X1"]);
+  assertEquals(codes.slice(card, card + 5), ["pair_card", "X1", "X1", "X1", "X1"]);
+  // Правильный ответ то A, то B: оба слова по два раза.
+  const sides = plan.tasks.slice(card + 1, card + 5).map((t) => (t.kind === "pair" ? t.side : null));
+  assertEquals(sides.filter((s) => s === "a").length, 2);
+  assertEquals(sides.filter((s) => s === "b").length, 2);
   assertEquals(plan.tasks.filter((t) => t.kind === "pair" && t.pairId === "p-due").length, 1);
 });
 
@@ -258,4 +262,22 @@ Deno.test("interleave: блок идёт целиком, зависимость 
   ]);
   // Других заданий мало — вспоминание всё равно после знакомства.
   assertEquals(tasks.map((t) => t.code), ["intro", "R2", "R1"]);
+});
+
+Deno.test("контрастных карточек не больше двух за занятие", () => {
+  const due = dueWords(2);
+  const pair = (n: number): PlanPair => ({
+    id: `p${n}`,
+    a: { headword: `a${n}`, reading: null },
+    b: { headword: `b${n}`, reading: null },
+    lexemeA: null,
+    lexemeB: null,
+    status: "pending",
+    memory: null,
+    resolveStreak: 0,
+    confusions: 2,
+    lastConfusedAt: day(-1),
+  });
+  const plan = buildSession(base({ lexemes: due.lexemes, states: due.states, pairs: [pair(1), pair(2), pair(3)], minutes: 15 }));
+  assertEquals(plan.tasks.filter((t) => t.kind === "pair_card").length, 2);
 });

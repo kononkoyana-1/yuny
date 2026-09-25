@@ -104,16 +104,21 @@ export function pairCard(): Exercise {
     pair: {
       a: { headword: "买", reading: "mǎi", tone_label: "3-й тон", meaning: "покупать" },
       b: { headword: "卖", reading: "mài", tone_label: "4-й тон", meaning: "продавать" },
-      difference: "卖 = 十 + 买",
-      mnemonic: "Продаёшь — отдаёшь сверху.",
+      // Строка разбора и подсказка — из данных о знаках (#74); пока их нет, как на сервере.
+      difference: null,
+      mnemonic: null,
       collocations: ["买东西", "卖东西"],
+      collocation_notes: [
+        { zh: "买东西", pinyin: "mǎi dōngxi", ru: "покупать вещи" },
+        { zh: "卖东西", pinyin: "mài dōngxi", ru: "продавать вещи" },
+      ],
     },
   };
 }
 
-/** Блок различения после карточки: задания на оба слова пары. */
+/** Блок различения после карточки: 4 задания, правильный ответ то 卖, то 买. */
 export function pairTasks(): Exercise[] {
-  return [r1("mai4"), r1("mai"), w("W1", MAI4, 0)];
+  return [r1("mai4"), r1("mai"), r1("mai"), w("W1", MAI4, 0)];
 }
 
 export function mockStudySession(

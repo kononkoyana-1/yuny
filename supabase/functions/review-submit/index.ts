@@ -30,6 +30,7 @@ import {
   type StudyWord,
   DAY_MS,
   MODEL,
+  pairBlockSides,
   normalizePinyin,
   type PairWrite,
   planPairStart,
@@ -44,6 +45,7 @@ import {
   wordStage,
 } from "../_shared/learning/mod.ts";
 import { issue, loadPool, russianGloss } from "../_shared/studyData.ts";
+import { ensureContrast, loadContrast } from "../_shared/contrastCards.ts";
 
 const CONFUSIONS = ["confusion", "form_similar", "homophone"];
 /** Сколько последних верных ответов брать для медианы скорости. */
@@ -346,6 +348,8 @@ interface ResultCtx {
   partnerLexemeId: string | null;
   wantsKnowCheck: boolean;
   interventionPairId: string | null;
+  /** Ответ записал путаницу в пару — заказать для неё контрастную карточку. */
+  confusionWritten: boolean;
   known: boolean;
   lexeme: SubmitLexeme | null;
 }
@@ -387,13 +391,21 @@ async function result(
     const b = code ? buildExercise({ code, word, candidates: await pool(), seed, retry: true }) : null;
     if (b) next.push(b);
   }
-  if (ctx.interventionPairId && p) {
-    // Вторая путаница за 30 дней — карточка пары и три задания на различение.
+  if (p && ctx.confusionWritten && !ctx.interventionPairId) {
+    // Первая путаница: карточку пары готовим заранее, в фоне, — ко второй она уже будет.
+    await ensureContrast(admin, { ...word, meaning: word.translation }, { ...p, meaning: partnerMeaning });
+  }
+  if (ctx.interventionPairId && p && await interventionsInSession(admin, userId, ticket.session_id) < MODEL.pair.maxInterventions) {
+    // Вторая путаница за 30 дней — карточка пары и четыре задания на различение,
+    // правильный ответ то одно слово, то другое.
     const partner: StudyWord = { lexemeId: ctx.partnerLexemeId, ...p, translation: partnerMeaning };
-    next.push(buildPairCard(word, partner, ctx.interventionPairId));
+    const contrast = await loadContrast(admin, word, partner);
+    if (!contrast) await ensureContrast(admin, { ...word, meaning: word.translation }, { ...partner, meaning: partnerMeaning });
+    next.push(buildPairCard(word, partner, ctx.interventionPairId, contrast));
     const candidates = await pool();
-    for (let i = 0; i < 3; i++) {
-      const [t, o] = i % 2 ? [partner, word] : [word, partner];
+    const sides = pairBlockSides(seed);
+    for (let i = 0; i < sides.length; i++) {
+      const [t, o] = sides[i] === "a" ? [word, partner] : [partner, word];
       const b = buildExercise({
         code: "X1",
         word: t,
@@ -529,12 +541,28 @@ async function submit(admin: SupabaseClient, userId: string, ticket: Ticket, bod
         partnerLexemeId: partnerLex,
         wantsKnowCheck: (body.answer as Row)?.choice === "know" && ticket.exercise === "intro" && !!lexeme,
         interventionPairId: pairId,
+        confusionWritten: plan.eventPairWrite !== null,
         known: knownNow,
         lexeme,
       }),
     );
   }
   throw new HandlerError("busy_retry", 409);
+}
+
+/**
+ * Сколько пар уже разбирали в этом занятии: блок различения — несколько
+ * заданий X* по одной паре (одиночное X1 — обычная проверка пары, не в счёт).
+ * Больше двух интервенций за занятие не вставляем — пара подождёт следующего.
+ */
+async function interventionsInSession(admin: SupabaseClient, userId: string, sessionId: string): Promise<number> {
+  const rows = must(
+    await admin.from("review_events").select("pair_id").eq("user_id", userId).eq("session_id", sessionId)
+      .like("exercise", "X%").not("pair_id", "is", null),
+  ) as Row[];
+  const perPair = new Map<string, number>();
+  for (const r of rows) perPair.set(r.pair_id as string, (perPair.get(r.pair_id as string) ?? 0) + 1);
+  return [...perPair.values()].filter((n) => n >= 2).length;
 }
 
 /** Итог блока различения: по ответам на задания пары в этой сессии из журнала. */

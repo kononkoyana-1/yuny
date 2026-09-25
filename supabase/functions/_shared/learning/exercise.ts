@@ -4,6 +4,7 @@
  * выбраны (`pickOptions`), здесь — тексты, ключ, подписи тона и разбор.
  */
 import type { ExerciseCode } from "./config.ts";
+import type { Collocation, ContrastBody } from "./contrast.ts";
 import type { Classified, OptionMeta, WordKey } from "./classify.ts";
 import { type Candidate, type OptionKind, pickOptions } from "./distractors.ts";
 import { formatPinyin, normalizePinyin, parsePinyin, type Syllable } from "./pinyin.ts";
@@ -31,6 +32,7 @@ export interface ExerciseBody {
     difference: string | null;
     mnemonic: string | null;
     collocations: [string, string] | null;
+    collocation_notes: [Collocation, Collocation] | null;
   };
   key?: { option_id?: string; pinyin?: string };
   is_retry: boolean;
@@ -199,8 +201,11 @@ export function withoutOptions(code: ExerciseCode): ExerciseCode | null {
   return m[code] ?? null;
 }
 
-/** Карточка «Разберём пару». Различие и мнемоника — только проверенные (#71); пока `null`. */
-export function buildPairCard(a: StudyWord, b: StudyWord, pairId: string): Built {
+/**
+ * Карточка «Разберём пару». Коллокации — из проверенного кэша (`contrast`, #71);
+ * строка различия и подсказка строятся кодом из данных о знаках (#74) — пока `null`.
+ */
+export function buildPairCard(a: StudyWord, b: StudyWord, pairId: string, contrast: ContrastBody | null = null): Built {
   const side = (w: StudyWord): PairSide => ({
     headword: w.headword,
     reading: w.reading,
@@ -211,7 +216,14 @@ export function buildPairCard(a: StudyWord, b: StudyWord, pairId: string): Built
     body: {
       code: "pair_card",
       lexeme: null,
-      pair: { a: side(a), b: side(b), difference: null, mnemonic: null, collocations: null },
+      pair: {
+        a: side(a),
+        b: side(b),
+        difference: null,
+        mnemonic: null,
+        collocations: contrast ? [contrast.collocations[0].zh, contrast.collocations[1].zh] : null,
+        collocation_notes: contrast ? contrast.collocations : null,
+      },
       is_retry: false,
     },
     ticket: {

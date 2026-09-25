@@ -62,6 +62,7 @@ export {
   intakeQuota,
   interleave,
   NEW_WORD_COST,
+  pairBlockSides,
   type PlanInput,
   type PlanLexeme,
   type PlanPair,
@@ -97,3 +98,4 @@ export { estimateMinutes, type PlanDigest, planDigest, recallNow, todayState, ty
 export { extraNewOffer, type FolderModeOffer, type FolderPlan, folderPlan } from "./folder.ts";
 export { type ConfusionView, folderOverview, type FolderOverview, type SkillLevel, skillLevel, stageOf, type WordOnMap, wordProgress, type WordProgress } from "./overview.ts";
 export { intakeRate, perDay, queueView, type QueueView } from "./queue.ts";
+export { checkCollocation, checkContrast, type Collocation, type ContrastBody, readContrast } from "./contrast.ts";
