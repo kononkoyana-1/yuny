@@ -73,6 +73,7 @@ export function Sheet({
   const isWide = width >= breakpoints.wide;
 
   const panelRef = useRef<View>(null);
+  const swallowRequestClose = useRef(false);
   const wasVisible = useRef(false);
   const scrimOpacity = useSharedValue(0);
   const panelProgress = useSharedValue(0);
@@ -118,7 +119,14 @@ export function Sheet({
 
   useEffect(() => {
     if (!visible || !dismissible) return undefined;
-    return attachEscapeListener(onBack ?? onClose);
+    if (!onBack) return attachEscapeListener(onClose);
+    return attachEscapeListener(() => {
+      // На web `Modal` ловит тот же Escape ещё раз, на `keyup`, и зовёт
+      // `onRequestClose` — к тому времени шаг назад уже сделан, и второй вызов
+      // закрыл бы лист целиком. Этот один раз он пропускает.
+      swallowRequestClose.current = true;
+      onBack();
+    });
   }, [visible, dismissible, onClose, onBack]);
 
   // S6: swallows the scrim tap, `Modal`'s `onRequestClose` (Android
@@ -140,6 +148,10 @@ export function Sheet({
       transparent
       animationType="none"
       onRequestClose={() => {
+        if (swallowRequestClose.current) {
+          swallowRequestClose.current = false;
+          return;
+        }
         if (dismissible) (onBack ?? onClose)();
       }}
       // Second, final return of focus. On the web the Modal stays in the DOM
