@@ -7,10 +7,14 @@
  * префикс → попадание в перевод» и выбор индекса под письменность — работа
  * планировщика, а не функции. Здесь остаются границы запроса, форма ответа и
  * признак «есть ещё».
+ *
+ * `action: "article"` — статья в листе: уровень HSK, состав слова, слова со
+ * знаком (словарь 2.0, #79 #80 #84; `article.ts`). Без `action` — поиск.
  */
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { handler, HandlerError, json, requireString } from "../_shared/shared.ts";
 import { isSearchable, pinyinPlain, queryKind } from "./search.ts";
+import { article } from "./article.ts";
 
 /** Держится заодно со `DictionarySearchRequestSchema` в `packages/shared`. */
 const MAX_QUERY = 64;
@@ -43,7 +47,9 @@ function boundedInt(
 }
 
 Deno.serve(
-  handler(async ({ admin, body }) => {
+  handler(async ({ admin, body, userId }) => {
+    if (body.action === "article") return json(await article(admin, userId, body));
+
     const query = requireString(body, "query").slice(0, MAX_QUERY);
     const limit = boundedInt(body, "limit", DEFAULT_LIMIT, 1, MAX_LIMIT);
     const offset = boundedInt(body, "offset", 0, 0, 10_000);

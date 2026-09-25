@@ -125,7 +125,7 @@ function entrySyllables(reading: string | null): Syllable[] {
 }
 
 /** Слог знака в этом слове; `null`, если чтение не делится по знакам (нет чтения, латиница, эр). */
-function syllableAt(headword: string, reading: string | null, index: number): Syllable | null {
+export function syllableAt(headword: string, reading: string | null, index: number): Syllable | null {
   const chars = [...headword];
   const syl = reading ? parsePinyin(reading) : null;
   if (!syl || syl.length !== chars.length || !chars.every((c) => HAN.test(c))) return null;
@@ -137,7 +137,7 @@ function syllableAt(headword: string, reading: string | null, index: number): Sy
  * сперва с тем же тоном, потом без тона (服 в 衣服 yīfu — лёгкий тон, в
  * словаре fú). Слога нет — годится только однозначная статья с одним чтением.
  */
-function matchEntry(entries: CharEntry[], s: Syllable | null): { entry: CharEntry; syllable: Syllable } | null {
+export function matchEntry(entries: CharEntry[], s: Syllable | null): { entry: CharEntry; syllable: Syllable } | null {
   if (!s) {
     const only = entries.length === 1 ? entrySyllables(entries[0].reading) : [];
     return only.length === 1 ? { entry: entries[0], syllable: only[0] } : null;
@@ -157,7 +157,7 @@ function matchEntry(entries: CharEntry[], s: Syllable | null): { entry: CharEntr
  * гнезда; без подписей — `compact`, только если чтение первое в статье
  * (короткий список начинается с него). Нет русского — `null`: не выдумываем.
  */
-function meaningFor(entry: CharEntry, syllable: Syllable): string | null {
+export function meaningFor(entry: CharEntry, syllable: Syllable): string | null {
   const readings = entrySyllables(entry.reading);
   const same = (x: Syllable) => x.base === syllable.base && x.tone === syllable.tone;
   if (readings.length > 1) {
