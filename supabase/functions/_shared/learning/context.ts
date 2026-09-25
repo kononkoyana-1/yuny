@@ -353,6 +353,27 @@ export function userLevel(words: { hskLevel: number | null; known: boolean }[]):
   return level;
 }
 
+/** «Узнаю» — стабильность «Читаю» от 3 дней (vocabulary-engine.md §1, §7). */
+const KNOWN_READ = 3;
+
+/**
+ * Что знает пользователь — по его памяти: слова, у которых «Читаю» держится
+ * от 3 дней, и уровень по ним. `list` — те же слова для промпта, самые
+ * устойчивые первыми, не больше 150 (длинный список модель не держит).
+ */
+export function knownWords(
+  lexemes: { id: string; headword: string; hskLevel: number | null }[],
+  states: Record<string, { read?: { stability: number } } | undefined>,
+): KnownWords & { list: string[] } {
+  const read = (id: string) => states[id]?.read?.stability ?? 0;
+  const known = lexemes.filter((l) => read(l.id) >= KNOWN_READ);
+  return {
+    words: new Set(known.map((l) => l.headword)),
+    level: userLevel(lexemes.map((l) => ({ hskLevel: l.hskLevel, known: read(l.id) >= KNOWN_READ }))),
+    list: [...new Set([...known].sort((a, b) => read(b.id) - read(a.id)).map((l) => l.headword))].slice(0, 150),
+  };
+}
+
 /** Плитки для сборки фразы: слова без пунктуации. */
 export const sentenceTiles = (s: ContextSentence) => s.tokens.filter((t) => !isPunct(t));
 

@@ -510,6 +510,8 @@ export function explanation(
       if (c.outcome === "form_similar") lines.push("Знаки похожи — присмотритесь к различию.");
       return lines;
     }
+    case "order":
+      return ["Слова верные, порядок другой."];
     case "blank":
     case "wrong":
       return meaning ? [`${target.headword}${reading ? ` ${reading}` : ""} — «${meaning}».`] : [];

@@ -185,7 +185,7 @@ function skillsOf(l: PlanLexeme, input: Pick<PlanInput, "contextReady">): Skill[
 export function forecastDue(input: Pick<PlanInput, "lexemes" | "states" | "pairs" | "retention">, at: Date): number {
   let n = 0;
   for (const l of input.lexemes) {
-    for (const [skill, st] of Object.entries(input.states[l.id] ?? {})) {
+    for (const st of Object.values(input.states[l.id] ?? {})) {
       if (!st) continue;
       if (retrievabilityAt(st, at) < input.retention) n++;
     }

@@ -7,6 +7,7 @@ import {
   checkSentence,
   type ContextSentence,
   covered,
+  knownWords,
   type Lexicon,
   maxMatch,
   pickSentence,
@@ -162,4 +163,16 @@ Deno.test("кэш: строка читается обратно, битая — 
   assertEquals(readSentence({ ...row, token_levels: [1] }), null);
   assertEquals(senseKey("Покупать; купить"), "покупать");
   assertEquals(senseKey(null), "");
+});
+
+Deno.test("известные слова — по памяти «Читаю» (от 3 дней), в промпт — самые устойчивые первыми", () => {
+  const lexemes = [
+    { id: "a", headword: "咖啡", hskLevel: 2 },
+    { id: "b", headword: "票", hskLevel: 2 },
+    { id: "c", headword: "超市", hskLevel: 3 },
+  ];
+  const k = knownWords(lexemes, { a: { read: { stability: 4 } }, b: { read: { stability: 30 } }, c: { read: { stability: 1 } } });
+  assertEquals([...k.words].sort(), ["咖啡", "票"].sort());
+  assertEquals(k.list, ["票", "咖啡"]);
+  assertEquals(k.level, 0);
 });
