@@ -4,6 +4,7 @@ import { correctAnswerText, localVerdict } from "@/shared/lib/studyVerdict";
 import type { StudyRepository } from "../study.repository";
 import { delay } from "./delay";
 import { TODAY_FIXTURES, todayFixture, type TodayFixture } from "./study.fixtures";
+import { mockLearningSettingsRepository } from "./learningSettings.repository.mock";
 import { mockStudySession, pairCard, pairTasks, r1 } from "./study.session.fixtures";
 
 /**
@@ -50,7 +51,17 @@ export const mockStudyRepository: StudyRepository = {
       throw new BackendError("session_preview_failed");
     }
     const name: TodayFixture = MOCK_TODAY && MOCK_TODAY in TODAY_FIXTURES ? (MOCK_TODAY as TodayFixture) : "ready";
-    return delay(todayFixture(name), MOCK_TODAY === "slow" ? 3000 : 400);
+    const today = todayFixture(name);
+    // Бюджет и «окно уже было сегодня» — из mock-настроек, как сервер из `learning_settings`.
+    const settings = await mockLearningSettingsRepository.get().catch(() => null);
+    const preview = settings
+      ? {
+        ...today,
+        budget_minutes: settings.session_minutes,
+        show_daily_prompt: today.show_daily_prompt && settings.last_prompt_on !== today.today,
+      }
+      : today;
+    return delay(preview, MOCK_TODAY === "slow" ? 3000 : 400);
   },
 
   async start() {
@@ -70,11 +81,24 @@ export const mockStudyRepository: StudyRepository = {
     if (!e) throw new BackendError("ticket_invalid");
 
     if ("choice" in answer) return result({ outcome: "seen" });
-    if ("self" in answer) return result({ outcome: answer.self === "recalled" ? "correct" : "wrong" });
+    if ("self" in answer) {
+      return answer.self === "recalled"
+        ? result({ outcome: "correct", stage_before: "recognize", stage: "recall" })
+        : result({ outcome: "wrong" });
+    }
 
     const verdict = localVerdict(e, answer) ?? "wrong";
     const correct = { ...e.key, text: correctAnswerText(e, null) ?? undefined };
-    if (verdict === "correct") return result({ outcome: "correct", correct, stage: "recognize" });
+    if (verdict === "correct") {
+      // Верный ответ двигает слово на стадию выше; верное «卖» в блоке пары — пара решена.
+      return result({
+        outcome: "correct",
+        correct,
+        stage_before: "meeting",
+        stage: "recognize",
+        pair_resolved: e.lexeme?.headword === "卖" ? { a: "买", b: "卖" } : null,
+      });
+    }
 
     // Ошибка: слово вернётся через пару заданий в лёгком формате.
     const retry = e.lexeme?.headword === "卖" ? r1("mai4", 0, true) : r1("mai", 0, true);

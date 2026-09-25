@@ -85,7 +85,7 @@ async function loadInput(admin: SupabaseClient, userId: string, body: Record<str
     loadLexemes(admin, userId),
     loadStates(admin, userId),
     loadPairs(admin, userId),
-    admin.from("learning_settings").select("session_minutes, max_new, retention").eq("user_id", userId)
+    admin.from("learning_settings").select("session_minutes, max_new, retention, last_prompt_on").eq("user_id", userId)
       .maybeSingle(),
     pace(admin, userId),
     reviewedSince(admin, userId, start),
@@ -103,7 +103,16 @@ async function loadInput(admin: SupabaseClient, userId: string, body: Record<str
     reviewedToday: reviewed,
     seed: Math.floor(Math.random() * 2 ** 31),
   };
-  return { input, lexemes, defaultMinutes: (s.session_minutes ?? 10) as number };
+  // День пользователя (граница — 04:00 по его часам) как `YYYY-MM-DD`: им
+  // помечается, что окно «Повторим?» сегодня уже было.
+  const today = new Date(start.getTime() + tz * 60_000).toISOString().slice(0, 10);
+  return {
+    input,
+    lexemes,
+    defaultMinutes: (s.session_minutes ?? 10) as number,
+    today,
+    lastPromptOn: (s.last_prompt_on ?? null) as string | null,
+  };
 }
 
 async function preview(
@@ -111,6 +120,7 @@ async function preview(
   userId: string,
   input: Omit<PlanInput, "mode" | "minutes">,
   defaultMinutes: number,
+  day: { today: string; lastPromptOn: string | null },
 ) {
   const folderNames = new Map(
     (must(await admin.from("user_dictionary_folders").select("id, name").eq("user_id", userId)) as Row[])
@@ -137,13 +147,17 @@ async function preview(
   });
   const budget = MINUTES.includes(defaultMinutes as 5) ? defaultMinutes : 10;
   const chosen = built.find((b) => b.minutes === budget)!.plan;
+  const state = todayState(input, chosen);
   return json({
     plans,
     due_now: chosen.stats.dueNow,
     reason: chosen.stats.reason,
     budget_minutes: budget,
-    state: todayState(input, chosen),
+    state,
     recall_now: recallNow(input, input.now),
+    today: day.today,
+    // Раз в день, пока сегодня не отвечали и есть что повторить (daily-and-folder-study §2.1).
+    show_daily_prompt: state === "ready" && input.reviewedToday.size === 0 && day.lastPromptOn !== day.today,
   });
 }
 
@@ -255,8 +269,10 @@ function rebalance(portions: number[], n: number): number[] {
 
 Deno.serve(
   handler(async ({ userId, admin, body }) => {
-    const { input, lexemes, defaultMinutes } = await loadInput(admin, userId, body);
-    if (body.action === "preview") return await preview(admin, userId, input, defaultMinutes);
+    const { input, lexemes, defaultMinutes, today, lastPromptOn } = await loadInput(admin, userId, body);
+    if (body.action === "preview") {
+      return await preview(admin, userId, input, defaultMinutes, { today, lastPromptOn });
+    }
     if (body.action !== "start") throw new HandlerError("invalid_request", 400);
     return await start(admin, userId, body, input, lexemes, defaultMinutes);
   }),

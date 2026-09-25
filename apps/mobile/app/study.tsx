@@ -4,12 +4,15 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { useQueryClient } from "@tanstack/react-query";
 import type { StudySession } from "@yuny/shared";
 import { Button, EmptyState, ErrorState, LoadingState } from "@/shared/ui";
-import { queryKeys } from "@/shared/api";
+import { queryKeys, useToday } from "@/shared/api";
 import { t } from "@/shared/i18n";
 import type { StartStudyInput } from "@/shared/repositories";
 import { ExerciseShell } from "@/features/study/exercise/ExerciseShell";
 import { useStartSession } from "@/features/study/session/useStartSession";
 import { useStudySession } from "@/features/study/session/useStudySession";
+import { daySummary, portionSummary } from "@/features/study/session/summary";
+import { PauseScreen } from "@/features/study/PauseScreen";
+import { DaySummaryScreen } from "@/features/study/DaySummaryScreen";
 
 /**
  * Занятие (#67): задания на весь экран, вне таб-бара. `/study` — «Сегодня»,
@@ -56,15 +59,47 @@ export default function StudyScreen() {
 
 function StudyRun({ session, onClose }: { session: StudySession; onClose: () => void }) {
   const run = useStudySession(session.exercises);
+  const client = useQueryClient();
+  const today = useToday({ enabled: run.finished });
 
-  if (run.finished) {
-    // Итог дня с продвинувшимися словами — #68.
+  // Прогноз на завтра в итоге дня — из пересчитанной карточки «Сегодня».
+  useEffect(() => {
+    if (run.finished) void client.invalidateQueries({ queryKey: queryKeys.today });
+  }, [run.finished, client]);
+
+  if (session.exercises.length === 0) {
+    // Всё уже сделано (например, на другом устройстве).
     return (
       <View className="flex-1 items-center justify-center gap-lg bg-background p-lg dark:bg-background-dark">
-        <EmptyState message={`${t("learn.session.finished")}. ${t("learn.session.finishedDetail")}`} />
+        <EmptyState message={t("learn.day.empty")} />
         <Button label={t("learn.session.toDictionary")} onPress={onClose} />
       </View>
     );
   }
+
+  if (run.finished) {
+    const plan = today.data?.plans.find((p) => p.minutes === today.data?.budget_minutes);
+    const fresh = today.data && !today.isFetching;
+    return (
+      <DaySummaryScreen
+        summary={daySummary(run.log)}
+        tomorrow={fresh && plan ? plan.due_tomorrow : null}
+        onDone={onClose}
+      />
+    );
+  }
+
+  if (run.pause !== null) {
+    return (
+      <PauseScreen
+        portion={run.pause}
+        portions={run.portions}
+        summary={portionSummary(run.log, run.pause)}
+        onNext={run.resume}
+        onStop={onClose}
+      />
+    );
+  }
+
   return <ExerciseShell session={run} onClose={onClose} />;
 }

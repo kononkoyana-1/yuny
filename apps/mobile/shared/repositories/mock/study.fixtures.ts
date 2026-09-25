@@ -3,6 +3,8 @@ import { SessionPreviewSchema, type SessionPreview } from "@yuny/shared";
 type Plan = SessionPreview["plans"][number];
 
 const SHOPPING = "00000000-0000-4000-8000-000000000001";
+/** День mock-пользователя: окно «Повторим?» помнит его в `last_prompt_on`. */
+export const MOCK_TODAY_DATE = "2026-09-25";
 const TRAVEL = "00000000-0000-4000-8000-000000000002";
 
 const plan = (over: Partial<Plan> & Pick<Plan, "minutes">): Plan => ({
@@ -42,6 +44,8 @@ export const TODAY_FIXTURES = {
     budget_minutes: 10,
     state: "ready",
     recall_now: { recalled: 212, total: 347 },
+    today: MOCK_TODAY_DATE,
+    show_daily_prompt: true,
   },
   debt: {
     plans: READY_PLANS.map((p) => ({ ...p, new: 0, new_sources: [], due: p.total, pairs: [] })),
@@ -50,6 +54,8 @@ export const TODAY_FIXTURES = {
     budget_minutes: 10,
     state: "ready",
     recall_now: { recalled: 180, total: 347 },
+    today: MOCK_TODAY_DATE,
+    show_daily_prompt: true,
   },
   done: {
     plans: EMPTY_PLANS,
@@ -58,6 +64,8 @@ export const TODAY_FIXTURES = {
     budget_minutes: 10,
     state: "done",
     recall_now: { recalled: 301, total: 347 },
+    today: MOCK_TODAY_DATE,
+    show_daily_prompt: false,
   },
   nothing_due: {
     plans: EMPTY_PLANS,
@@ -66,6 +74,8 @@ export const TODAY_FIXTURES = {
     budget_minutes: 10,
     state: "nothing_due",
     recall_now: { recalled: 330, total: 347 },
+    today: MOCK_TODAY_DATE,
+    show_daily_prompt: false,
   },
   no_words: {
     plans: EMPTY_PLANS.map((p) => ({ ...p, due_tomorrow: 0 })),
@@ -74,6 +84,8 @@ export const TODAY_FIXTURES = {
     budget_minutes: 10,
     state: "no_words",
     recall_now: { recalled: 0, total: 0 },
+    today: MOCK_TODAY_DATE,
+    show_daily_prompt: false,
   },
 } satisfies Record<string, SessionPreview>;
 

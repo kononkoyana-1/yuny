@@ -109,9 +109,6 @@ jobs:
           EXPO_PUBLIC_SITE_URL: ${{ env.SITE_URL }}
           # The Google button shows only when the project has the provider on.
           EXPO_PUBLIC_GOOGLE_SIGN_IN: ${{ needs.backend.outputs.google_enabled == 'true' && 'enabled' || 'disabled' }}
-          # The "Сегодня" card on the dictionary (#66) — on before #68 finishes it
-          # (no budget window, no day summary yet); drop with the flag in #68.
-          EXPO_PUBLIC_TODAY: "1"
         run: npx expo export --platform web --output-dir dist --clear
 
       # Deep links (/yuny/folder/<id>) reach Pages as 404s; the SPA shell

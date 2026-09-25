@@ -14,25 +14,21 @@
 - Сервер (#58–#63): модель памяти, `review-submit` (билеты, `request_id`, `pair_start`), дистракторы, `session-build` (preview/start).
 - #65 токены и примитивы. Reanimated-обёртки зарегистрированы в NativeWind (`shared/ui/animated.ts`); цвет текста — только `tone`.
 - #66 «Словарь» первый; карточка «Сегодня» (`features/study/TodayHero.tsx`) на `preview` (+ `state`, `recall_now`, состав планов).
-  Флаг `TODAY_ENABLED` (`EXPO_PUBLIC_TODAY=1`) включён на проде в `pages.yml` — убрать вместе с флагом в #68.
-- #67 занятие `/study` (вне таб-бара): оболочка `features/study/exercise/ExerciseShell.tsx`, рендереры intro, R1, R2, P1, P2,
-  W1/W2, C1, C2, pair_card; лоток с мягким разбором; клавиши 1–6 / Enter / Escape / Backspace (`shared/platform/keyboardShortcuts`).
-  Логика — `features/study/session/`: очередь (повтор через 2 задания, блок пары сразу, «Уже знаю» убирает слово),
-  итог сразу по ключу (`shared/lib/studyVerdict.ts`), очередь отправки с повтором при обрыве сети (`outbox.ts`), `pair_start`
-  после блока пары. `mai3 → mǎi` — `pinyinWithMarks`. Mock: `EXPO_PUBLIC_MOCK_STUDY=start_error|flaky|slow`; R1 «продавать» на 买
-  → путаница → карточка пары. Скриншоты: узкий/широкий, светлая/тёмная. «Начать» на карточке ведёт в `/study`.
-
+- #67 занятие `/study` (вне таб-бара): `features/study/exercise/*`, логика `features/study/session/*` (очередь, итог по
+  ключу, очередь отправки, блок пары). Mock: `EXPO_PUBLIC_MOCK_STUDY`; R1 «продавать» на 买 → карточка пары.
 - Загрузка файла (2026-09-25): у вызова Gemini лимит 50 с на попытку и 110 с на всё; задача без изменений дольше 3 мин —
   мёртвая, `words-extract` её перезапускает; «Отмена» на экране ожидания (`action: "cancel"`). Логи функций —
   Actions → «Function logs (read-only)» (`scripts/function-logs.mjs`, фильтр `ai_` — ответы Gemini).
   Причина сбоя — 503 «high demand» у `gemini-3.5-flash`; повторы идут на запасные модели (`GEMINI_FALLBACK_MODELS`).
+- #68 окно «Повторим?» (`features/study/BudgetSheet.tsx`: утром само при `show_daily_prompt`, из чипа — смена минут),
+  пауза между порциями и итог дня (`PauseScreen`, `DaySummaryScreen`, расчёт — `session/summary.ts`). Сервер: `preview` +
+  `today`/`show_daily_prompt`, `review-submit` + `stage_before`/`pair_resolved`; день окна — `learning_settings.last_prompt_on`.
+  Флаг `TODAY_ENABLED` снят.
 
 ## Дальше по порядку
-1. **#68** окно «Повторим?» (+ `onChangeBudget`), пауза между порциями (`portion` у задания), итог дня → удалить флаг
-   `TODAY_ENABLED` и строку в `pages.yml`. Сейчас после последнего задания — простой экран «На сегодня всё».
-   Сквозной прогон карточка → занятие → ответы на проде (master `3b4d419`) владелец проверил 2026-09-25: всё работает.
-2. **#69** раунд папки (`/study?folder=<id>`, intro с «Запомню / Уже знаю»), **#70** карта папки + **#85** очередь, **#71** пары.
-3. Позже: #64 контексты (откроет C1/C2 на сервере и «Использую»), #73 learning-overview, #74 знаки, словарь 2.0 #75–#84,
+1. **#69** раунд папки (`/study?folder=<id>`, intro с «Запомню / Уже знаю») + «Ещё 7 новых слов» в итоге дня (тот же раунд,
+   `extra_new`; на сервере его пока нет). **#70** карта папки + **#85** очередь, **#71** пары.
+2. Позже: #64 контексты (откроет C1/C2 на сервере и «Использую»), #73 learning-overview, #74 знаки, словарь 2.0 #75–#84,
    #86 озвучка (CC-CEDICT + Make Me a Hanzi + HSK Sentences Audio + локальный CosyVoice2; сперва решения владельца).
 
 ## Известные ограничения

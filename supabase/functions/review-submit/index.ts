@@ -319,6 +319,9 @@ async function duplicateResponse(admin: SupabaseClient, userId: string, requestI
     explanation: [],
     next: [],
     stage: await stageNow(admin, userId, ticket, now),
+    // Повтор: переход стадии и решённую пару уже отдал первый ответ.
+    stage_before: null,
+    pair_resolved: null,
     known: false,
     duplicate: true,
   });
@@ -338,6 +341,8 @@ async function meaningOf(admin: SupabaseClient, userId: string, w: WordKey, lexe
 }
 
 interface ResultCtx {
+  stageBefore: Stage | null;
+  pairResolved: { a: string; b: string } | null;
   partnerLexemeId: string | null;
   wantsKnowCheck: boolean;
   interventionPairId: string | null;
@@ -408,6 +413,8 @@ async function result(
     explanation: explanation(classified, word, partnerMeaning),
     next: await Promise.all(next.map((b) => issue(b, userId, ticket.session_id, 0))),
     stage,
+    stage_before: ctx.stageBefore,
+    pair_resolved: ctx.pairResolved,
     known: ctx.known,
     duplicate: false,
   };
@@ -517,6 +524,8 @@ async function submit(admin: SupabaseClient, userId: string, ticket: Ticket, bod
       (["read", "pinyin"] as const).every((k) => skills[k] || plan.skillWrites.some((w) => w.skill === k));
     return json(
       await result(admin, userId, ticket, classified, plan.stage, {
+        stageBefore: plan.stageBefore,
+        pairResolved: plan.pairResolved,
         partnerLexemeId: partnerLex,
         wantsKnowCheck: (body.answer as Row)?.choice === "know" && ticket.exercise === "intro" && !!lexeme,
         interventionPairId: pairId,

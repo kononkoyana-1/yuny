@@ -1,9 +1,9 @@
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState, type RefObject } from "react";
 import { FlatList, View, type TextInput } from "react-native";
 import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Button, EmptyState, ErrorState, IconButton, Input, LoadingState, Text } from "@/shared/ui";
-import { useDictionarySearch, useSavedItems, useToday } from "@/shared/api";
+import { useDictionarySearch, useSavedItems, useToday, useTodayActions } from "@/shared/api";
 import { useDebouncedValue } from "@/shared/lib/useDebouncedValue";
 import { breakpoints, spacing } from "@/shared/config/tokens";
 import { t } from "@/shared/i18n";
@@ -11,7 +11,7 @@ import { ArticleSheet, type SheetWord } from "@/features/dictionary/ArticleSheet
 import { EntryRow } from "@/features/dictionary/EntryRow";
 import { MyDictionary, type MyDictionaryHandle } from "@/features/dictionary/MyDictionary";
 import { TodayHero } from "@/features/study/TodayHero";
-import { TODAY_ENABLED } from "@/features/study/flags";
+import { BudgetSheet } from "@/features/study/BudgetSheet";
 import { groupSavedWords, searchSaved, wordKey } from "@/features/dictionary/saved";
 import { useRowRefs } from "@/features/dictionary/useRowRefs";
 
@@ -37,6 +37,9 @@ export default function DictionaryTab() {
   const router = useRouter();
   const [input, setInput] = useState("");
   const inputRef = useRef<TextInput>(null);
+  // После утреннего окна фокус — в поле поиска (§7); `Sheet` ждёт ref на View,
+  // а на web у поля тот же `.focus()`.
+  const inputRefAsView = inputRef as unknown as RefObject<View | null>;
   const query = useDebouncedValue(input.trim(), SEARCH_DEBOUNCE_MS);
 
   const {
@@ -51,7 +54,18 @@ export default function DictionaryTab() {
     isFetchNextPageError,
   } = useDictionarySearch(query);
   const saved = useSavedItems();
-  const today = useToday({ enabled: TODAY_ENABLED });
+  const today = useToday();
+  const { markPromptShown, saveBudget } = useTodayActions();
+  // Окно «Повторим?»: утреннее открыто, пока сервер его предлагает и в этом
+  // заходе его не закрыли; из чипа — по нажатию (today-session.design.md §3.7).
+  const [promptClosed, setPromptClosed] = useState(false);
+  const [changingBudget, setChangingBudget] = useState(false);
+  const budgetChipRef = useRef<View>(null);
+  const budgetMode = changingBudget
+    ? "change"
+    : today.data?.show_daily_prompt && !promptClosed && input === ""
+      ? "daily"
+      : null;
   const [width, setWidth] = useState(0);
   const wide = width >= breakpoints.wide;
   const myDictionaryRef = useRef<MyDictionaryHandle>(null);
@@ -184,7 +198,6 @@ export default function DictionaryTab() {
   }
 
   function renderMine() {
-    if (!TODAY_ENABLED) return <MyDictionary />;
     // Пока карточка — герой, главный акцент экрана она, а не «Новая папка».
     const heroIsPrimary = today.data?.state === "ready" || (!today.data && !today.isError);
     const hero = (
@@ -193,6 +206,8 @@ export default function DictionaryTab() {
         isError={today.isError}
         onRetry={() => void today.refetch()}
         onStart={() => router.push("/study")}
+        onChangeBudget={() => setChangingBudget(true)}
+        budgetChipRef={budgetChipRef}
         onToFolders={() => myDictionaryRef.current?.showFolders()}
       />
     );
@@ -251,6 +266,32 @@ export default function DictionaryTab() {
       </View>
 
       {renderBody()}
+
+      {today.data ? (
+        <BudgetSheet
+          mode={budgetMode}
+          today={today.data}
+          returnFocusRef={budgetMode === "change" ? budgetChipRef : inputRefAsView}
+          onStart={async (minutes) => {
+            await saveBudget(minutes, today.data?.today);
+            setPromptClosed(true);
+            router.push({ pathname: "/study", params: { minutes: String(minutes) } });
+          }}
+          onSave={async (minutes) => {
+            await saveBudget(minutes);
+            setChangingBudget(false);
+          }}
+          onClose={() => {
+            if (budgetMode === "change") {
+              setChangingBudget(false);
+              return;
+            }
+            setPromptClosed(true);
+            // «Позже» — до завтра. Не записалось — окно просто покажется ещё раз.
+            if (today.data) void markPromptShown(today.data.today).catch(() => undefined);
+          }}
+        />
+      ) : null}
 
       <ArticleSheet
         word={openWord}

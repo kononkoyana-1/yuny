@@ -109,6 +109,13 @@ Deno.test("первый верный ответ создаёт навык «Чи
   assertEquals(plan.stage, "meeting");
 });
 
+Deno.test("стадия до ответа: первый верный ответ — «новое» → «знакомство», пара не решена", () => {
+  const plan = planSubmit(input({}));
+  assertEquals(plan.stageBefore, "new");
+  assertEquals(plan.stage, "meeting");
+  assertEquals(plan.pairResolved, null);
+});
+
 Deno.test("повтор навыка пишется с проверкой reps — защита от гонки двух ответов", () => {
   const plan = planSubmit(input({ skills: { read: skill(2, day(-2), 4) } }));
   assertEquals(plan.skillWrites[0].repsBefore, 4);

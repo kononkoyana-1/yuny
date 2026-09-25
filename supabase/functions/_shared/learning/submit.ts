@@ -94,6 +94,10 @@ export interface SubmitPlan {
   /** Пора контрастная карточка — индекс в `pairWrites`. */
   interventionWrite: number | null;
   stage: Stage | null;
+  /** Стадия слова до ответа — для «продвинулись» в паузе и итоге дня (#68). */
+  stageBefore: Stage | null;
+  /** Пара, которую этот ответ перевёл в `resolved`. */
+  pairResolved: { a: string; b: string } | null;
 }
 
 /** «Уже знаю» и проверка пройдена: стартовая стабильность, дни. */
@@ -264,6 +268,17 @@ export function planSubmit(input: SubmitInput): SubmitPlan {
       activePair: [...pairs.values()].some((p) => p.status === "active" && involves(p, lexeme.id)),
     })
     : null;
+  const stageBefore = lexeme
+    ? wordStage(input.skills, {
+      now,
+      goal: lexeme.goal,
+      activePair: input.pairs.some((p) => p.status === "active" && involves(p, lexeme.id)),
+    })
+    : null;
+
+  const wasResolved = new Map(input.pairs.map((p) => [p.id, p.status === "resolved"]));
+  const resolvedWrite = pairWrites.find((w) => w.id && w.state?.status === "resolved" && !wasResolved.get(w.id));
+  const pairResolved = resolvedWrite ? { a: resolvedWrite.a.headword, b: resolvedWrite.b.headword } : null;
 
   return {
     rating: grade ? gradeRating(grade) : null,
@@ -276,6 +291,8 @@ export function planSubmit(input: SubmitInput): SubmitPlan {
     eventPairWrite,
     interventionWrite,
     stage,
+    stageBefore,
+    pairResolved,
   };
 }
 

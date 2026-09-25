@@ -133,6 +133,10 @@ export const SessionPreviewSchema = z.object({
   budget_minutes: SessionMinutesSchema,
   state: TodayStateSchema,
   recall_now: z.object({ recalled: z.number().int(), total: z.number().int() }),
+  /** День пользователя (`YYYY-MM-DD`, граница — 04:00 по его часам): его пишут в `last_prompt_on`. */
+  today: z.iso.date(),
+  /** Показать окно «Повторим?»: сегодня его не было, не отвечали и есть что повторить. */
+  show_daily_prompt: z.boolean(),
 });
 
 export const StudyAnswerSchema = z.union([
@@ -168,6 +172,10 @@ export const AnswerResultSchema = z.object({
   /** Вставленные задания: повтор после ошибки, трудная проверка «Уже знаю», блок пары. */
   next: z.array(ExerciseSchema),
   stage: z.enum(["new", "meeting", "recognize", "recall", "use", "stable"]).nullable(),
+  /** Стадия до ответа: `stage` выше — слово продвинулось (пауза, итог дня). */
+  stage_before: z.enum(["new", "meeting", "recognize", "recall", "use", "stable"]).nullable().default(null),
+  /** Пара, которую этот ответ перевёл в «различаете». */
+  pair_resolved: z.object({ a: z.string(), b: z.string() }).nullable().default(null),
   /** «Уже знаю» подтверждено — остальные задания этого слова в сессии можно пропустить. */
   known: z.boolean(),
   duplicate: z.boolean(),
