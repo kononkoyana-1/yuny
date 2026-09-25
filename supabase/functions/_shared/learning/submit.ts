@@ -3,13 +3,14 @@
  * Чистая функция — чтение из базы и запись делает `review-submit`, здесь
  * только решение. Модель — docs/learning/vocabulary-engine.md, разделы 4–5.
  */
-import { MODEL, type Rating, type Skill } from "./config.ts";
+import { DAY_MS, MODEL, type Rating, type Skill } from "./config.ts";
 import type { Classified, WordKey } from "./classify.ts";
 import {
   formatWeight,
   gradeRating,
   implicitReview,
   initialDifficulty,
+  intervalDays,
   type MemoryState,
   retrievabilityAt,
   review,
@@ -95,6 +96,9 @@ export interface SubmitPlan {
   stage: Stage | null;
 }
 
+/** «Уже знаю» и проверка пройдена: стартовая стабильность, дни. */
+export const KNOWN_STABILITY = 7;
+
 const CONFUSIONS = new Set(["confusion", "form_similar", "homophone"]);
 
 const sameWord = (a: WordKey, b: WordKey) => a.headword === b.headword && (a.reading ?? "") === (b.reading ?? "");
@@ -138,7 +142,26 @@ export function planSubmit(input: SubmitInput): SubmitPlan {
   let before: SubmitPlan["before"] = null;
   let after: SubmitPlan["after"] = null;
 
-  if (grade && lexeme && !isPairTask && code !== "intro") {
+  if (ticket.check === "known" && lexeme && !isPairTask && code !== "intro") {
+    // «Уже знаю»: трудная проверка. Прошёл — навык сразу со стабильностью ~7
+    // дней; нет — память не трогаем, слово идёт обычным знакомством.
+    const knownSkill = MODEL.formatSkill[code];
+    if (grade?.kind === "success" && !input.skills[knownSkill]) {
+      skill = knownSkill;
+      const difficulty = MODEL.initialDifficulty.base;
+      put(knownSkill, {
+        stability: KNOWN_STABILITY,
+        difficulty,
+        lastReview: now,
+        due: new Date(now.getTime() + intervalDays(KNOWN_STABILITY, input.retention) * DAY_MS),
+        reps: 1,
+        lapses: 0,
+        contextsPassed: 0,
+        unlockedAt: now,
+      });
+      after = { s: KNOWN_STABILITY, d: difficulty };
+    }
+  } else if (grade && lexeme && !isPairTask && code !== "intro" && !ticket.retry) {
     skill = MODEL.formatSkill[code];
     const prev = input.skills[skill] ?? null;
     const hasConfusable = input.pairs.some((p) => p.status !== "resolved" && involves(p, lexeme.id));

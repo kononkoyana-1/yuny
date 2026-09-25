@@ -236,3 +236,31 @@ Deno.test("билет: подменённый ответ не проходит",
   assertEquals(await verifyTicket(`${forgedBody}.${sig}`, "secret", "u1", T0), "ticket_invalid");
   assertEquals(await verifyTicket("garbage", "secret", "u1", T0), "ticket_invalid");
 });
+
+// ---------------------------------------------------------- повтор и «Уже знаю»
+
+Deno.test("повтор после ошибки в сессии не трогает расписание", () => {
+  const plan = planSubmit(input({ ticket: ticket({ retry: true }), skills: { read: skill(2, day(-2)) } }));
+  assertEquals(plan.skillWrites, []);
+  assertEquals(plan.rating, 3);
+});
+
+Deno.test("«Уже знаю»: проверка пройдена — навык со стабильностью 7", () => {
+  const t = ticket({ exercise: "R2", options: undefined, check: "known" });
+  const plan = planSubmit(input({
+    ticket: t,
+    classified: classify({ target: MAI3, answer: { kind: "self", remembered: true } }),
+  }));
+  assertEquals(plan.skillWrites.length, 1);
+  assertEquals(plan.skillWrites[0].state.stability, 7);
+  assertEquals(plan.skillWrites[0].repsBefore, null);
+});
+
+Deno.test("«Уже знаю»: не прошёл — память не трогаем", () => {
+  const t = ticket({ exercise: "P2", options: undefined, check: "known" });
+  const plan = planSubmit(input({
+    ticket: t,
+    classified: classify({ target: MAI3, answer: { kind: "pinyin", text: "mai4" } }),
+  }));
+  assertEquals(plan.skillWrites, []);
+});

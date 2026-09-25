@@ -74,3 +74,22 @@ export {
   sessionBudget,
   type Slot,
 } from "./session.ts";
+export {
+  buildExercise,
+  type BuildInput,
+  buildPairCard,
+  type Built,
+  charNotes,
+  easierCode,
+  type ExerciseBody,
+  explanation,
+  pinyinA11y,
+  type RenderCode,
+  resultOutcome,
+  type ResultOutcome,
+  type StudyWord,
+  type TicketBody,
+  toneLabel,
+  withoutOptions,
+} from "./exercise.ts";
+export { KNOWN_STABILITY } from "./submit.ts";

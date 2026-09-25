@@ -109,3 +109,32 @@ export type {
   ConfusionStatus,
   ConfusionPair,
 } from "./learning";
+export {
+  EXERCISE_CODES,
+  ExerciseCodeSchema,
+  StudyLexemeSchema,
+  StudyOptionSchema,
+  StudySentenceSchema,
+  IntroSchema,
+  PairCardSchema,
+  AnswerKeySchema,
+  ExerciseSchema,
+  PlanReasonSchema,
+  SessionStatsSchema,
+  StudySessionSchema,
+  SessionPreviewSchema,
+  StudyAnswerSchema,
+  ERROR_TYPES,
+  AnswerResultSchema,
+} from "./study";
+export type {
+  ExerciseCode,
+  StudyLexeme,
+  StudyOption,
+  Exercise,
+  StudySession,
+  SessionPreview,
+  StudyAnswer,
+  AnswerResult,
+  PlanReason,
+} from "./study";
