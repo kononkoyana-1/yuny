@@ -106,7 +106,7 @@ export default function SignUp() {
           accessibilityRole="link"
           accessibilityLabel={t("auth.signUp.toSignInA11y")}
           onPress={() => router.back()}
-          className="min-h-[44px] items-center justify-center"
+          className="min-h-tap items-center justify-center"
         >
           <Text variant="body" className="text-primary dark:text-primary-dark">
             {t("auth.signUp.toSignIn")}

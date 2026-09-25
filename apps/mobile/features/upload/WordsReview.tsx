@@ -216,7 +216,7 @@ function WordRow({
         accessibilityRole="button"
         accessibilityLabel={t("upload.words.edit.a11y", { word: word.word })}
         onPress={onEdit}
-        className="min-h-[44px] min-w-[44px] justify-center px-md py-sm"
+        className="min-h-tap min-w-tap justify-center px-md py-sm"
       >
         <Text variant="caption" tone="brand" className="font-semibold">
           {t("upload.words.edit.action")}
@@ -460,7 +460,7 @@ function WhereToSave({
                 accessibilityState={{ busy: busyFolderId === folder.id, disabled: busy }}
                 disabled={busy}
                 onPress={() => void saveExisting(folder.id, folder.name)}
-                className={`min-h-[44px] flex-row items-center gap-md rounded-md border border-border px-md py-md dark:border-border-dark ${
+                className={`min-h-tap flex-row items-center gap-md rounded-md border border-border px-md py-md dark:border-border-dark ${
                   busyFolderId === folder.id ? "opacity-50" : ""
                 }`}
               >

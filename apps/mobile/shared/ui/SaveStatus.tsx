@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
-import { Pressable, View } from "react-native";
+import { Pressable } from "react-native";
+import Animated, { FadeOut } from "react-native-reanimated";
 import { useTheme } from "@/shared/lib/useTheme";
+import { useReducedMotion } from "@/shared/lib/useReducedMotion";
 import { motion } from "@/shared/config/tokens";
 import { Icon } from "./Icon";
 import { Text } from "./Text";
@@ -25,17 +27,9 @@ export interface SaveStatusProps {
  * it holds for `motion.statusHold`, then blanks itself, regardless of
  * whether the caller's own `state` prop has already moved on.
  *
- * Two #65 tokens the spec calls for are not in `tokens.ts` yet
- * (settings.design.md §V-F has the replacements used below):
- * - `successInk` / `attentionInk` → an icon in the existing `success` /
- *   `warning` colour plus `Text tone="default"` — the *current* `success`
- *   only reaches 3.4:1 against `surface` as text colour, under AA.
- * - `motion.slow` (the delay before "Сохраняем…" appears, to avoid a
- *   flicker on fast connections) and `motion.base` (the fade-out after the
- *   hold) → both replaced by an instant change, since §V-F bans duration
- *   literals for any `motion.*` token that isn't in `tokens.ts`.
- *   `motion.statusHold` is this task's own token (not #65's), so its 1600ms
- *   hold is real and used as specified.
+ * "Сохраняем…" appears only after `motion.slow`, so a fast save never
+ * flickers it; whatever is showing fades out over `motion.base` when the
+ * status clears (instantly under reduced motion).
  */
 export function SaveStatus({
   state,
@@ -47,6 +41,7 @@ export function SaveStatus({
   className = "",
 }: SaveStatusProps) {
   const { colors } = useTheme();
+  const reducedMotion = useReducedMotion();
 
   // Holds `"saved"` on screen for `motion.statusHold` past when the caller
   // may have already moved `state` on, then blanks itself.
@@ -60,10 +55,18 @@ export function SaveStatus({
   // an actual external event, which is the pattern that rule asks for.
   const [prevState, setPrevState] = useState(state);
   const [holdExpired, setHoldExpired] = useState(false);
+  const [savingDelayed, setSavingDelayed] = useState(true);
   if (state !== prevState) {
     setPrevState(state);
     setHoldExpired(false);
+    setSavingDelayed(true);
   }
+
+  useEffect(() => {
+    if (state !== "saving" || !savingDelayed) return undefined;
+    const id = setTimeout(() => setSavingDelayed(false), motion.slow);
+    return () => clearTimeout(id);
+  }, [state, savingDelayed]);
 
   useEffect(() => {
     if (state !== "saved" || holdExpired) return undefined;
@@ -71,15 +74,17 @@ export function SaveStatus({
     return () => clearTimeout(id);
   }, [state, holdExpired]);
 
-  const display: SaveStatusState = state === "saved" && holdExpired ? "idle" : state;
+  const display: SaveStatusState =
+    (state === "saved" && holdExpired) || (state === "saving" && savingDelayed) ? "idle" : state;
 
   if (display === "idle") return null;
 
   const containerClass = layout === "block" ? "flex-row items-center gap-sm" : "flex-row items-center gap-xs";
 
   return (
-    <View
+    <Animated.View
       accessibilityLiveRegion="polite"
+      exiting={reducedMotion ? undefined : FadeOut.duration(motion.base)}
       className={`${containerClass} ${className}`}
     >
       {display === "saving" ? (
@@ -91,11 +96,8 @@ export function SaveStatus({
 
       {display === "saved" ? (
         <>
-          {/* #65-token: successInk — replacement per §V-F: `success`-coloured
-              icon, default-toned text (the current `success` value fails
-              AA as text colour). */}
-          <Icon name="check" size={14} color={colors.success} />
-          <Text variant="caption" tone="default">
+          <Icon name="check" size={14} color={colors.successInk} />
+          <Text variant="caption" tone="successInk">
             {message}
           </Text>
         </>
@@ -103,10 +105,7 @@ export function SaveStatus({
 
       {display === "error" ? (
         <>
-          {/* #65-token: attentionInk — replacement per §V-F: default-toned
-              text, no colour borrowed from a token that isn't AA-safe for
-              text yet. */}
-          <Text variant="caption" tone="default">
+          <Text variant="caption" tone="attentionInk">
             {message}
           </Text>
           {onRetry ? (
@@ -114,11 +113,9 @@ export function SaveStatus({
               accessibilityRole="button"
               accessibilityLabel={retryA11yLabel ?? retryLabel}
               onPress={onRetry}
-              // #65-token: sizing.tapTarget — §V-F's one allowed literal
-              // (`min-h-[44px]`) until the token lands. The row's height is
-              // typically under 44 (it's a caption-sized inline element), so
-              // the target is padded out rather than shrinking the text.
-              className="min-h-[44px] min-w-[44px] items-center justify-center"
+              // The row is caption-sized, so the target is padded out to
+              // `sizing.tapTarget` rather than shrinking the text.
+              className="min-h-tap min-w-tap items-center justify-center"
               hitSlop={8}
             >
               <Text variant="caption" className="font-semibold text-primary dark:text-primary-dark">
@@ -128,6 +125,6 @@ export function SaveStatus({
           ) : null}
         </>
       ) : null}
-    </View>
+    </Animated.View>
   );
 }

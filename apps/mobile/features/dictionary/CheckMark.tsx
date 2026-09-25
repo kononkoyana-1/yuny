@@ -76,7 +76,7 @@ export function CheckRow({
       aria-checked={checked}
       aria-busy={busy}
       onPress={onToggle}
-      className={`min-h-[44px] ${busy ? "opacity-50" : ""} ${className}`}
+      className={`min-h-tap ${busy ? "opacity-50" : ""} ${className}`}
       // `onKeyDown` есть у View в react-native-web, но не в типах React Native.
       {...(webKeys as object)}
     >

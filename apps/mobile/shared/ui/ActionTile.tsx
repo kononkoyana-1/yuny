@@ -48,7 +48,7 @@ export function ActionTile({
         setPressed(false);
         props.onPressOut?.(e);
       }}
-      className={`min-h-[44px] items-center justify-center gap-xs rounded-card bg-surface p-md shadow-md shadow-shadow/10 dark:border dark:border-border-dark dark:bg-surface-dark dark:shadow-none ${
+      className={`min-h-tap items-center justify-center gap-xs rounded-card bg-surface p-md shadow-md shadow-shadow/10 dark:border dark:border-border-dark dark:bg-surface-dark dark:shadow-none ${
         pressed ? "bg-surface-alt dark:bg-surface-alt-dark" : ""
       } ${disabled ? "opacity-50" : ""} ${className}`}
       {...props}

@@ -40,7 +40,7 @@ export function IconButton({
         setPressed(false);
         props.onPressOut?.(e);
       }}
-      className={`min-h-[44px] min-w-[44px] items-center justify-center rounded-pill ${
+      className={`min-h-tap min-w-tap items-center justify-center rounded-pill ${
         pressed ? "bg-surface-alt dark:bg-surface-alt-dark" : ""
       } ${disabled ? "opacity-50" : ""} ${className}`}
       {...props}

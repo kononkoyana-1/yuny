@@ -76,7 +76,7 @@ export function Input({ className = "", style, onSubmitSafe, onKeyPress, ...prop
 
   return (
     <TextInput
-      className={`min-h-[44px] ${FIELD_BASE} ${borderClass(focused)} ${className}`}
+      className={`min-h-tap ${FIELD_BASE} ${borderClass(focused)} ${className}`}
       placeholderTextColor={colors.textMuted}
       style={[NO_NATIVE_OUTLINE, style]}
       onKeyPress={handleKeyPress}

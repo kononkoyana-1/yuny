@@ -110,7 +110,7 @@ function FolderRow({
       onPressIn={() => setPressed(true)}
       onPressOut={() => setPressed(false)}
       onPress={onPress}
-      className={`min-h-[44px] flex-row items-center gap-md rounded-md px-md py-md ${
+      className={`min-h-tap flex-row items-center gap-md rounded-md px-md py-md ${
         pressed ? "bg-surface-alt dark:bg-surface-alt-dark" : "bg-surface dark:bg-surface-dark"
       }`}
     >

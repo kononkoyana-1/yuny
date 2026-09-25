@@ -1,6 +1,9 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Pressable, View, type View as RNView } from "react-native";
+import Animated, { useAnimatedStyle, useSharedValue, withSpring } from "react-native-reanimated";
+import { motion } from "@/shared/config/tokens";
 import { useTheme } from "@/shared/lib/useTheme";
+import { useReducedMotion } from "@/shared/lib/useReducedMotion";
 import { nextSegmentedIndex } from "@/shared/lib/segmentedChoiceNav";
 import { focusRef } from "@/shared/platform/focusRef";
 import { Icon, type IconName } from "./Icon";
@@ -46,10 +49,11 @@ export interface SegmentedChoiceProps<Value extends string> {
  * `features/dictionary/CheckMark.tsx`), so `aria-checked` is set directly
  * here rather than through `accessibilityState` alone.
  *
- * `motion.spring` (#65, the selected segment's "pружина") is not in
- * `tokens.ts` yet — settings.design.md §V-F replaces every #65 motion token
- * with an instant, unanimated state change until it lands, so the selected
- * segment's fill/label colour just switches immediately.
+ * The selected fill is one `primary` thumb that springs (`motion.spring`)
+ * to the chosen segment — segments are equal width (S7), so its offset is
+ * just `index × segment width`. Until the track's width is measured the
+ * checked segment paints its own fill, so the first frame is never blank.
+ * Reduced motion: the thumb jumps.
  */
 export function SegmentedChoice<Value extends string>({
   options,
@@ -61,7 +65,9 @@ export function SegmentedChoice<Value extends string>({
   className = "",
 }: SegmentedChoiceProps<Value>) {
   const { colors } = useTheme();
+  const reducedMotion = useReducedMotion();
   const refs = useRef<(RNView | null)[]>([]);
+  const [trackWidth, setTrackWidth] = useState(0);
 
   const selectedIndex = options.findIndex((option) => option.value === value);
   // Roving tabindex: the selected option is the group's one Tab stop; with
@@ -78,9 +84,20 @@ export function SegmentedChoice<Value extends string>({
     return true;
   };
 
-  const heightClass = size === "large" ? "min-h-[56px]" : "min-h-[44px]";
-  // #65-token: sizing.tapTarget — §V-F's one allowed literal until the
-  // token lands (both sizes clear the 44px floor; `large` is taller still).
+  // Both sizes clear `sizing.tapTarget`; `large` is taller still.
+  const heightClass = size === "large" ? "min-h-[56px]" : "min-h-tap";
+
+  const segmentWidth = options.length > 0 ? trackWidth / options.length : 0;
+  const thumbX = useSharedValue(Math.max(selectedIndex, 0) * segmentWidth);
+  useEffect(() => {
+    const target = Math.max(selectedIndex, 0) * segmentWidth;
+    thumbX.set(reducedMotion ? target : withSpring(target, motion.spring));
+  }, [selectedIndex, segmentWidth, reducedMotion, thumbX]);
+  const thumbStyle = useAnimatedStyle(() => ({
+    width: segmentWidth,
+    transform: [{ translateX: thumbX.value }],
+  }));
+  const thumbReady = segmentWidth > 0 && selectedIndex >= 0;
 
   return (
     <View
@@ -91,7 +108,16 @@ export function SegmentedChoice<Value extends string>({
       // node_modules/react-native/Libraries/Components/View/ViewAccessibility.d.ts);
       // same escape hatch as `SettingsGroup`'s `aria-level`.
       {...(describedById ? ({ "aria-describedby": describedById } as object) : {})}
+      onLayout={(event) => setTrackWidth(event.nativeEvent.layout.width)}
     >
+      {thumbReady ? (
+        <Animated.View
+          pointerEvents="none"
+          aria-hidden
+          className="absolute bottom-0 left-0 top-0 rounded-pill bg-primary dark:bg-primary-dark"
+          style={thumbStyle}
+        />
+      ) : null}
       {options.map((option, index) => {
         const checked = index === selectedIndex;
         const roving = index === (selectedIndex >= 0 ? selectedIndex : rovingIndex);
@@ -119,7 +145,7 @@ export function SegmentedChoice<Value extends string>({
               },
             } as object)}
             className={`flex-1 flex-row items-center justify-center gap-xs px-sm py-xs ${heightClass} ${
-              checked ? "bg-primary dark:bg-primary-dark" : ""
+              checked && !thumbReady ? "bg-primary dark:bg-primary-dark" : ""
             }`}
           >
             {option.icon ? (

@@ -1,6 +1,6 @@
 import { View } from "react-native";
 import { gradients } from "@/shared/config/tokens";
-import { linearGradient } from "@/shared/platform/gradient";
+import { angledGradient } from "@/shared/platform/gradient";
 import { useTheme } from "@/shared/lib/useTheme";
 import { Text } from "./Text";
 
@@ -17,30 +17,22 @@ export interface MonogramProps {
  * (settings.design.md §3.3), so the circle carries no information of its
  * own.
  *
- * `gradients.hero` (#65) is not in `tokens.ts` yet — §V-F's replacement,
- * `gradients.primary` / `gradients.primaryDark`, is used instead, with
- * `heroInk` replaced the same way by `textInverse` (both AA-checked in the
- * spec's replacement table).
+ * Fill is `gradients.hero`, the letter `heroInk`.
  */
 export function Monogram({ name, className = "" }: MonogramProps) {
   const { scheme } = useTheme();
   const letter = [...name.trim()][0]?.toLocaleUpperCase("ru") ?? "";
 
-  // #65-token: gradients.hero — replacement per §V-F.
-  const [from, to] = scheme === "dark" ? gradients.primaryDark : gradients.primary;
+  const heroStops = scheme === "dark" ? gradients.heroDark : gradients.hero;
 
   return (
     <View
       aria-hidden
       className={`h-avatar w-avatar items-center justify-center rounded-pill ${className}`}
-      style={linearGradient(from, to)}
+      style={angledGradient(heroStops)}
     >
       {letter ? (
-        <Text
-          variant="title"
-          // #65-token: heroInk — replacement per §V-F: `textInverse`.
-          tone="inverse"
-        >
+        <Text variant="title" tone="heroInk">
           {letter}
         </Text>
       ) : null}

@@ -2,6 +2,7 @@ import { useRef, useState, type RefObject } from "react";
 import { View, type TextInput } from "react-native";
 import {
   Button,
+  Chip,
   ErrorState,
   FeedbackBanner,
   Input,
@@ -66,15 +67,12 @@ export function ProfileCard({ isWide }: { isWide: boolean }) {
               </Text>
             ) : null}
             {isWide ? null : (
-              // #65-token: Chip (DS3) — replacement per §V-F: Button ghost.
-              <View className="flex-row">
-                <Button
+              <View className="mt-xs flex-row">
+                <Chip
                   ref={editRef}
                   label={t("settings.profile.edit")}
-                  variant="ghost"
                   accessibilityLabel={t("settings.profile.editA11y", { name: profile.data.display_name })}
                   onPress={() => setEditing(true)}
-                  style={{ paddingHorizontal: 0 }}
                 />
               </View>
             )}

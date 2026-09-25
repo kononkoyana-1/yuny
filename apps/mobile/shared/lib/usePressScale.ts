@@ -13,12 +13,9 @@ import { useReducedMotion } from "./useReducedMotion";
  * `motion.fast`, and a squeeze carries no information on its own that the
  * fill/border change (owned by the caller) doesn't already carry.
  *
- * `onPressIn`/`onPressOut` are plain functions, not `useCallback`-memoized —
- * mutating a Reanimated shared value inside a memoized callback trips the
- * React Compiler ESLint plugin's `react-hooks/immutability` rule (it can't
- * tell a `.value` write on a Reanimated shared value from a write to
- * React-owned state), and `Pressable` re-subscribing these two handlers
- * every render costs nothing worth avoiding it for.
+ * Writes go through `.set()`, not `.value =` — the React Compiler ESLint
+ * plugin's `react-hooks/immutability` rule can't tell a `.value` write on a
+ * Reanimated shared value from a write to a hook's return value.
  */
 export function usePressScale(scale: number = motion.pressScale) {
   const scaleValue = useSharedValue(1);
@@ -27,11 +24,11 @@ export function usePressScale(scale: number = motion.pressScale) {
   const style = useAnimatedStyle(() => ({ transform: [{ scale: scaleValue.value }] }));
 
   function onPressIn() {
-    if (!reducedMotion) scaleValue.value = withTiming(scale, { duration: motion.fast });
+    if (!reducedMotion) scaleValue.set(withTiming(scale, { duration: motion.fast }));
   }
 
   function onPressOut() {
-    if (!reducedMotion) scaleValue.value = withTiming(1, { duration: motion.fast });
+    if (!reducedMotion) scaleValue.set(withTiming(1, { duration: motion.fast }));
   }
 
   return { style, onPressIn, onPressOut };

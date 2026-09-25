@@ -39,10 +39,6 @@ const TRAILING_ICON: Partial<Record<SettingsRowTrailing, IconName>> = {
  * source link, "Выйти", "Удалить аккаунт". `role="text"` renders a plain,
  * non-interactive row (settings.design.md §3.6: a source with no known URL
  * yet).
- *
- * `sizing.tapTarget` is a #65 token not yet in `tokens.ts`; `min-h-[44px]`
- * is §V-F's named exception, the one literal that replacement is allowed to
- * be.
  */
 export function SettingsRow({
   title,
@@ -67,7 +63,7 @@ export function SettingsRow({
     tone === "destructive" ? colors.destructive : colors.textMuted;
 
   const content = (
-    <View className="min-h-[44px] flex-row items-center gap-sm px-md py-sm">
+    <View className="min-h-tap flex-row items-center gap-sm px-md py-sm">
       {leadingIcon ? <Icon name={leadingIcon} size={20} color={iconColor} /> : null}
       <View className="flex-1">
         <Text variant="body" tone={tone === "destructive" ? "destructive" : "default"} className="font-semibold">
@@ -110,9 +106,7 @@ export function SettingsRow({
       onPress={pending ? undefined : onPress}
       onPressIn={() => setPressed(true)}
       onPressOut={() => setPressed(false)}
-      // No `motion.fast` transition (#65-token, §V-F: "без анимации" until
-      // the token lands) — the background swap below is instant.
-      className={`${pressed ? "bg-surface-alt dark:bg-surface-alt-dark" : ""} ${className}`}
+      className={`transition-colors duration-fast ${pressed ? "bg-surface-alt dark:bg-surface-alt-dark" : ""} ${className}`}
     >
       {content}
     </LinkRow>

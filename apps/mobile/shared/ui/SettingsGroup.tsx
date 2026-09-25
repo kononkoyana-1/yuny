@@ -27,12 +27,10 @@ export function SettingsGroup({ title, lead, footer, children, className = "" }:
   return (
     <View className={className}>
       <Text
-        variant="caption"
+        variant="eyebrow"
         tone="muted"
         accessibilityRole="header"
-        className="mb-xs px-md font-semibold uppercase tracking-wider"
-        // #65-token: typography.eyebrow — replacement per §V-F: caption +
-        // uppercase + font-semibold + tracking-wider.
+        className="mb-xs px-md uppercase"
         // react-native's AccessibilityProps has no `aria-level` (checked
         // node_modules/react-native/Libraries/Components/View/ViewAccessibility.d.ts);
         // cast is the same escape hatch `features/dictionary/CheckMark.tsx`

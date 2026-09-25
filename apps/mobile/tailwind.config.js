@@ -234,6 +234,13 @@ module.exports = {
       opacity: {
         dimmed: "0.6",
       },
+      // #65 V.7 `motion.fast/base/slow` — `duration-fast` etc. for CSS
+      // transitions (web); Reanimated call sites read `motion` directly.
+      transitionDuration: {
+        fast: "120ms",
+        base: "220ms",
+        slow: "420ms",
+      },
     },
   },
   plugins: [],

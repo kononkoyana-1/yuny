@@ -68,7 +68,7 @@ function TabBarButton({ label, icon, isWide, isFocused, ...pressableProps }: Tab
       accessibilityRole="tab"
       accessibilityLabel={label}
       accessibilityState={{ selected: Boolean(isFocused) }}
-      className="min-h-[44px] flex-1 items-center justify-center rounded-md px-sm py-xs
+      className="min-h-tap flex-1 items-center justify-center rounded-md px-sm py-xs
         md:flex-none md:justify-start md:px-md md:py-sm"
       {...pressableProps}
     >

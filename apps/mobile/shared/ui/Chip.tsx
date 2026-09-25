@@ -1,3 +1,4 @@
+import type { Ref } from "react";
 import { Pressable, View } from "react-native";
 import { useTheme } from "@/shared/lib/useTheme";
 import { Icon, type IconName } from "./Icon";
@@ -43,6 +44,8 @@ export type ChipProps =
       /** Interactive chip — `sizing.tapTarget` floor applies. */
       onPress: () => void;
       accessibilityLabel?: string;
+      /** For returning focus here (e.g. after a sheet this chip opened closes). */
+      ref?: Ref<View>;
     })
   | (ChipBaseProps & {
       /** Decorative/label chip (DS-M5's `micro` use) — no tap target floor, not focusable. */
@@ -82,8 +85,10 @@ export function Chip({
 
   if (onPress) {
     const accessibilityLabel = "accessibilityLabel" in props ? props.accessibilityLabel : undefined;
+    const ref = "ref" in props ? props.ref : undefined;
     return (
       <Pressable
+        ref={ref}
         accessibilityRole="button"
         accessibilityLabel={accessibilityLabel ?? label}
         onPress={onPress}

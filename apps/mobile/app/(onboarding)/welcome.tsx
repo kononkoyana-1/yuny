@@ -56,7 +56,7 @@ export default function Welcome() {
               accessibilityRole="link"
               accessibilityLabel="Войти"
               onPress={() => router.push("/sign-in")}
-              className="min-h-[44px] justify-center px-xs"
+              className="min-h-tap justify-center px-xs"
             >
               <Text variant="caption" className="font-bold text-primary dark:text-primary-dark">
                 Войти

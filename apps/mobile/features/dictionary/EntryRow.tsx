@@ -41,7 +41,7 @@ export const EntryRow = forwardRef<View, EntryRowProps>(function EntryRow(
       onPressIn={() => setPressed(true)}
       onPressOut={() => setPressed(false)}
       onPress={onPress}
-      className={`min-h-[44px] gap-xs rounded-md px-md py-sm ${
+      className={`min-h-tap gap-xs rounded-md px-md py-sm ${
         pressed ? "bg-surface-alt dark:bg-surface-alt-dark" : "bg-surface dark:bg-surface-dark"
       }`}
     >
