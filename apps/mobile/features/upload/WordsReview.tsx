@@ -12,6 +12,7 @@ import { returnFocusTo } from "@/shared/platform/sheetA11y";
 import { CheckMark, CheckRow } from "@/features/dictionary/CheckMark";
 import { folderCounts } from "@/features/dictionary/saved";
 import { useRowRefs } from "@/features/dictionary/useRowRefs";
+import { QueueHint } from "@/features/study/QueueHint";
 import type { SaveWordInput } from "@/shared/repositories";
 import { applyEdits, cleanTranslation, savedSource, type ReviewWord } from "./edits";
 
@@ -509,6 +510,16 @@ function SavedScreen({ outcome, onDone }: { outcome: SavedOutcome; onDone: () =>
           </Text>
         ) : null}
       </View>
+      {outcome.added > 0 ? (
+        <QueueHint
+          folderId={outcome.folderId}
+          added={outcome.added}
+          onStart={() => {
+            onDone();
+            router.push({ pathname: "/study", params: { folder: outcome.folderId, mode: "new" } });
+          }}
+        />
+      ) : null}
       <View className="w-full gap-sm">
         <Button
           ref={openRef}

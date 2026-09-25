@@ -46,6 +46,7 @@ export const TODAY_FIXTURES = {
     recall_now: { recalled: 212, total: 347 },
     today: MOCK_TODAY_DATE,
     show_daily_prompt: true,
+    queued_total: 42,
     extra_new: { count: 7, tomorrow_delta: 12 },
   },
   debt: {
@@ -57,6 +58,7 @@ export const TODAY_FIXTURES = {
     recall_now: { recalled: 180, total: 347 },
     today: MOCK_TODAY_DATE,
     show_daily_prompt: true,
+    queued_total: 180,
     extra_new: null,
   },
   done: {
@@ -68,6 +70,7 @@ export const TODAY_FIXTURES = {
     recall_now: { recalled: 301, total: 347 },
     today: MOCK_TODAY_DATE,
     show_daily_prompt: false,
+    queued_total: 0,
     extra_new: null,
   },
   nothing_due: {
@@ -79,6 +82,7 @@ export const TODAY_FIXTURES = {
     recall_now: { recalled: 330, total: 347 },
     today: MOCK_TODAY_DATE,
     show_daily_prompt: false,
+    queued_total: 0,
     extra_new: null,
   },
   no_words: {
@@ -90,6 +94,7 @@ export const TODAY_FIXTURES = {
     recall_now: { recalled: 0, total: 0 },
     today: MOCK_TODAY_DATE,
     show_daily_prompt: false,
+    queued_total: 0,
     extra_new: null,
   },
 } satisfies Record<string, SessionPreview>;

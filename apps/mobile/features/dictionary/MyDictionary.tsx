@@ -4,6 +4,7 @@ import { useRouter } from "expo-router";
 import type { FolderProgress, UserDictionaryFolder } from "@yuny/shared";
 import { Button, Chip, EmptyState, ErrorState, LoadingState, StageBar, Text } from "@/shared/ui";
 import { useCreateFolder, useFolderProgress, useFolders, useSavedItems } from "@/shared/api";
+import { queueText } from "@/features/study/queueText";
 import { focusRef } from "@/shared/platform/focusRef";
 import { t } from "@/shared/i18n";
 import { FolderNameSheet } from "./FolderNameSheet";
@@ -156,11 +157,12 @@ function FolderRow({
   const [pressed, setPressed] = useState(false);
   const words = t("dictionary.mine.words", { count });
   const due = progress && progress.due_count > 0 ? t("learn.map.due", { count: progress.due_count }) : null;
+  const queue = progress ? queueText(progress) : null;
 
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={[folder.name, words, due].filter(Boolean).join(". ")}
+      accessibilityLabel={[folder.name, words, due, queue].filter(Boolean).join(". ")}
       accessibilityHint={t("dictionary.mine.folderA11yHint")}
       onPressIn={() => setPressed(true)}
       onPressOut={() => setPressed(false)}
@@ -186,6 +188,11 @@ function FolderRow({
         <View className="flex-row">
           <Chip size="micro" variant="attention" label={due} />
         </View>
+      ) : null}
+      {queue ? (
+        <Text variant="caption" tone="muted">
+          {queue}
+        </Text>
       ) : null}
     </Pressable>
   );

@@ -137,6 +137,8 @@ export const SessionPreviewSchema = z.object({
   today: z.iso.date(),
   /** Показать окно «Повторим?»: сегодня его не было, не отвечали и есть что повторить. */
   show_daily_prompt: z.boolean(),
+  /** Новых слов ждёт в очереди (#85) — «В очереди 180», когда новых нет из-за долга. */
+  queued_total: z.number().int().default(0),
   /** «Ещё 7 новых слов» в итоге дня: сколько слов и сколько заданий прибавится завтра; `null` — новых нет. */
   extra_new: z.object({ count: z.number().int(), tomorrow_delta: z.number().int() }).nullable().default(null),
 });
@@ -163,12 +165,24 @@ export const FolderStudyPlanSchema = z.object({
 export const StageSchema = z.enum(["new", "meeting", "recognize", "recall", "use", "stable"]);
 const StageCountsSchema = z.record(StageSchema, z.number().int());
 
+/**
+ * Очередь новых слов папки (#85): сколько ждёт приёма, примерно дней до
+ * конца при `per_day` в день. `per_day: null` — потолок новых 0, новые
+ * приходят только из папки.
+ */
+const QueueFields = {
+  queued: z.number().int().default(0),
+  eta_days: z.number().int().nullable().default(null),
+  per_day: z.number().int().nullable().default(null),
+};
+
 /** Стадии и «пора освежить» по папке — карточка папки в «Моём словаре» (#70). */
 export const FolderProgressSchema = z.object({
   folder_id: z.uuid(),
   word_count: z.number().int(),
   due_count: z.number().int(),
   stage_counts: StageCountsSchema,
+  ...QueueFields,
 });
 export const FolderProgressListSchema = z.object({ folders: z.array(FolderProgressSchema) });
 
@@ -177,6 +191,7 @@ export const FolderMapSchema = z.object({
   word_count: z.number().int(),
   due_count: z.number().int(),
   stage_counts: StageCountsSchema,
+  ...QueueFields,
   words: z.array(z.object({
     headword: z.string(),
     reading: z.string().nullable(),

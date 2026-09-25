@@ -107,7 +107,9 @@ function TodayReady({
       {debt ? (
         <View className="rounded-md bg-attention-soft px-md py-sm dark:bg-attention-soft-dark">
           <Text variant="body" tone="attentionInk">
-            {t("learn.today.debt", { count: today.due_now })}
+            {today.queued_total > 0
+              ? `${t("learn.today.debt", { count: today.due_now })}. ${t("learn.today.queued", { count: today.queued_total })}`
+              : t("learn.today.debt", { count: today.due_now })}
           </Text>
         </View>
       ) : null}

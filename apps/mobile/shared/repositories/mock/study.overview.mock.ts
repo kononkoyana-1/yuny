@@ -26,6 +26,8 @@ function wordFacts(headword: string) {
   return { stage: STAGES[h % STAGES.length]!, due: h % 4 === 0, pair: h % 7 === 0 ? "卖" : null };
 }
 
+const MOCK_PER_DAY = 8;
+
 const emptyCounts = (): Record<Stage, number> => ({ new: 0, meeting: 0, recognize: 0, recall: 0, use: 0, stable: 0 });
 
 export async function mockFolderMap(folderId: string): Promise<FolderMap> {
@@ -41,10 +43,14 @@ export async function mockFolderMap(folderId: string): Promise<FolderMap> {
     counts[f.stage]++;
     words.push({ headword: i.headword, reading: i.reading, stage: f.stage, due: f.due, pair_partner: f.pair });
   }
+  // Очередь (#85): новые слова ждут приёма по 8 в день, как при настройках по умолчанию.
   return FolderMapSchema.parse({
     word_count: words.length,
     due_count: words.filter((w) => w.due).length,
     stage_counts: counts,
+    queued: counts.new,
+    eta_days: Math.ceil(counts.new / MOCK_PER_DAY),
+    per_day: MOCK_PER_DAY,
     words,
   });
 }
@@ -54,7 +60,8 @@ export async function mockFolderProgress(): Promise<FolderProgress[]> {
   return Promise.all(
     folders.map(async (f) => {
       const map = await mockFolderMap(f.id);
-      return { folder_id: f.id, word_count: map.word_count, due_count: map.due_count, stage_counts: map.stage_counts };
+      const { words: _words, ...summary } = map;
+      return { folder_id: f.id, ...summary };
     }),
   );
 }

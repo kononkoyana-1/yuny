@@ -29,6 +29,7 @@ import {
   type PlanInput,
   type PlanTask,
   planDigest,
+  queueView,
   recallNow,
   todayState,
   withoutOptions,
@@ -86,6 +87,8 @@ async function preview(
     recall_now: recallNow(input, input.now),
     today: day.today,
     extra_new: extraNew(input, budget),
+    // Очередь новых (#85) — для строки «В очереди 180», когда новых нет из-за долга.
+    queued_total: queueView(input, null).queued,
     // Раз в день, пока сегодня не отвечали и есть что повторить (daily-and-folder-study §2.1).
     show_daily_prompt: state === "ready" && input.reviewedToday.size === 0 && day.lastPromptOn !== day.today,
   });

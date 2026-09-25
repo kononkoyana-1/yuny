@@ -282,7 +282,7 @@ export function dueSkills(input: PlanInput, onlyFolder: string | null): Due[] {
 }
 
 /** Новые слова по очереди: недавно добавленные раньше, при равенстве — меньший HSK. */
-export function newQueue(input: PlanInput, onlyFolder: string | null): PlanLexeme[] {
+export function newQueue(input: Pick<PlanInput, "lexemes" | "states">, onlyFolder: string | null): PlanLexeme[] {
   return input.lexemes
     .filter((l) => !input.states[l.id]?.read && (!onlyFolder || l.folderIds.includes(onlyFolder)))
     .sort((a, b) => b.addedAt.getTime() - a.addedAt.getTime() || (a.hskLevel ?? 9) - (b.hskLevel ?? 9));

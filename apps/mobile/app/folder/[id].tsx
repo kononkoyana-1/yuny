@@ -26,6 +26,7 @@ import { ArticleSheet, type SheetWord } from "@/features/dictionary/ArticleSheet
 import { FolderNameSheet } from "@/features/dictionary/FolderNameSheet";
 import { groupSavedWords, wordKey, type SavedWord } from "@/features/dictionary/saved";
 import { useRowRefs } from "@/features/dictionary/useRowRefs";
+import { queueText } from "@/features/study/queueText";
 import { FolderStudyBlock } from "@/features/study/FolderStudyBlock";
 
 /** Стадии от самой прочной — так полоска «заполняется» слева направо (folder-map.design.md §3.2). */
@@ -121,6 +122,7 @@ export default function FolderScreen() {
     }
 
     const counts = map.data?.stage_counts ?? null;
+    const queue = map.data ? queueText(map.data) : null;
     const legend = counts
       ? LEGEND_ORDER.filter((stage) => counts[stage] > 0).map((stage) => ({
         stage,
@@ -164,6 +166,11 @@ export default function FolderScreen() {
                   <StageLegend items={legend} />
                 </View>
               </View>
+            ) : null}
+            {queue ? (
+              <Text variant="caption" tone="muted">
+                {queue}
+              </Text>
             ) : null}
             {words.length > 0 ? (
               <View className="pt-sm">

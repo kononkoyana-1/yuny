@@ -2,8 +2,8 @@
  * `learning-overview` (#70): сводки для экранов из памяти слов — только чтение.
  *
  * Тело:
- *   { action: "folders" }                        — стадии и «пора освежить» по каждой папке («Мой словарь»)
- *   { action: "folder", folder_id }              — карта папки: стадия, «пора освежить», пара у каждого слова
+ *   { action: "folders" }                        — стадии, «пора освежить» и очередь по каждой папке («Мой словарь»)
+ *   { action: "folder", folder_id }              — карта папки: стадия, «пора освежить», пара у каждого слова, очередь
  *   { action: "word", headword, reading }        — карточка слова: стадия, 4 навыка, повторение, пары
  *   tz_offset_min? — смещение часов пользователя от UTC (граница дня)
  *
@@ -11,7 +11,15 @@
  */
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { handler, HandlerError, json, optionalString, requireString, requireUuid } from "../_shared/shared.ts";
-import { folderOverview, type FolderOverview, wordProgress } from "../_shared/learning/mod.ts";
+import {
+  folderOverview,
+  type FolderOverview,
+  intakeRate,
+  perDay,
+  type PlanInput,
+  queueView,
+  wordProgress,
+} from "../_shared/learning/mod.ts";
 import { must, type Row, toPair } from "../_shared/studyData.ts";
 import { loadInput } from "../_shared/studyInput.ts";
 
@@ -23,14 +31,32 @@ function mapJson(o: FolderOverview) {
   };
 }
 
+/** Очередь новых слов (#85): сколько ждёт и примерно сколько дней при нынешнем приёме. */
+function queueJson(input: Omit<PlanInput, "mode" | "minutes">, folderId: string | null, rate: number | null) {
+  const q = queueView(input, folderId, rate);
+  return { queued: q.queued, eta_days: q.etaDays };
+}
+
 Deno.serve(
   handler(async ({ userId, admin, body }) => {
     const { input } = await loadInput(admin, userId, body);
+    const rate = intakeRate(input);
+    // «при 8 в день»; `null` — потолок новых 0, новые приходят только из папки.
+    const pace = { per_day: perDay(rate) };
 
     if (body.action === "folders") {
       const folders = must(await admin.from("user_dictionary_folders").select("id").eq("user_id", userId)) as Row[];
+      const total = queueView(input, null, rate);
       return json({
-        folders: folders.map((f) => ({ folder_id: f.id, ...mapJson(folderOverview(input, f.id as string)) })),
+        folders: folders.map((f) => ({
+          folder_id: f.id,
+          ...mapJson(folderOverview(input, f.id as string)),
+          ...queueJson(input, f.id as string, rate),
+          ...pace,
+        })),
+        queued_total: total.queued,
+        eta_days: total.etaDays,
+        ...pace,
       });
     }
 
@@ -39,6 +65,8 @@ Deno.serve(
       const o = folderOverview(input, folderId);
       return json({
         ...mapJson(o),
+        ...queueJson(input, folderId, rate),
+        ...pace,
         words: o.words.map((w) => ({
           headword: w.headword,
           reading: w.reading,
