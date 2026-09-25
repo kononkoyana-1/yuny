@@ -1,0 +1,31 @@
+# Import character data (#74) into `hanzi_chars`: Actions → «Hanzi import» →
+# Run workflow. Downloads Make Me a Hanzi (dictionary.txt — LGPL-3,
+# graphics.txt — Arphic) at a pinned commit, keeps characters that occur in
+# `dictionary_entries.headword` and upserts them. Idempotent. Uses the same
+# SUPABASE_ACCESS_TOKEN secret as the Pages deploy; the `hanzi_chars`
+# migration must already be applied (the Pages deploy does that).
+name: Hanzi import
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: Download and parse only, write nothing
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_PROJECT_REF: ixtfifglohppaimvyvui
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node scripts/hanzi-import.mjs ${{ inputs.dry_run && '--dry-run' || '' }}

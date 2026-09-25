@@ -99,3 +99,14 @@ export { extraNewOffer, type FolderModeOffer, type FolderPlan, folderPlan } from
 export { type ConfusionView, folderOverview, type FolderOverview, type SkillLevel, skillLevel, stageOf, type WordOnMap, wordProgress, type WordProgress } from "./overview.ts";
 export { queueView, type QueueView } from "./queue.ts";
 export { checkCollocation, checkContrast, type Collocation, type ContrastBody, readContrast } from "./contrast.ts";
+export {
+  type HanziChar,
+  type HanziMap,
+  maxStrokes,
+  type PairDifference,
+  pairDifference,
+  pairMnemonic,
+  readHanzi,
+  sharedComponents,
+  wordDifference,
+} from "./hanzi.ts";

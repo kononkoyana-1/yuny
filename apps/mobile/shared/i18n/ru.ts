@@ -303,7 +303,7 @@ export const ru = {
       source: {
         bkrs: { title: "Словарь БКРС", detail: "bkrs.info" },
         hsk2: { title: "Списки слов HSK 2.0", detail: "Уровни слов" },
-        makemeahanzi: { title: "Make Me a Hanzi", detail: "Порядок черт" },
+        makemeahanzi: { title: "Make Me a Hanzi", detail: "Разбор и черты знаков · LGPL-3, Arphic" },
         "cc-cedict": { title: "CC-CEDICT", detail: "Лицензия CC BY-SA 4.0" },
         tatoeba: { title: "Tatoeba", detail: "Примеры предложений · CC BY 2.0 FR" },
       },

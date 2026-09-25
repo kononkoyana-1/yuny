@@ -116,6 +116,12 @@ Deno.test("стадия до ответа: первый верный ответ 
   assertEquals(plan.pairResolved, null);
 });
 
+Deno.test("знак от 10 черт — стартовая сложность на единицу выше", () => {
+  const plain = planSubmit(input({})).after!.d;
+  assertEquals(planSubmit(input({ lexeme: { ...LEX, strokes: 8 } })).after!.d, plain);
+  assert(Math.abs(planSubmit(input({ lexeme: { ...LEX, strokes: 12 } })).after!.d - plain - 1) < 0.2);
+});
+
 Deno.test("повтор навыка пишется с проверкой reps — защита от гонки двух ответов", () => {
   const plan = planSubmit(input({ skills: { read: skill(2, day(-2), 4) } }));
   assertEquals(plan.skillWrites[0].repsBefore, 4);

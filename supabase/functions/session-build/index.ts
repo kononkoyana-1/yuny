@@ -44,6 +44,7 @@ import {
 } from "../_shared/studyData.ts";
 import { loadInput } from "../_shared/studyInput.ts";
 import { ensureContrast, loadContrast } from "../_shared/contrastCards.ts";
+import { loadHanzi } from "../_shared/hanziChars.ts";
 
 const MINUTES = [5, 10, 15] as const;
 async function preview(
@@ -169,7 +170,7 @@ async function start(
         if (!contrast) {
           await ensureContrast(admin, { ...p.a, meaning: a.translation }, { ...p.b, meaning: b.translation });
         }
-        return buildPairCard(a, b, p.id, contrast);
+        return buildPairCard(a, b, p.id, contrast, await loadHanzi(admin, [a.headword, b.headword]));
       }
       // Различение: партнёр — всегда среди вариантов; чей знак спрашиваем — решил план.
       const target = t.side === "a" ? a : b;

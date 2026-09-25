@@ -13,4 +13,5 @@ export interface DataSource {
 export const DATA_SOURCES: DataSource[] = [
   { id: "bkrs", url: "https://bkrs.info" },
   { id: "hsk2", url: null },
+  { id: "makemeahanzi", url: "https://github.com/skishore/makemeahanzi" },
 ];

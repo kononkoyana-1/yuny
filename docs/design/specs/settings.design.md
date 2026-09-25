@@ -220,7 +220,7 @@ interface DataSource {
 
 - `SettingsRow` с `role="link"`: заголовок — `body` `font-semibold`, деталь — `caption` muted, справа глиф `externalLink` (`textMuted`). На web — настоящий `<a href target="_blank" rel="noopener noreferrer">`, на native — `Linking.openURL`.
 - `url === null` → строка без глифа, не нажимается, роль `text`.
-- Сейчас в массиве два источника: `bkrs` (url `https://bkrs.info`) и `hsk2` (url — Open Question 1, до ответа `null`). Будущие (`makemeahanzi`, `cc-cedict`, `tatoeba`) добавляются строкой в массив и двумя ключами i18n. Ключи для них заведены сразу (§8), в массив они не входят.
+- Сейчас в массиве три источника: `bkrs` (url `https://bkrs.info`), `hsk2` (url — Open Question 1, до ответа `null`) и `makemeahanzi` (url `https://github.com/skishore/makemeahanzi`, #74). Будущие (`cc-cedict`, `tatoeba`) добавляются строкой в массив и двумя ключами i18n. Ключи для них заведены сразу (§8), в массив они не входят.
 - Под карточкой, вне её — `Text variant="caption" tone="muted"` «Версия {{version}}». Версия — `Constants.expoConfig?.version`. Если значения нет, строка не рендерится.
 
 ### 3.7 Аккаунт
@@ -412,8 +412,8 @@ interface DataSource {
 | `settings.about.source.bkrs.detail` | bkrs.info | задача |
 | `settings.about.source.hsk2.title` | Списки слов HSK 2.0 | задача |
 | `settings.about.source.hsk2.detail` | Уровни слов | предл. |
-| `settings.about.source.makemeahanzi.title` | Make Me a Hanzi | задача, в массив не входит |
-| `settings.about.source.makemeahanzi.detail` | Порядок черт | предл. |
+| `settings.about.source.makemeahanzi.title` | Make Me a Hanzi | в массиве с #74 |
+| `settings.about.source.makemeahanzi.detail` | Разбор и черты знаков · LGPL-3, Arphic | #74 |
 | `settings.about.source.cc-cedict.title` | CC-CEDICT | задача, в массив не входит |
 | `settings.about.source.cc-cedict.detail` | Лицензия CC BY-SA 4.0 | предл. |
 | `settings.about.source.tatoeba.title` | Tatoeba | задача, в массив не входит |

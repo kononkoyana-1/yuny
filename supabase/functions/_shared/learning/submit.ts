@@ -42,6 +42,8 @@ export interface SubmitLexeme {
   reading: string | null;
   goal: "full" | "read_only";
   hskLevel: number | null;
+  /** Черт в самом сложном знаке слова (`hanzi_chars`, #74); `null` — нет данных. */
+  strokes?: number | null;
 }
 
 export interface SubmitInput {
@@ -175,7 +177,7 @@ export function planSubmit(input: SubmitInput): SubmitPlan {
       retention: input.retention,
       initialDifficulty: prev?.difficulty ?? initialDifficulty(skill, {
         hskLevel: lexeme.hskLevel,
-        strokes: null,
+        strokes: lexeme.strokes ?? null,
         hasConfusable,
         syllables: (lexeme.reading && parsePinyin(lexeme.reading)?.length) || [...lexeme.headword].length,
       }),

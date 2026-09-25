@@ -30,6 +30,7 @@ import {
   type StudyWord,
   DAY_MS,
   MODEL,
+  maxStrokes,
   pairBlockSides,
   normalizePinyin,
   type PairWrite,
@@ -46,6 +47,7 @@ import {
 } from "../_shared/learning/mod.ts";
 import { issue, loadPool, russianGloss } from "../_shared/studyData.ts";
 import { ensureContrast, loadContrast } from "../_shared/contrastCards.ts";
+import { loadHanzi } from "../_shared/hanziChars.ts";
 
 const CONFUSIONS = ["confusion", "form_similar", "homophone"];
 /** Сколько последних верных ответов брать для медианы скорости. */
@@ -183,6 +185,7 @@ async function loadLexeme(admin: SupabaseClient, userId: string, id: string | nu
     reading: row.reading,
     goal: row.goal,
     hskLevel: row.dictionary_entries?.hsk_level ?? null,
+    strokes: maxStrokes(row.headword, await loadHanzi(admin, [row.headword])),
   };
 }
 
@@ -401,7 +404,8 @@ async function result(
     const partner: StudyWord = { lexemeId: ctx.partnerLexemeId, ...p, translation: partnerMeaning };
     const contrast = await loadContrast(admin, word, partner);
     if (!contrast) await ensureContrast(admin, { ...word, meaning: word.translation }, { ...partner, meaning: partnerMeaning });
-    next.push(buildPairCard(word, partner, ctx.interventionPairId, contrast));
+    const chars = await loadHanzi(admin, [word.headword, partner.headword]);
+    next.push(buildPairCard(word, partner, ctx.interventionPairId, contrast, chars));
     const candidates = await pool();
     const sides = pairBlockSides(seed);
     for (let i = 0; i < sides.length; i++) {

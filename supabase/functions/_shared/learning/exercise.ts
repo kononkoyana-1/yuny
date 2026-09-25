@@ -7,6 +7,7 @@ import type { ExerciseCode } from "./config.ts";
 import type { Collocation, ContrastBody } from "./contrast.ts";
 import type { Classified, OptionMeta, WordKey } from "./classify.ts";
 import { type Candidate, type OptionKind, pickOptions } from "./distractors.ts";
+import { type HanziMap, wordDifference } from "./hanzi.ts";
 import { formatPinyin, normalizePinyin, parsePinyin, type Syllable } from "./pinyin.ts";
 import type { Ticket, TicketExercise } from "./ticket.ts";
 
@@ -201,11 +202,21 @@ export function withoutOptions(code: ExerciseCode): ExerciseCode | null {
   return m[code] ?? null;
 }
 
+const NO_CHARS: HanziMap = new Map();
+
 /**
  * Карточка «Разберём пару». Коллокации — из проверенного кэша (`contrast`, #71);
- * строка различия и подсказка строятся кодом из данных о знаках (#74) — пока `null`.
+ * строка различия «卖 = 十 + 买» и подсказка — кодом из данных о знаках
+ * (`chars`, #74); нет данных — `null`.
  */
-export function buildPairCard(a: StudyWord, b: StudyWord, pairId: string, contrast: ContrastBody | null = null): Built {
+export function buildPairCard(
+  a: StudyWord,
+  b: StudyWord,
+  pairId: string,
+  contrast: ContrastBody | null = null,
+  chars: HanziMap = NO_CHARS,
+): Built {
+  const { difference, mnemonic } = wordDifference(a, b, chars);
   const side = (w: StudyWord): PairSide => ({
     headword: w.headword,
     reading: w.reading,
@@ -219,8 +230,8 @@ export function buildPairCard(a: StudyWord, b: StudyWord, pairId: string, contra
       pair: {
         a: side(a),
         b: side(b),
-        difference: null,
-        mnemonic: null,
+        difference,
+        mnemonic,
         collocations: contrast ? [contrast.collocations[0].zh, contrast.collocations[1].zh] : null,
         collocation_notes: contrast ? contrast.collocations : null,
       },
