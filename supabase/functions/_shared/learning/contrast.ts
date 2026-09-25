@@ -4,7 +4,7 @@
  * что прошло проверку кодом (data-sources.md: ИИ + проверка, общий кэш).
  *
  * Строка разбора «卖 = 十 + 买» и подсказка к ней строятся кодом из данных о
- * знаках (#74), не ИИ, — здесь их нет.
+ * знаках (#74, `hanzi.ts`), не ИИ.
  */
 import type { WordKey } from "./classify.ts";
 import { formatPinyin, parsePinyin, type Syllable } from "./pinyin.ts";
