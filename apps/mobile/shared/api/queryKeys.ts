@@ -16,5 +16,11 @@ export const queryKeys = {
   folderProgress: ["study", "overview", "folders"] as const,
   folderMap: (folderId: string) => ["study", "overview", "folder", folderId] as const,
   wordProgress: (headword: string, reading: string | null) => ["study", "overview", "word", headword, reading ?? ""] as const,
+  /**
+   * Статья в листе (#79 #80 #84). Под `overview`: в ней слова пользователя со
+   * стадиями — сбрасывается вместе со сводками после занятия и правок словаря.
+   */
+  dictionaryArticle: (headword: string, reading: string | null) =>
+    ["study", "overview", "article", headword, reading ?? ""] as const,
   accountEmail: ["account", "email"] as const,
 };

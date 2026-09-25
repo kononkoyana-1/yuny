@@ -39,6 +39,12 @@ export interface SheetProps {
    * the user with no way to see the outcome.
    */
   dismissible?: boolean;
+  /**
+   * Лист со стеком экранов (статья знака поверх статьи слова, #79): Escape и
+   * системное «назад» зовут его вместо `onClose` — шаг назад, а не закрытие.
+   * Нажатие на подложку по-прежнему закрывает лист целиком.
+   */
+  onBack?: () => void;
 }
 
 /**
@@ -59,6 +65,7 @@ export function Sheet({
   initialFocusRef,
   className = "",
   dismissible = true,
+  onBack,
 }: SheetProps) {
   const { width, height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
@@ -66,6 +73,7 @@ export function Sheet({
   const isWide = width >= breakpoints.wide;
 
   const panelRef = useRef<View>(null);
+  const swallowRequestClose = useRef(false);
   const wasVisible = useRef(false);
   const scrimOpacity = useSharedValue(0);
   const panelProgress = useSharedValue(0);
@@ -111,8 +119,15 @@ export function Sheet({
 
   useEffect(() => {
     if (!visible || !dismissible) return undefined;
-    return attachEscapeListener(onClose);
-  }, [visible, dismissible, onClose]);
+    if (!onBack) return attachEscapeListener(onClose);
+    return attachEscapeListener(() => {
+      // На web `Modal` ловит тот же Escape ещё раз, на `keyup`, и зовёт
+      // `onRequestClose` — к тому времени шаг назад уже сделан, и второй вызов
+      // закрыл бы лист целиком. Этот один раз он пропускает.
+      swallowRequestClose.current = true;
+      onBack();
+    });
+  }, [visible, dismissible, onClose, onBack]);
 
   // S6: swallows the scrim tap, `Modal`'s `onRequestClose` (Android
   // hardware/gesture back), and Escape (via the effect above) alike.
@@ -132,7 +147,13 @@ export function Sheet({
       visible={visible}
       transparent
       animationType="none"
-      onRequestClose={requestClose}
+      onRequestClose={() => {
+        if (swallowRequestClose.current) {
+          swallowRequestClose.current = false;
+          return;
+        }
+        if (dismissible) (onBack ?? onClose)();
+      }}
       // Second, final return of focus. On the web the Modal stays in the DOM
       // until its own exit animation ends, and its focus trap pulls focus
       // back inside — so the return from the effect above can land and be

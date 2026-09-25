@@ -21,7 +21,8 @@ function hash(text: string): number {
   return h;
 }
 
-function wordFacts(headword: string) {
+/** Стадия, «пора освежить» и пара слова в моке — детерминированно по заголовку. */
+export function wordFacts(headword: string) {
   const h = hash(headword);
   return { stage: STAGES[h % STAGES.length]!, due: h % 4 === 0, pair: h % 7 === 0 ? "卖" : null };
 }

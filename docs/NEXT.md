@@ -4,8 +4,8 @@
 
 ## Как работаем
 - Ветка `feature/vocab-learning-engine`, выкладка — fast-forward в `master` (CI деплоит Pages + все Edge Functions в `ixtfifglohppaimvyvui`).
-- Тесты модели: `cd supabase/functions && DENO_NO_PACKAGE_JSON=1 deno test _shared/learning/` (126; deno ставится `curl -fsSL https://deno.land/install.sh | sh`).
-- Клиент: `cd apps/mobile && pnpm typecheck && pnpm lint && pnpm test` (155). Проверка глазами — `npx expo export --clear --platform web` + Playwright
+- Тесты модели: `cd supabase/functions && DENO_NO_PACKAGE_JSON=1 deno test _shared/` с `--allow-env` (208; deno ставится `curl -fsSL https://deno.land/install.sh | sh`).
+- Клиент: `cd apps/mobile && pnpm typecheck && pnpm lint && pnpm test` (157). Проверка глазами — `npx expo export --clear --platform web` + Playwright
   (`/opt/pw-browsers/chromium`); mock-режим по умолчанию. `--clear` обязателен при смене `EXPO_PUBLIC_*`.
 - Одна задача — одна сессия; коммиты с двумя строками атрибуции (Co-Authored-By, Claude-Session).
 
@@ -23,6 +23,7 @@
 - #88 чтение и значение знаков в знакомстве; #69 «3 из 7 слов», «Проверка», «Тогда запомним».
 - #64 предложения: кэш `context_sentences` (ИИ в фоне, задача `context_generate`; проверка — `learning/context.ts`),
   пример в знакомстве, C1/C2, первые W1/C1 (`openingSkills`) — «Использую»/«Устойчиво» достижимы. #86 шаг 1: голос браузера, черты.
+- #79/#80/#84 статья: состав слова, HSK, граф знака (`dictionary-search` `action: "article"`, `_shared/dictionaryArticle.ts`).
 - #71 пары: кэш `contrast_cards` (`_shared/contrastCards.ts`, проверка — `learning/contrast.ts`), коллокации в карточке,
   блок из 4 заданий A/B (`pairBlockSides`), не больше 2 интервенций за занятие (`MODEL.pair.maxInterventions`).
 ## Дальше по порядку

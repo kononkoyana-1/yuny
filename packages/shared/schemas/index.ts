@@ -14,6 +14,13 @@ export type {
   DictionarySearchResponse,
 } from "./dictionary";
 export {
+  DictionaryArticleRequestSchema,
+  CompositionCharSchema,
+  CharWordSchema,
+  DictionaryArticleSchema,
+} from "./dictionaryArticle";
+export type { DictionaryArticleRequest, CompositionChar, CharWord, DictionaryArticle } from "./dictionaryArticle";
+export {
   FolderNameSchema,
   UserDictionaryFolderSchema,
   SavedEntrySchema,

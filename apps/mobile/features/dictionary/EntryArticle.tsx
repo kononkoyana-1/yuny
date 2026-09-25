@@ -8,7 +8,7 @@ import { articleNests } from "./article";
 /**
  * Словарная статья БКРС целиком (TZ.md §11 экран 04): гнёзда с римской
  * цифрой и заголовком (часть речи, чтение), под ними нумерованные значения.
- * Уровень HSK сюда не выводится (TZ.md §4).
+ * Уровень HSK — в заголовке листа (`ArticleSheet`, #80).
  */
 export function EntryArticle({ entry }: { entry: SavedEntry }) {
   const nests = articleNests(entry.senses);
