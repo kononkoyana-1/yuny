@@ -64,8 +64,9 @@ export async function loadContexts(admin: SupabaseClient, words: ContextWord[]):
   const wanted = new Set(words.map(contextKey));
   const out = new Map<string, ContextSentence[]>();
   const heads = [...new Set(words.map((w) => w.headword))];
-  for (const part of chunks(heads)) {
-    const rows = must(await admin.from("context_sentences").select(COLUMNS).in("headword", part).limit(10_000)) as Row[];
+  // По 25 слов: до ~36 предложений на слово, а PostgREST отдаёт не больше 1000 строк.
+  for (const part of chunks(heads, 25)) {
+    const rows = must(await admin.from("context_sentences").select(COLUMNS).in("headword", part).limit(1000)) as Row[];
     for (const r of rows) {
       const key = rowKey(r);
       if (!wanted.has(key)) continue;
