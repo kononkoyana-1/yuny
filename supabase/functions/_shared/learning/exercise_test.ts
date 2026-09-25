@@ -3,6 +3,8 @@
  */
 import { assert, assertEquals } from "jsr:@std/assert@1";
 import {
+  meaningFor,
+  meaningsFor,
   buildExercise,
   buildPairCard,
   type Candidate,
@@ -220,4 +222,46 @@ Deno.test("C2: коллокация и фраза из двух плиток н�
   assertEquals(buildExercise({ code: "C2", word: MAI3, candidates: [], seed: 1, sentence: two }), null);
   assertEquals(shuffleTiles(["a", "b"], [["a", "b"], ["b", "a"]], 1), null);
   assertEquals(easierCode("C2"), "C1");
+});
+
+Deno.test("значение знака: пометка «гл. А» — не значение, история и имена — в конце, чужое чтение — нет", () => {
+  const DONG: CharEntry = {
+    headword: "动",
+    reading: "dòng",
+    compact: ["гл. А", "двигаться, передвигаться; шевелиться", "действовать, быть деятельным"],
+    senses: [],
+  };
+  assertEquals(meaningFor(DONG, { base: "dong", tone: 4 }), "двигаться, передвигаться; шевелиться");
+
+  const HAN: CharEntry = {
+    headword: "汉",
+    reading: "hàn",
+    compact: [
+      "ист. Хань, Ханьская династия (206 г. до н. э. — 220 г. н. э.)",
+      "ист. Ханьская эпоха; ханьский",
+      "Китай; китайский",
+      "геогр. (сокр. вм. 汉水) Ханьшуй, река Хань",
+    ],
+    senses: [],
+  };
+  assertEquals(meaningFor(HAN, { base: "han", tone: 4 }), "Китай; китайский");
+  assertEquals(meaningsFor(HAN, { base: "han", tone: 4 }).at(-1), "геогр. (сокр. вм. 汉水) Ханьшуй, река Хань");
+
+  // Два чтения, строки подписаны чтением; гнездо «fú собств.» — только фамилия.
+  const FU: CharEntry = {
+    headword: "服",
+    reading: "fú; fù",
+    compact: ["платье, одежда; форма; наряд, убор", "fù доза, приём, порция (лекарства)", "* fú колчан"],
+    senses: [
+      { nest: "I", gloss: "сущ.", header: true },
+      { nest: "I", gloss: "fú платье, одежда; форма; наряд, убор" },
+      { nest: "III", gloss: "fú собств.", header: true },
+      { nest: "III", gloss: "Фу (фамилия)" },
+    ],
+  };
+  assertEquals(meaningFor(FU, { base: "fu", tone: 2 }), "платье, одежда; форма; наряд, убор");
+  const all = meaningsFor(FU, { base: "fu", tone: 2 });
+  assert(!all.some((g) => g.includes("доза")), "значение чтения fù не для fú");
+  assertEquals(all.at(-1), "* колчан");
+  assertEquals(meaningFor(FU, { base: "fu", tone: 4 }), "доза, приём, порция (лекарства)");
 });

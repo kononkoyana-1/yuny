@@ -158,53 +158,73 @@ export function matchEntry(entries: CharEntry[], s: Syllable | null): { entry: C
 }
 
 /**
- * Значение знака для этого чтения. У статьи с несколькими чтениями гнёзда
- * подписаны слогом («гл. hào») — берём первое русское значение нужного
- * гнезда; без подписей — `compact`, только если чтение первое в статье
- * (короткий список начинается с него). Нет русского — `null`: не выдумываем.
+ * Пометка вместо значения: «гл. А», «сущ.», «собств.» — у БКРС такие строки
+ * бывают и без признака заголовка.
  */
-export function meaningFor(entry: CharEntry, syllable: Syllable): string | null {
-  const readings = entrySyllables(entry.reading);
-  const same = (x: Syllable) => x.base === syllable.base && x.tone === syllable.tone;
-  if (readings.length > 1) {
-    const senses = entry.senses ?? [];
-    const nests = new Set(
-      senses.filter((h) => isHeader(h) && h.gloss.split(/[\s,;]+/).some((w) => {
-        const p = parsePinyin(w);
-        return p?.length === 1 && same(p[0]);
-      })).map((h) => h.nest),
-    );
-    if (nests.size > 0) {
-      return senses.find((x) => !isHeader(x) && nests.has(x.nest) && RUSSIAN.test(x.gloss))?.gloss ?? null;
-    }
-    if (!same(readings[0])) return null;
-  }
-  return entry.compact.find((c) => RUSSIAN.test(c)) ??
-    entry.senses?.find((x) => !isHeader(x) && RUSSIAN.test(x.gloss))?.gloss ?? null;
+const LABEL_ONLY = /^(гл|сущ|прил|нареч|наречие|числ|мест|служ|словообр|собств|счётн|сч\. ?сл|межд|союз|предлог|частица|глагол)\.?(\s+[А-ЯA-Z]\.?)?$/i;
+/** Узкое или книжное значение — в конец списка: история, география, диалект, «*», имена. */
+const NARROW = /^(\*|ист\.|геогр\.|уст\.|диал\.|книжн\.|собств\.|см\.|вм\.|Примечание)|\(фамилия\)|фамилия\)?$/i;
+
+/**
+ * Чтения в начале строки значения: «fú платье», «fú, fù доза», «* fú колчан».
+ * Возвращает слоги и текст без них; приставки нет — `syllables: null`.
+ */
+function readingPrefix(gloss: string): { syllables: Syllable[] | null; text: string } {
+  const m = /^(\*\s*)?((?:[a-zA-Züāáǎàēéěèīíǐìōóǒòūúǔùǖǘǚǜ]+(?:,\s*|\s+))+)(?=\S)/.exec(gloss);
+  if (!m) return { syllables: null, text: gloss };
+  const words = m[2].split(/[,\s]+/).filter(Boolean);
+  const syl = words.map((w) => parsePinyin(w)).filter((p) => p?.length === 1).map((p) => p![0]);
+  if (syl.length !== words.length) return { syllables: null, text: gloss };
+  return { syllables: syl, text: `${m[1] ?? ""}${gloss.slice(m[0].length)}` };
 }
 
 /**
- * Все значения знака для этого чтения — для карточки знака в составе слова:
- * у статьи с несколькими чтениями — все русские пункты нужного гнезда, иначе
- * весь короткий список (`compact`), без пересказа. Русских нет — пусто.
+ * Значения знака для этого чтения, по порядку пользы. У статьи с несколькими
+ * чтениями берутся гнёзда, подписанные этим слогом («гл. hào»), кроме гнезда
+ * имён («fú собств.»); нет таких — строки с приставкой этого чтения и без
+ * приставки, если чтение первое. Пометки («гл. А») выбрасываются; узкие
+ * значения (история, география, имена, «*») — в конце.
  */
-export function meaningsFor(entry: CharEntry, syllable: Syllable): string[] {
+function glossesFor(entry: CharEntry, syllable: Syllable): string[] {
   const readings = entrySyllables(entry.reading);
   const same = (x: Syllable) => x.base === syllable.base && x.tone === syllable.tone;
   const senses = entry.senses ?? [];
+  let raw: string[];
   if (readings.length > 1) {
     const nests = new Set(
-      senses.filter((h) => isHeader(h) && h.gloss.split(/[\s,;]+/).some((w) => {
+      senses.filter((h) => isHeader(h) && !/собств/.test(h.gloss) && h.gloss.split(/[\s,;]+/).some((w) => {
         const p = parsePinyin(w);
         return p?.length === 1 && same(p[0]);
       })).map((h) => h.nest),
     );
     if (nests.size > 0) {
-      return senses.filter((x) => !isHeader(x) && nests.has(x.nest) && RUSSIAN.test(x.gloss)).map((x) => x.gloss);
+      raw = senses.filter((x) => !isHeader(x) && nests.has(x.nest)).map((x) => x.gloss);
+    } else {
+      const firstReading = same(readings[0]);
+      const pool = entry.compact.length ? entry.compact : senses.filter((x) => !isHeader(x)).map((x) => x.gloss);
+      raw = pool.flatMap((g) => {
+        const { syllables, text } = readingPrefix(g);
+        if (syllables) return syllables.some(same) ? [text] : [];
+        return firstReading ? [g] : [];
+      });
     }
+  } else {
+    raw = entry.compact.length ? entry.compact : senses.filter((x) => !isHeader(x)).map((x) => x.gloss);
+    raw = raw.map((g) => readingPrefix(g).text);
   }
-  const compact = entry.compact.filter((c) => RUSSIAN.test(c));
-  return compact.length ? compact : senses.filter((x) => !isHeader(x) && RUSSIAN.test(x.gloss)).map((x) => x.gloss);
+  const clean = raw.map((g) => g.trim()).filter((g) => RUSSIAN.test(g) && !LABEL_ONLY.test(g));
+  const unique = [...new Set(clean)];
+  return [...unique.filter((g) => !NARROW.test(g)), ...unique.filter((g) => NARROW.test(g))];
+}
+
+/** Главное значение знака для этого чтения (см. `glossesFor`); нет русского — `null`: не выдумываем. */
+export function meaningFor(entry: CharEntry, syllable: Syllable): string | null {
+  return glossesFor(entry, syllable)[0] ?? null;
+}
+
+/** Все значения знака для этого чтения — карточка знака в составе слова. */
+export function meaningsFor(entry: CharEntry, syllable: Syllable): string[] {
+  return glossesFor(entry, syllable);
 }
 
 /**
