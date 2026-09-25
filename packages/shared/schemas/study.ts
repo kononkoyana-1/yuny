@@ -205,6 +205,8 @@ export const FolderMapSchema = z.object({
     stage: StageSchema,
     due: z.boolean(),
     pair_partner: z.string().nullable(),
+    /** Порядок добавления в папку; слова приходят уже по нему. */
+    position: z.number().int(),
   })),
 });
 

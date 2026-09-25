@@ -1,6 +1,6 @@
 import { describe, expect, it } from "@jest/globals";
 import type { UserDictionaryItem } from "@yuny/shared";
-import { folderCounts, groupSavedWords, searchSaved, translationLine } from "./saved";
+import { folderCounts, folderWords, groupSavedWords, searchSaved, translationLine } from "./saved";
 
 let n = 0;
 function item(folder: string, headword: string, reading: string | null, glosses: string[] = []): UserDictionaryItem {
@@ -12,6 +12,7 @@ function item(folder: string, headword: string, reading: string | null, glosses:
     reading,
     translation: null,
     translation_source: null,
+    position: n,
     created_at: "2026-09-23T00:00:00.000Z",
     entry: {
       id: n,
@@ -29,6 +30,15 @@ const items = [
   item("b", "好", "hǎo, hào", ["хороший", "любить"]),
   item("b", "打电话", "dǎ diànhuà", ["звонить по телефону"]),
 ];
+
+describe("folderWords", () => {
+  it("keeps the folder's own words in the order they were added", () => {
+    // Список приходит новыми первыми, карта — по `position`.
+    const words = folderWords([...items].reverse(), "b");
+    expect(words.map((w) => w.headword)).toEqual(["好", "打电话"]);
+    expect(words[0].items.map((i) => i.folder_id)).toEqual(["b"]);
+  });
+});
 
 describe("groupSavedWords", () => {
   it("merges one word kept in several folders", () => {

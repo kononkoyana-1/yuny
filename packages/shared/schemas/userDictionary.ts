@@ -50,6 +50,11 @@ export const UserDictionaryItemSchema = z.object({
   translation: z.string().nullable(),
   /** Откуда `translation`: из файла, из статьи БКРС, от модели или поправлено учеником. */
   translation_source: SavedTranslationSourceSchema.nullable(),
+  /**
+   * Порядок добавления (#70): из файла — порядок файла, вручную — в конец.
+   * Сравнивать имеет смысл только внутри папки.
+   */
+  position: z.number().int(),
   created_at: z.string(),
   entry: SavedEntrySchema.nullable(),
 });

@@ -954,6 +954,7 @@ export type Database = {
           headword: string
           id: string
           lexeme_id: string
+          position: number
           reading: string | null
           translation: string | null
           translation_source: string | null
@@ -966,6 +967,7 @@ export type Database = {
           headword: string
           id?: string
           lexeme_id?: string
+          position?: number
           reading?: string | null
           translation?: string | null
           translation_source?: string | null
@@ -978,6 +980,7 @@ export type Database = {
           headword?: string
           id?: string
           lexeme_id?: string
+          position?: number
           reading?: string | null
           translation?: string | null
           translation_source?: string | null

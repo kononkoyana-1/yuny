@@ -63,17 +63,27 @@ Deno.serve(
     if (body.action === "folder") {
       const folderId = requireUuid(body, "folder_id");
       const o = folderOverview(input, folderId);
-      return json({
-        ...mapJson(o),
-        ...queueJson(input, folderId, rate),
-        ...pace,
-        words: o.words.map((w) => ({
+      // Порядок карты — порядок добавления в папку (`position`): как в файле, ручные — в конце.
+      const items = must(
+        await admin.from("user_dictionary_items").select("headword, reading, position")
+          .eq("user_id", userId).eq("folder_id", folderId),
+      ) as Row[];
+      const positionOf = new Map(items.map((i) => [`${i.headword}\u0000${i.reading ?? ""}`, Number(i.position)]));
+      const words = o.words
+        .map((w) => ({
           headword: w.headword,
           reading: w.reading,
           stage: w.stage,
           due: w.due,
           pair_partner: w.pairPartner,
-        })),
+          position: positionOf.get(`${w.headword}\u0000${w.reading ?? ""}`) ?? 0,
+        }))
+        .sort((a, b) => a.position - b.position);
+      return json({
+        ...mapJson(o),
+        ...queueJson(input, folderId, rate),
+        ...pace,
+        words,
       });
     }
 

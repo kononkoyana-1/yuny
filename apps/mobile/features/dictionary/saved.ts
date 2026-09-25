@@ -53,6 +53,17 @@ export function groupSavedWords(items: UserDictionaryItem[]): SavedWord[] {
   return [...byKey.values()];
 }
 
+/**
+ * Слова одной папки в порядке добавления (`position`, folder-map.design.md
+ * §3.4): как в файле, вручную добавленные — в конце. Слово, лежащее ещё и в
+ * других папках, несёт здесь только свою строку этой папки.
+ */
+export function folderWords(items: UserDictionaryItem[], folderId: string): SavedWord[] {
+  return groupSavedWords(
+    items.filter((i) => i.folder_id === folderId).sort((a, b) => a.position - b.position),
+  );
+}
+
 /** Сколько слов в каждой папке. */
 export function folderCounts(items: UserDictionaryItem[]): Map<string, number> {
   const counts = new Map<string, number>();

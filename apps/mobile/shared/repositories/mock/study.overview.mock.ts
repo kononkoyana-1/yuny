@@ -31,7 +31,10 @@ const MOCK_PER_DAY = 8;
 const emptyCounts = (): Record<Stage, number> => ({ new: 0, meeting: 0, recognize: 0, recall: 0, use: 0, stable: 0 });
 
 export async function mockFolderMap(folderId: string): Promise<FolderMap> {
-  const items = (await mockUserDictionaryRepository.listItems()).filter((i) => i.folder_id === folderId);
+  // По `position`, как отдаёт сервер (folder-map.design.md §1).
+  const items = (await mockUserDictionaryRepository.listItems())
+    .filter((i) => i.folder_id === folderId)
+    .sort((a, b) => a.position - b.position);
   const counts = emptyCounts();
   const seen = new Set<string>();
   const words = [];
@@ -41,7 +44,14 @@ export async function mockFolderMap(folderId: string): Promise<FolderMap> {
     seen.add(key);
     const f = wordFacts(i.headword);
     counts[f.stage]++;
-    words.push({ headword: i.headword, reading: i.reading, stage: f.stage, due: f.due, pair_partner: f.pair });
+    words.push({
+      headword: i.headword,
+      reading: i.reading,
+      stage: f.stage,
+      due: f.due,
+      pair_partner: f.pair,
+      position: i.position,
+    });
   }
   // Очередь (#85): новые слова ждут приёма по 8 в день, как при настройках по умолчанию.
   return FolderMapSchema.parse({
