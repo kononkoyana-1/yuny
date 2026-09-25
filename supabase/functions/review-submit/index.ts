@@ -18,7 +18,16 @@ import type { SupabaseClient } from "npm:@supabase/supabase-js@2.112.4";
 import { handler, HandlerError, json, optionalString, requireString, requireUuid } from "../_shared/shared.ts";
 import {
   type Answer,
+  buildExercise,
+  buildPairCard,
+  type Built,
   classify,
+  type Classified,
+  easierCode,
+  explanation,
+  resultOutcome,
+  type Stage,
+  type StudyWord,
   DAY_MS,
   MODEL,
   normalizePinyin,
@@ -34,6 +43,7 @@ import {
   type WordKey,
   wordStage,
 } from "../_shared/learning/mod.ts";
+import { issue, loadPool, russianGloss } from "../_shared/studyData.ts";
 
 const CONFUSIONS = ["confusion", "form_similar", "homophone"];
 /** Сколько последних верных ответов брать для медианы скорости. */
@@ -47,10 +57,30 @@ function secret(): string {
 
 // ------------------------------------------------------------------ вход
 
-function parseAnswer(raw: unknown): Answer {
+/**
+ * Ответ клиента (`StudyAnswerSchema`): `{option_id}`, `{text}`, `{self}`,
+ * `{blank}`, `{choice}` — в форму классификатора. Вариант — по номеру в
+ * билете: текст варианта знает сервер, а не клиент.
+ */
+function parseAnswer(raw: unknown, ticket: Ticket): Answer {
   const a = raw as Record<string, unknown> | null;
   const bad = () => new HandlerError("invalid_answer", 400);
   if (!a || typeof a !== "object") throw bad();
+  if (typeof a.option_id === "string") {
+    const i = Number(a.option_id.replace(/^o/, ""));
+    const opt = ticket.options?.[i];
+    if (!opt) throw bad();
+    return { kind: "choice", value: opt.value };
+  }
+  if (typeof a.text === "string" && a.text.length <= 200) return { kind: "pinyin", text: a.text };
+  if (a.self === "recalled" || a.self === "forgot") return { kind: "self", remembered: a.self === "recalled" };
+  if (a.choice === "ok" || a.choice === "know" || a.choice === "remember") return { kind: "seen" };
+  if (a.blank === true) {
+    if (ticket.options) return { kind: "choice", value: null };
+    if (ticket.exercise === "R2") return { kind: "self", remembered: false };
+    if (ticket.expected_orders) return { kind: "order", tokens: [] };
+    return { kind: "pinyin", text: "" };
+  }
   switch (a.kind) {
     case "seen":
       return { kind: "seen" };
@@ -282,18 +312,110 @@ async function duplicateResponse(admin: SupabaseClient, userId: string, requestI
   ) as Row | null;
   if (!ev) return null;
   return json({
-    outcome: ev.outcome,
-    partner: ev.partner ? { headword: ev.partner } : null,
-    expected: ev.expected,
+    outcome: ev.outcome === "seen" ? "seen" : ev.outcome === "ok" ? "correct" : ev.outcome === "tone" ? "partial" : "wrong",
+    correct: { text: ev.expected },
+    error_type: ev.outcome === "ok" || ev.outcome === "seen" ? null : ev.outcome,
+    partner: ev.partner ? { headword: ev.partner, reading: null, meaning: null } : null,
+    explanation: [],
+    next: [],
     stage: await stageNow(admin, userId, ticket, now),
-    intervention: null,
+    known: false,
     duplicate: true,
   });
 }
 
+/** Значение партнёра путаницы: его лексема или словарь. */
+async function meaningOf(admin: SupabaseClient, userId: string, w: WordKey, lexemeId: string | null) {
+  if (lexemeId) {
+    const l = must(await admin.from("learning_lexemes").select("translation").eq("user_id", userId).eq("id", lexemeId)
+      .maybeSingle()) as Row | null;
+    if (l?.translation) return l.translation.split(";")[0].trim() as string;
+  }
+  let q = admin.from("dictionary_entries").select("compact").eq("headword", w.headword);
+  q = w.reading === null ? q.is("reading", null) : q.eq("reading", w.reading);
+  const e = must(await q.limit(1).maybeSingle()) as Row | null;
+  return russianGloss(e?.compact);
+}
+
+interface ResultCtx {
+  partnerLexemeId: string | null;
+  wantsKnowCheck: boolean;
+  interventionPairId: string | null;
+  known: boolean;
+  lexeme: SubmitLexeme | null;
+}
+
+/** Результат ответа (`AnswerResultSchema`) и вставленные задания. */
+async function result(
+  admin: SupabaseClient,
+  userId: string,
+  ticket: Ticket,
+  classified: Classified,
+  stage: Stage | null,
+  ctx: ResultCtx,
+) {
+  const lex = ctx.lexeme;
+  const word: StudyWord = {
+    lexemeId: ticket.lexeme_id,
+    headword: ticket.target.headword,
+    reading: ticket.target.reading,
+    translation: lex ? (await meaningOf(admin, userId, ticket.target, lex.id)) : null,
+  };
+  const p = classified.partner;
+  const partnerMeaning = p ? await meaningOf(admin, userId, p, ctx.partnerLexemeId) : null;
+  const outcome = resultOutcome(classified);
+  const rightIndex = ticket.options?.findIndex((o) => o.headword === word.headword && o.reading === word.reading) ?? -1;
+
+  const next: Built[] = [];
+  const seed = Math.floor(Math.random() * 2 ** 31);
+  const pool = async () => (lex ? await loadPool(admin, userId, word, lex.hskLevel) : []);
+  if (ctx.wantsKnowCheck) {
+    // «Уже знаю»: трудная проверка — вспомнить значение и набрать пиньинь.
+    for (const code of ["R2", "P2"] as const) {
+      const b = buildExercise({ code, word, candidates: [], seed, check: "known" });
+      if (b) next.push(b);
+    }
+  } else if (outcome !== "correct" && outcome !== "seen" && !ticket.retry && !ticket.check &&
+    !ticket.exercise.startsWith("X")) {
+    // Переобучение: это же слово ещё раз, лёгким форматом, через пару заданий.
+    const code = easierCode(ticket.exercise);
+    const b = code ? buildExercise({ code, word, candidates: await pool(), seed, retry: true }) : null;
+    if (b) next.push(b);
+  }
+  if (ctx.interventionPairId && p) {
+    // Вторая путаница за 30 дней — карточка пары и три задания на различение.
+    const partner: StudyWord = { lexemeId: ctx.partnerLexemeId, ...p, translation: partnerMeaning };
+    next.push(buildPairCard(word, partner, ctx.interventionPairId));
+    const candidates = await pool();
+    for (let i = 0; i < 3; i++) {
+      const [t, o] = i % 2 ? [partner, word] : [word, partner];
+      const b = buildExercise({
+        code: "X1",
+        word: t,
+        candidates: [{ headword: o.headword, reading: o.reading, gloss: o.translation, source: "pair" }, ...candidates],
+        seed: seed + i,
+        pairId: ctx.interventionPairId,
+      });
+      if (b) next.push(b);
+    }
+  }
+
+  return {
+    outcome,
+    correct: { ...(rightIndex >= 0 ? { option_id: `o${rightIndex}` } : {}), text: ticket.expected },
+    error_type: classified.grade?.kind === "error" ? classified.grade.error : null,
+    partner: p ? { headword: p.headword, reading: p.reading, meaning: partnerMeaning } : null,
+    explanation: explanation(classified, word, partnerMeaning),
+    next: await Promise.all(next.map((b) => issue(b, userId, ticket.session_id, 0))),
+    stage,
+    known: ctx.known,
+    duplicate: false,
+  };
+}
+
 async function submit(admin: SupabaseClient, userId: string, ticket: Ticket, body: Record<string, unknown>) {
   const requestId = requireUuid(body, "request_id");
-  const answer = parseAnswer(body.answer);
+  const answer = parseAnswer(body.answer, ticket);
   const latencyMs = latency(body.latency_ms);
   const now = new Date();
 
@@ -390,16 +512,18 @@ async function submit(admin: SupabaseClient, userId: string, ticket: Ticket, bod
       if (dup) return dup;
     }
 
-    const grade = classified.grade;
-    return json({
-      outcome: classified.outcome,
-      error: grade?.kind === "error" ? grade.error : null,
-      partner,
-      expected: ticket.expected,
-      stage: plan.stage,
-      intervention: plan.interventionWrite === null ? null : { pair_id: res.data!.pair_ids[plan.interventionWrite] },
-      duplicate: false,
-    });
+    const pairId = plan.interventionWrite === null ? null : res.data!.pair_ids[plan.interventionWrite];
+    const knownNow = ticket.check === "known" && plan.skillWrites.length > 0 &&
+      (["read", "pinyin"] as const).every((k) => skills[k] || plan.skillWrites.some((w) => w.skill === k));
+    return json(
+      await result(admin, userId, ticket, classified, plan.stage, {
+        partnerLexemeId: partnerLex,
+        wantsKnowCheck: (body.answer as Row)?.choice === "know" && ticket.exercise === "intro" && !!lexeme,
+        interventionPairId: pairId,
+        known: knownNow,
+        lexeme,
+      }),
+    );
   }
   throw new HandlerError("busy_retry", 409);
 }
@@ -434,7 +558,7 @@ async function pairStart(admin: SupabaseClient, userId: string, ticket: Ticket) 
 
 Deno.serve(
   handler(async ({ userId, admin, body }) => {
-    const token = requireString(body, "ticket");
+    const token = typeof body.task_id === "string" ? body.task_id : requireString(body, "ticket");
     const ticket = await verifyTicket(token, secret(), userId, new Date());
     if (typeof ticket === "string") throw new HandlerError(ticket, ticket === "ticket_foreign" ? 403 : 400);
     if (body.action === "pair_start") return await pairStart(admin, userId, ticket);
