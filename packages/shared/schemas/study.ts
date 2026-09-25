@@ -162,7 +162,7 @@ export const SessionPreviewSchema = z.object({
   budget_minutes: SessionMinutesSchema,
   state: TodayStateSchema,
   recall_now: z.object({ recalled: z.number().int(), total: z.number().int() }),
-  /** День пользователя (`YYYY-MM-DD`, граница — 04:00 по его часам): его пишут в `last_prompt_on`. */
+  /** День пользователя (`YYYY-MM-DD`, граница — полночь по его часам): его пишут в `last_prompt_on`. */
   today: z.iso.date(),
   /** Показать окно «Повторим?»: сегодня его не было, не отвечали и есть что повторить. */
   show_daily_prompt: z.boolean(),

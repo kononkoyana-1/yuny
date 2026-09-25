@@ -59,7 +59,7 @@ function base(over: Partial<PlanInput> = {}): PlanInput {
 /** n слов, у которых «Читаю» просрочено. */
 function dueWords(n: number, folder = "f1") {
   const lexemes = Array.from({ length: n }, (_, i) => lex(`d${folder}${i}`, folder));
-  const states = Object.fromEntries(lexemes.map((l) => [l.id, { read: st(2, 5), pinyin: st(30, 1) }]));
+  const states = Object.fromEntries(lexemes.map((l) => [l.id, { read: st(2, 5), pinyin: st(30, 2) }]));
   return { lexemes, states };
 }
 
@@ -106,10 +106,11 @@ Deno.test("«Сегодня»: повторения по просроченно�
   assertEquals(plan.stats.reason, null);
 });
 
-Deno.test("долг: повторений больше бюджета — берём бюджет, новых 0, причина debt, остальное не сгорает", () => {
+Deno.test("долг: повторений больше бюджета — все повторения в занятии, новых 0, причина debt", () => {
   const due = dueWords(60);
   const plan = buildSession(base({ lexemes: [...due.lexemes, ...newWords(5)], states: due.states }));
-  assertEquals(plan.tasks.length, 40);
+  // Повторения не режутся по минутам (решение владельца): все 60, порциями.
+  assertEquals(plan.tasks.length, 60);
   assertEquals(plan.stats.dueNow, 60);
   assertEquals(plan.stats.newTaken, 0);
   assertEquals(plan.stats.reason, "debt");
@@ -251,7 +252,7 @@ Deno.test("папка: раунд сверх квоты можно — прог�
 
 Deno.test("папка: всё свежее — практика трудными форматами", () => {
   const l = [lex("x"), lex("y")];
-  const states = { x: { read: st(20, 1), pinyin: st(20, 1) }, y: { read: st(20, 1) } };
+  const states = { x: { read: st(20, 2), pinyin: st(20, 2) }, y: { read: st(20, 2) } };
   const plan = buildSession(base({ mode: "folder", folderId: "f1", lexemes: l, states }));
   assertEquals(plan.folderMode, "practice");
   assertEquals(plan.tasks.map((t) => t.code).sort(), ["P2", "R2", "R2"]);
@@ -260,7 +261,7 @@ Deno.test("папка: всё свежее — практика трудными
 // ------------------------------------------------ «Пишу» и «Использую» (#64)
 
 /** Слово узнаётся уверенно: «Пишу» и «Использую» открыты по таблице разблокировки. */
-const firm = () => ({ read: st(20, 1), pinyin: st(20, 1) });
+const firm = () => ({ read: st(20, 2), pinyin: st(20, 2) });
 
 Deno.test("открытие навыков: «Пишу» — после повторений; «Использую» — только с готовым предложением", () => {
   const l = [lex("a"), lex("b", "f1", 10, { goal: "read_only" })];
@@ -287,8 +288,8 @@ Deno.test("открытие навыков: не больше четырёх з�
 Deno.test("«Использую» пора: свежий — пропуск, окрепший — сборка фразы; без предложения не спрашиваем", () => {
   const l = [lex("a"), lex("b")];
   const states = {
-    a: { ...firm(), write: st(20, 1), use: st(1, 3, 1) },
-    b: { ...firm(), write: st(20, 1), use: st(8, 20) },
+    a: { ...firm(), write: st(20, 2), use: st(1, 3, 1) },
+    b: { ...firm(), write: st(20, 2), use: st(8, 20) },
   };
   const plan = buildSession(base({ lexemes: l, states, contextReady: new Set(["a", "b"]) }));
   assertEquals(plan.tasks.map((t) => `${lexOf(t)}:${t.code}`).sort(), ["a:C1", "b:C2"]);
@@ -300,7 +301,7 @@ Deno.test("«Использую» пора: свежий — пропуск, о�
 
 Deno.test("папка, практика: сперва предложения, открытый «Использую» — с пропуска", () => {
   const l = [lex("x"), lex("y")];
-  const states = { x: { ...firm(), use: st(10, 1) }, y: firm() };
+  const states = { x: { ...firm(), use: st(10, 2) }, y: firm() };
   const plan = buildSession(base({ mode: "folder", folderId: "f1", folderMode: "practice", lexemes: l, states, contextReady: new Set(["x", "y"]) }));
   const codes = plan.tasks.map((t) => `${lexOf(t)}:${t.code}`);
   assertEquals(codes.sort(), ["x:C2", "x:P2", "x:R2", "y:C1", "y:P2", "y:R2"]);
@@ -338,4 +339,16 @@ Deno.test("контрастных карточек не больше двух з
   });
   const plan = buildSession(base({ lexemes: due.lexemes, states: due.states, pairs: [pair(1), pair(2), pair(3)], minutes: 15 }));
   assertEquals(plan.tasks.filter((t) => t.kind === "pair_card").length, 2);
+});
+
+Deno.test("вчерашнее — сегодня, даже если модель ещё держит; сегодняшнее — нет", () => {
+  const l = [lex("y"), lex("t"), lex("old")];
+  const states = {
+    y: { read: st(30, 1) }, // повторяли вчера, держится — всё равно сегодня
+    t: { read: { ...st(30, 0), lastReview: new Date(DAY0.getTime() + 3_600_000) } }, // сегодня в 01:00 — нет
+    old: { read: st(30, 2) }, // позавчера, держится — нет
+  };
+  const plan = buildSession(base({ lexemes: l, states }));
+  const reads = plan.tasks.filter((t) => t.kind === "review" && t.skill === "read").map(lexOf);
+  assertEquals(reads, ["y"]);
 });

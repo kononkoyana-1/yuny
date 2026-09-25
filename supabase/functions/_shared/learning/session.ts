@@ -294,7 +294,11 @@ export function dueSkills(input: PlanInput, onlyFolder: string | null): Due[] {
       const st = input.states[l.id]?.[skill];
       if (!st || input.reviewedToday.has(`${l.id}:${skill}`)) continue;
       const r = retrievabilityAt(st, input.now);
-      if (r >= input.retention) continue;
+      // Вчерашнее — сегодня всё, даже если модель ещё держит: следующий день
+      // после знакомства и повторения — обязательная проверка (решение владельца).
+      const last = st.lastReview?.getTime() ?? 0;
+      const yesterday = last >= input.dayStart.getTime() - DAY_MS && last < input.dayStart.getTime();
+      if (r >= input.retention && !yesterday) continue;
       const recentLapse = st.lapses > 0 && !!st.lastReview && input.now.getTime() - st.lastReview.getTime() < 7 * DAY_MS;
       out.push({
         lexemeId: l.id,
@@ -477,7 +481,10 @@ export function buildSession(input: PlanInput): SessionPlan {
     const pairs = pairSlots(input, budget);
     const due = dueSkills(input, null);
     const room = budget - pairs.cost;
-    const reviews = due.slice(0, Math.max(0, room)).map((d, i) => reviewSlot(d, i));
+    // Повторения не режутся по минутам: всё, что пора, — в занятие (оно идёт
+    // порциями с паузами, остановиться можно в любой момент). Минуты решают
+    // только, сколько места остаётся новым словам.
+    const reviews = due.map((d, i) => reviewSlot(d, i));
     // Открыть навыки — после повторений, из оставшегося места.
     const opening = openingSkills(input, null)
       .slice(0, Math.max(0, Math.min(MODEL.unlock.perSession, room - reviews.length)))

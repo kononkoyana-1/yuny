@@ -64,7 +64,7 @@ Deno.test("состояние: нет слов / есть задания / пу�
   // Слово выучено надолго — сегодня спрашивать нечего (и открывать нечего: «Пишу» уже открыт).
   const stable = {
     lexemes: [lex("a", ["f1"], 60)],
-    states: { a: { read: st(200, 1), pinyin: st(200, 1), write: st(200, 1) } },
+    states: { a: { read: st(200, 2), pinyin: st(200, 2), write: st(200, 2) } },
   };
   assertEquals(todayState(base(stable), buildSession(base(stable))), "nothing_due");
   const after = base({ ...stable, reviewedToday: new Set(["a:read"]) });

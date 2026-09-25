@@ -10,7 +10,7 @@ import {
 import { invokeEdge } from "@/shared/lib/edge";
 import type { StudyRepository } from "../study.repository";
 
-/** Граница суток — 04:00 по часам пользователя; сервер считает её по смещению. */
+/** Граница суток — полночь по часам пользователя; сервер считает её по смещению. */
 const tzOffsetMin = () => -new Date().getTimezoneOffset();
 
 export const supabaseStudyRepository: StudyRepository = {

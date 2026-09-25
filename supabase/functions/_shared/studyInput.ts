@@ -7,8 +7,11 @@ import type { SupabaseClient } from "npm:@supabase/supabase-js@2.112.4";
 import { DAY_MS, MODEL, type PlanInput } from "./learning/mod.ts";
 import { loadLexemes, loadPairs, loadStates, must, type Row } from "./studyData.ts";
 
-/** Сутки начинаются в 04:00 по часам пользователя (data-sources.md). */
-const DAY_BOUNDARY_H = 4;
+/**
+ * Сутки начинаются в полночь по часам пользователя: выученное вечером после
+ * полуночи уже «вчерашнее» (решение владельца, было 04:00).
+ */
+const DAY_BOUNDARY_H = 0;
 
 export function dayStart(now: Date, tzOffsetMin: number): Date {
   const local = now.getTime() + tzOffsetMin * 60_000 - DAY_BOUNDARY_H * 3_600_000;
@@ -67,7 +70,7 @@ export async function loadInput(admin: SupabaseClient, userId: string, body: Rec
     reviewedToday: reviewed,
     seed: Math.floor(Math.random() * 2 ** 31),
   };
-  // День пользователя (граница — 04:00 по его часам) как `YYYY-MM-DD`: им
+  // День пользователя (граница — полночь по его часам) как `YYYY-MM-DD`: им
   // помечается, что окно «Повторим?» сегодня уже было.
   const today = new Date(start.getTime() + tz * 60_000).toISOString().slice(0, 10);
   return {

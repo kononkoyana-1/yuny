@@ -37,7 +37,7 @@ Deno.test("уровень навыка: не начат / свежий / дер�
 Deno.test("карта папки: стадии, «пора освежить», метка пары, чужие папки не считаются", () => {
   const input = base(
     [lex("买"), lex("卖"), lex("新"), lex("x", "other")],
-    { 买: { read: st(2, 5), pinyin: st(30, 1) }, 卖: { read: st(30, 1) } },
+    { 买: { read: st(2, 5), pinyin: st(30, 2) }, 卖: { read: st(30, 2) } },
     [pair({})],
   );
   const map = folderOverview(input, "f");

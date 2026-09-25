@@ -46,7 +46,7 @@ const base = (lexemes: PlanLexeme[], states: Record<string, Record<string, Store
 
 Deno.test("папка: сначала повторить, новые и практика — второстепенные", () => {
   const lexemes = [lex("d1", "f"), lex("n1", "f"), lex("n2", "f")];
-  const plan = folderPlan(base(lexemes, { d1: { read: st(2, 5), pinyin: st(30, 1) } }), "f", 10);
+  const plan = folderPlan(base(lexemes, { d1: { read: st(2, 5), pinyin: st(30, 2) } }), "f", 10);
   assertEquals(plan.primary?.mode, "review");
   assertEquals(plan.primary?.count, 1);
   assertEquals(plan.alternatives.map((a) => a.mode), ["new", "practice"]);
@@ -56,7 +56,7 @@ Deno.test("папка: сначала повторить, новые и прак
 
 Deno.test("папка: всё держится — практика с заметкой", () => {
   const lexemes = [lex("a", "f", 60)];
-  const plan = folderPlan(base(lexemes, { a: { read: st(200, 1), pinyin: st(200, 1) } }), "f", 10);
+  const plan = folderPlan(base(lexemes, { a: { read: st(200, 2), pinyin: st(200, 2) } }), "f", 10);
   assertEquals(plan.primary?.mode, "practice");
   assertEquals(plan.practiceNote, true);
   assertEquals(plan.alternatives, []);
