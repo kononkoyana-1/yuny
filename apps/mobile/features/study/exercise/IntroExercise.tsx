@@ -1,6 +1,6 @@
 import { View } from "react-native";
 import type { CharNote } from "@yuny/shared";
-import { Button, Card, Chip, HanziText, Text } from "@/shared/ui";
+import { AudioButton, Button, Card, Chip, HanziText, StrokeOrder, Text } from "@/shared/ui";
 import { t } from "@/shared/i18n";
 import { charNoteView } from "./charNote";
 import type { ExerciseProps } from "./types";
@@ -42,9 +42,17 @@ export function IntroExercise({ task, onAnswer, progressLabel }: ExerciseProps) 
         </View>
       </Scene>
 
+      {/* Звук и порядок черт — вне сцены: у сцены одна подпись для диктора. */}
+      {lexeme ? <StrokeOrder text={lexeme.headword} leading={<AudioButton text={lexeme.headword} />} centered /> : null}
+
       {example ? (
         <Card className="gap-xs bg-surface-alt shadow-none dark:bg-surface-alt-dark">
-          <HanziText variant="sentence">{example.zh}</HanziText>
+          <View className="flex-row items-start gap-sm">
+            <HanziText variant="sentence" className="flex-1">
+              {example.zh}
+            </HanziText>
+            <AudioButton text={example.zh} />
+          </View>
           <Text variant="caption" tone="muted">
             {example.pinyin}
           </Text>

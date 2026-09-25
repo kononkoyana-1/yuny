@@ -6,7 +6,7 @@ import {
   type SavedTranslationSource,
   type UserDictionaryFolder,
 } from "@yuny/shared";
-import { Button, FeedbackBanner, IconButton, Input, Sheet, Text } from "@/shared/ui";
+import { AudioButton, Button, FeedbackBanner, IconButton, Input, Sheet, StrokeOrder, Text } from "@/shared/ui";
 import {
   useAddToFolder,
   useCreateFolder,
@@ -129,11 +129,15 @@ function ArticleSheetBody({
           <Text variant="display" accessibilityRole="header">
             {word.headword}
           </Text>
-          {word.reading ? (
-            <Text variant="heading" tone="muted">
-              {word.reading}
-            </Text>
-          ) : null}
+          <View className="flex-row flex-wrap items-center gap-sm">
+            {word.reading ? (
+              <Text variant="heading" tone="muted">
+                {word.reading}
+              </Text>
+            ) : null}
+            <AudioButton text={word.headword} />
+          </View>
+          <StrokeOrder text={word.headword} />
           {line ? (
             <Text variant="body" className="pt-xs">
               {t(`dictionary.article.translation.${line.kind}`, { translation: line.text })}

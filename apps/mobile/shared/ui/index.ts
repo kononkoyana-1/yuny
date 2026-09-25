@@ -129,3 +129,7 @@ export type { ActionRowProps } from "./ActionRow";
 
 export { StudyButton } from "./StudyButton";
 export type { StudyButtonProps } from "./StudyButton";
+export { AudioButton } from "./AudioButton";
+export type { AudioButtonProps } from "./AudioButton";
+export { StrokeOrder } from "./StrokeOrder";
+export type { StrokeOrderProps } from "./StrokeOrder";

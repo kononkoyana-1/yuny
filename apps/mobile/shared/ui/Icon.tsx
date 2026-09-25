@@ -7,6 +7,7 @@ import CyborgSvg from "@/assets/cyborg.svg";
 import DocumentSvg from "@/assets/document.svg";
 import HomeSvg from "@/assets/home.svg";
 import SearchSvg from "@/assets/search.svg";
+import VolumeSvg from "@/assets/volume.svg";
 import ImageSvg from "@/assets/image.svg";
 import SettingsSvg from "@/assets/settings.svg";
 import UploadSvg from "@/assets/upload.svg";
@@ -51,6 +52,8 @@ const GLYPHS = {
   home: HomeSvg,
   /** Поле поиска по словарю. */
   search: SearchSvg,
+  /** «Послушать» — озвучка слова (#86). */
+  volume: VolumeSvg,
   upload: UploadSvg,
   /** The dictionary tab, and a word looked up anywhere else. */
   dictionary: BookSvg,

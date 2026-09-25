@@ -1,5 +1,5 @@
 import { View } from "react-native";
-import { Button, Chip, HanziText, Text } from "@/shared/ui";
+import { AudioButton, Button, Chip, HanziText, Text } from "@/shared/ui";
 import { t } from "@/shared/i18n";
 import type { ExerciseProps } from "./types";
 import { Scene } from "./Scene";
@@ -72,25 +72,29 @@ export function PairCardExercise({ task, onAnswer, progressLabel }: ExerciseProp
 
 function PairColumn({ side }: { side: Side }) {
   return (
-    <View
-      accessible
-      accessibilityLabel={[side.headword, side.reading, side.tone_label, side.meaning].filter(Boolean).join(", ")}
-      className="flex-1 items-center gap-xs rounded-tile border border-border bg-surface p-md dark:border-border-dark dark:bg-surface-dark"
-    >
-      <HanziText variant="hero">{side.headword}</HanziText>
-      <View className="flex-row flex-wrap items-center justify-center gap-xs">
-        {side.reading ? (
-          <Text variant="title" tone="muted">
-            {side.reading}
+    // Кнопка звука — под карточкой: внутри `accessible` её не было бы слышно диктору.
+    <View className="flex-1 items-center gap-xs">
+      <View
+        accessible
+        accessibilityLabel={[side.headword, side.reading, side.tone_label, side.meaning].filter(Boolean).join(", ")}
+        className="w-full items-center gap-xs rounded-tile border border-border bg-surface p-md dark:border-border-dark dark:bg-surface-dark"
+      >
+        <HanziText variant="hero">{side.headword}</HanziText>
+        <View className="flex-row flex-wrap items-center justify-center gap-xs">
+          {side.reading ? (
+            <Text variant="title" tone="muted">
+              {side.reading}
+            </Text>
+          ) : null}
+          {side.tone_label ? <Chip size="micro" label={side.tone_label} /> : null}
+        </View>
+        {side.meaning ? (
+          <Text variant="heading" className="text-center">
+            {side.meaning}
           </Text>
         ) : null}
-        {side.tone_label ? <Chip size="micro" label={side.tone_label} /> : null}
       </View>
-      {side.meaning ? (
-        <Text variant="heading" className="text-center">
-          {side.meaning}
-        </Text>
-      ) : null}
+      <AudioButton text={side.headword} />
     </View>
   );
 }
