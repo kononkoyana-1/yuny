@@ -5,6 +5,7 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import { useEffect } from "react";
+import "./animated";
 
 export interface ProgressBarProps {
   /** 0..1 */

@@ -2,7 +2,7 @@ import type { Ref } from "react";
 import { Pressable, View } from "react-native";
 import { useTheme } from "@/shared/lib/useTheme";
 import { Icon, type IconName } from "./Icon";
-import { Text } from "./Text";
+import { Text, type TextTone } from "./Text";
 import { FOCUS_RING_CLASS, HERO_FOCUS_RING_CLASS } from "./focusRing";
 
 export type ChipVariant = "onHero" | "neutral" | "pair" | "attention";
@@ -16,11 +16,11 @@ const CONTAINER_CLASS: Record<ChipVariant, string> = {
   attention: "bg-attention-soft dark:bg-attention-soft-dark",
 };
 
-const LABEL_CLASS: Record<ChipVariant, string> = {
-  onHero: "text-hero-ink dark:text-hero-ink-dark",
-  neutral: "text-text-muted dark:text-text-muted-dark",
-  pair: "text-pair-ink dark:text-pair-ink-dark",
-  attention: "text-attention-ink dark:text-attention-ink-dark",
+const LABEL_TONE: Record<ChipVariant, TextTone> = {
+  onHero: "heroInk",
+  neutral: "muted",
+  pair: "pairInk",
+  attention: "attentionInk",
 };
 
 const ICON_COLOR_KEY: Record<ChipVariant, "heroInk" | "textMuted" | "pairInk" | "attentionInk"> = {
@@ -72,7 +72,7 @@ export function Chip({
 
   const content = (
     <>
-      <Text variant="caption" className={`font-medium ${LABEL_CLASS[variant]}`}>
+      <Text variant="caption" tone={LABEL_TONE[variant]} className="font-medium">
         {label}
       </Text>
       {icon ? <Icon name={icon} size={size === "micro" ? 12 : 16} color={colors[ICON_COLOR_KEY[variant]]} /> : null}

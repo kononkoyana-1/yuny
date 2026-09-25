@@ -2,7 +2,8 @@
  * `session-build` (#63): сессия «Сегодня» или учёба по папке.
  *
  * Тело:
- *   { action: "preview" }                         — три плана для окна «Повторим?», без записи
+ *   { action: "preview" }                         — три плана для окна «Повторим?» и карточка
+ *                                                   «Сегодня» над словарём (#66), без записи
  *   { action: "start", mode: "today", minutes? }  — задания «Сегодня»
  *   { action: "start", mode: "folder", folder_id, folder_mode? }
  *   tz_offset_min? — смещение часов пользователя от UTC (граница дня)
@@ -19,10 +20,14 @@ import {
   buildSession,
   type Candidate,
   DAY_MS,
+  estimateMinutes,
   type FolderMode,
   MODEL,
   type PlanInput,
   type PlanTask,
+  planDigest,
+  recallNow,
+  todayState,
   withoutOptions,
 } from "../_shared/learning/mod.ts";
 import {
@@ -101,14 +106,45 @@ async function loadInput(admin: SupabaseClient, userId: string, body: Record<str
   return { input, lexemes, defaultMinutes: (s.session_minutes ?? 10) as number };
 }
 
-function preview(input: Omit<PlanInput, "mode" | "minutes">) {
-  const plans = MINUTES.map((minutes) => {
-    const plan = buildSession({ ...input, mode: "today", minutes });
+async function preview(
+  admin: SupabaseClient,
+  userId: string,
+  input: Omit<PlanInput, "mode" | "minutes">,
+  defaultMinutes: number,
+) {
+  const folderNames = new Map(
+    (must(await admin.from("user_dictionary_folders").select("id, name").eq("user_id", userId)) as Row[])
+      .map((f) => [f.id as string, f.name as string]),
+  );
+  const built = MINUTES.map((minutes) => ({ minutes, plan: buildSession({ ...input, mode: "today", minutes }) }));
+  const plans = built.map(({ minutes, plan }) => {
     const fresh = plan.tasks.filter((t) => t.kind === "intro").length;
-    return { minutes, due: plan.tasks.length - fresh * 3, new: fresh, total: plan.tasks.length };
+    const digest = planDigest(input, plan);
+    return {
+      minutes,
+      due: plan.tasks.length - fresh * 3,
+      new: fresh,
+      total: plan.tasks.length,
+      est_minutes: estimateMinutes(plan.tasks.length, input.pace),
+      new_sources: digest.newSources.map((s) => ({
+        folder_id: s.folderId,
+        folder_name: folderNames.get(s.folderId) ?? "",
+        count: s.count,
+      })),
+      pairs: digest.pairs,
+      due_tomorrow: plan.stats.dueTomorrow,
+    };
   });
-  const ten = buildSession({ ...input, mode: "today", minutes: 10 });
-  return json({ plans, due_now: ten.stats.dueNow, reason: ten.stats.reason });
+  const budget = MINUTES.includes(defaultMinutes as 5) ? defaultMinutes : 10;
+  const chosen = built.find((b) => b.minutes === budget)!.plan;
+  return json({
+    plans,
+    due_now: chosen.stats.dueNow,
+    reason: chosen.stats.reason,
+    budget_minutes: budget,
+    state: todayState(input, chosen),
+    recall_now: recallNow(input, input.now),
+  });
 }
 
 async function start(
@@ -220,7 +256,7 @@ function rebalance(portions: number[], n: number): number[] {
 Deno.serve(
   handler(async ({ userId, admin, body }) => {
     const { input, lexemes, defaultMinutes } = await loadInput(admin, userId, body);
-    if (body.action === "preview") return preview(input);
+    if (body.action === "preview") return await preview(admin, userId, input, defaultMinutes);
     if (body.action !== "start") throw new HandlerError("invalid_request", 400);
     return await start(admin, userId, body, input, lexemes, defaultMinutes);
   }),

@@ -8,8 +8,9 @@ import { breakpoints, spacing, typography } from "@/shared/config/tokens";
 import type { Href } from "expo-router";
 
 /**
- * Three visible tabs — Загрузка / Словарь / Настройки. Главная (TZ.md §11)
- * is hidden since 2026-09-23; see the hidden `index` trigger below. The
+ * Three visible tabs — Словарь / Загрузка / Настройки (#66: «Словарь» is
+ * first and the start screen; `/` redirects there through the hidden
+ * `index` trigger below). The
  * lesson is deliberately not part of this navigator: it lives at
  * `app/lesson/` as a separate full-screen flow, so a task fills the screen
  * with nothing competing for the exit.
@@ -36,8 +37,8 @@ import type { Href } from "expo-router";
  *    NativeWind does handle, so classes are fine there.
  */
 const TAB_ITEMS: { name: string; href: Href; label: string; icon: IconName }[] = [
-  { name: "upload", href: "/upload", label: "Загрузка", icon: "upload" },
   { name: "dictionary", href: "/dictionary", label: "Словарь", icon: "dictionary" },
+  { name: "upload", href: "/upload", label: "Загрузка", icon: "upload" },
   { name: "settings", href: "/settings", label: "Настройки", icon: "settings" },
 ];
 
@@ -107,7 +108,7 @@ function TabBarButton({ label, icon, isWide, isFocused, ...pressableProps }: Tab
 /**
  * No gate in front of the tabs. The previous product hid them until a goal
  * existed; this one has nothing to set up before the first screen — a user
- * with no modules sees the Главная empty state inviting the first upload.
+ * with no words sees «Мой словарь»'s empty state inviting a folder or upload.
  */
 export default function TabsLayout() {
   const { colors } = useTheme();
@@ -160,11 +161,10 @@ export default function TabsLayout() {
         }}
       >
         {/*
-          Главная скрыта (2026-09-23), но маршрут `/` остаётся экраном этого
-          навигатора: `Tabs` знает только те экраны, у которых есть триггер в
-          `TabList`, и без него переход на `/` (после входа, из ErrorBoundary)
-          уходил бы в «не найдено». Триггер без кнопки — `index.tsx` сам
-          перенаправит на «Загрузку».
+          Маршрут `/` остаётся экраном этого навигатора: `Tabs` знает только
+          те экраны, у которых есть триггер в `TabList`, и без него переход на
+          `/` (после входа, из ErrorBoundary) уходил бы в «не найдено».
+          Триггер без кнопки — `index.tsx` сам перенаправит на «Словарь».
         */}
         <TabTrigger name="index" href="/" style={{ display: "none" }} />
         {TAB_ITEMS.map((tab) => (

@@ -2,6 +2,7 @@ import { useEffect, type ReactNode } from "react";
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
 import { motion } from "@/shared/config/tokens";
 import { useReducedMotion } from "@/shared/lib/useReducedMotion";
+import "./animated";
 
 export type AnswerTrayOutcome = "correct" | "partial" | "wrong";
 

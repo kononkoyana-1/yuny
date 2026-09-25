@@ -1,5 +1,4 @@
-import { Pressable, View } from "react-native";
-import Animated from "react-native-reanimated";
+import { View } from "react-native";
 import { gradients } from "@/shared/config/tokens";
 import { linearGradient } from "@/shared/platform/gradient";
 import { useTheme } from "@/shared/lib/useTheme";
@@ -7,8 +6,7 @@ import { usePressScale } from "@/shared/lib/usePressScale";
 import { Icon, type IconName } from "./Icon";
 import { Text } from "./Text";
 import { FOCUS_RING_CLASS } from "./focusRing";
-
-const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+import { AnimatedPressable } from "./animated";
 
 export interface StudyButtonProps {
   icon: IconName;
@@ -68,7 +66,7 @@ export function StudyButton({
             <Text variant="heading" tone="inverse">
               {title}
             </Text>
-            <Text variant="caption" className="text-text-inverse/80 dark:text-text-inverse-dark/80">
+            <Text variant="caption" tone="inverse" className="opacity-80">
               {subtitle}
             </Text>
           </>

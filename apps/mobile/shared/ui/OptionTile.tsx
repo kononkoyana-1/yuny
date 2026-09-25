@@ -1,10 +1,7 @@
 import type { ReactNode } from "react";
-import { Pressable } from "react-native";
-import Animated from "react-native-reanimated";
 import { usePressScale } from "@/shared/lib/usePressScale";
 import { FOCUS_RING_CLASS } from "./focusRing";
-
-const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+import { AnimatedPressable } from "./animated";
 
 export type OptionTileLayout = "row" | "square";
 export type OptionTileState = "idle" | "submitted" | "correct" | "wrongSelected" | "dimmed";

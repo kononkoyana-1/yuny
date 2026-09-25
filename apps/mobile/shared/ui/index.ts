@@ -1,3 +1,6 @@
+// Side effect first: registers Reanimated components with NativeWind (see animated.ts).
+import "./animated";
+
 export { Text } from "./Text";
 export type { TextProps, TextVariant, TextTone } from "./Text";
 

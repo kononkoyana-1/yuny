@@ -105,16 +105,34 @@ export const StudySessionSchema = z.object({
   stats: SessionStatsSchema,
 });
 
-/** Три плана для окна «Повторим?» — считаются без записи. */
+export const TodayStateSchema = z.enum(["no_words", "ready", "done", "nothing_due"]);
+
+/**
+ * Три плана для окна «Повторим?» и карточка «Сегодня» над словарём (#66) —
+ * считаются без записи. Состав, минуты и прогноз считает сервер.
+ */
 export const SessionPreviewSchema = z.object({
   plans: z.array(z.object({
     minutes: SessionMinutesSchema,
     due: z.number().int(),
     new: z.number().int(),
     total: z.number().int(),
+    /** «~8 минут» по темпу пользователя. */
+    est_minutes: z.number().int(),
+    new_sources: z.array(z.object({
+      folder_id: z.uuid(),
+      folder_name: z.string(),
+      count: z.number().int(),
+    })),
+    pairs: z.array(z.object({ a: z.string(), b: z.string() })),
+    due_tomorrow: z.number().int(),
   })),
+  /** Для `budget_minutes`: сколько пора повторить, включая не вошедшее. */
   due_now: z.number().int(),
   reason: PlanReasonSchema,
+  budget_minutes: SessionMinutesSchema,
+  state: TodayStateSchema,
+  recall_now: z.object({ recalled: z.number().int(), total: z.number().int() }),
 });
 
 export const StudyAnswerSchema = z.union([
@@ -161,6 +179,7 @@ export type StudyOption = z.infer<typeof StudyOptionSchema>;
 export type Exercise = z.infer<typeof ExerciseSchema>;
 export type StudySession = z.infer<typeof StudySessionSchema>;
 export type SessionPreview = z.infer<typeof SessionPreviewSchema>;
+export type TodayState = z.infer<typeof TodayStateSchema>;
 export type StudyAnswer = z.infer<typeof StudyAnswerSchema>;
 export type AnswerResult = z.infer<typeof AnswerResultSchema>;
 export type PlanReason = z.infer<typeof PlanReasonSchema>;

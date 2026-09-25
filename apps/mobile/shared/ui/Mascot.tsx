@@ -15,6 +15,7 @@ import Animated, {
 } from "react-native-reanimated";
 import { Text } from "./Text";
 import { useReducedMotion } from "@/shared/lib/useReducedMotion";
+import "./animated";
 
 export type MascotStage = 1 | 2 | 3 | 4 | 5;
 export type MascotMood = "neutral" | "thinking" | "celebrating" | "resting";

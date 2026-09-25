@@ -8,6 +8,7 @@ import { nextSegmentedIndex } from "@/shared/lib/segmentedChoiceNav";
 import { focusRef } from "@/shared/platform/focusRef";
 import { Icon, type IconName } from "./Icon";
 import { Text } from "./Text";
+import "./animated";
 
 export interface SegmentedChoiceOption<Value extends string> {
   value: Value;
@@ -156,10 +157,9 @@ export function SegmentedChoice<Value extends string>({
             ) : null}
             <Text
               variant="caption"
+              tone={checked ? "inverse" : "default"}
               numberOfLines={2}
-              className={`text-center font-medium ${
-                checked ? "text-text-inverse dark:text-text-inverse-dark" : "text-text dark:text-text-dark"
-              }`}
+              className="text-center font-medium"
             >
               {option.label}
             </Text>

@@ -1,20 +1,17 @@
 import type { Ref } from "react";
 import {
-  Pressable,
   ActivityIndicator,
   type PressableProps,
   type StyleProp,
   type View,
   type ViewStyle,
 } from "react-native";
-import Animated from "react-native-reanimated";
 import { gradients } from "@/shared/config/tokens";
 import { linearGradient } from "@/shared/platform/gradient";
 import { useTheme } from "@/shared/lib/useTheme";
 import { usePressScale } from "@/shared/lib/usePressScale";
-import { Text } from "./Text";
-
-const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+import { Text, type TextTone } from "./Text";
+import { AnimatedPressable } from "./animated";
 
 export type ButtonVariant = "primary" | "secondary" | "ghost" | "destructive" | "hero";
 
@@ -35,12 +32,13 @@ const CONTAINER_CLASS: Record<ButtonVariant, string> = {
   hero: "bg-hero-action dark:bg-hero-action-dark",
 };
 
-const LABEL_TONE_CLASS: Record<ButtonVariant, string> = {
-  primary: "text-text-inverse dark:text-text-inverse-dark",
-  secondary: "text-primary dark:text-primary-dark",
-  ghost: "text-primary dark:text-primary-dark",
-  destructive: "text-text-inverse dark:text-text-inverse-dark",
-  hero: "text-hero-action-ink dark:text-hero-action-ink-dark",
+/** Label colour goes through `Text`'s `tone` — a `text-*` className loses to the default tone's class. */
+const LABEL_TONE: Record<ButtonVariant, TextTone> = {
+  primary: "inverse",
+  secondary: "brand",
+  ghost: "brand",
+  destructive: "inverse",
+  hero: "heroActionInk",
 };
 
 export interface ButtonProps extends Omit<PressableProps, "children" | "style"> {
@@ -115,7 +113,7 @@ export function Button({
       {loading ? (
         <ActivityIndicator />
       ) : (
-        <Text variant="heading" className={LABEL_TONE_CLASS[variant]}>
+        <Text variant="heading" tone={LABEL_TONE[variant]}>
           {label}
         </Text>
       )}

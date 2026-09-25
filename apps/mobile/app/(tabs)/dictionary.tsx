@@ -2,13 +2,15 @@ import { useMemo, useRef, useState } from "react";
 import { FlatList, View, type TextInput } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Button, EmptyState, ErrorState, IconButton, Input, LoadingState, Text } from "@/shared/ui";
-import { useDictionarySearch, useSavedItems } from "@/shared/api";
+import { useDictionarySearch, useSavedItems, useToday } from "@/shared/api";
 import { useDebouncedValue } from "@/shared/lib/useDebouncedValue";
-import { spacing } from "@/shared/config/tokens";
+import { breakpoints, spacing } from "@/shared/config/tokens";
 import { t } from "@/shared/i18n";
 import { ArticleSheet, type SheetWord } from "@/features/dictionary/ArticleSheet";
 import { EntryRow } from "@/features/dictionary/EntryRow";
-import { MyDictionary } from "@/features/dictionary/MyDictionary";
+import { MyDictionary, type MyDictionaryHandle } from "@/features/dictionary/MyDictionary";
+import { TodayHero } from "@/features/study/TodayHero";
+import { TODAY_ENABLED } from "@/features/study/flags";
 import { groupSavedWords, searchSaved, wordKey } from "@/features/dictionary/saved";
 import { useRowRefs } from "@/features/dictionary/useRowRefs";
 
@@ -22,6 +24,12 @@ const SEARCH_DEBOUNCE_MS = 300;
  * сначала совпадения из своего словаря, под ними выдача БКРС. Строка
  * открывает статью в листе, оттуда слово раскладывается по папкам. Уровень
  * HSK на экране не показывается (TZ.md §4).
+ *
+ * Над своим словарём — карточка «Сегодня» (#66, today-session.design.md
+ * §3.2): на узком экране прокручивается вместе с папками, на широком стоит
+ * слева отдельной колонкой. Раскладка — по ширине контейнера из `onLayout`:
+ * в статической web-сборке `useWindowDimensions` на первой отрисовке
+ * ошибался (#56).
  */
 export default function DictionaryTab() {
   const insets = useSafeAreaInsets();
@@ -41,9 +49,13 @@ export default function DictionaryTab() {
     isFetchNextPageError,
   } = useDictionarySearch(query);
   const saved = useSavedItems();
+  const today = useToday({ enabled: TODAY_ENABLED });
+  const [width, setWidth] = useState(0);
+  const wide = width >= breakpoints.wide;
+  const myDictionaryRef = useRef<MyDictionaryHandle>(null);
 
   const [openWord, setOpenWord] = useState<SheetWord | null>(null);
-  // Та же схема, что на Главной: строка, к которой вернуть фокус, живёт
+  // Строка, к которой вернуть фокус, живёт
   // отдельно от открытого слова — `onClose` обнуляет `openWord` в том же
   // рендере, в котором `Sheet` читает `returnFocusRef`.
   const [focusKey, setFocusKey] = useState<string | null>(null);
@@ -64,7 +76,7 @@ export default function DictionaryTab() {
   function renderBody() {
     // Пустое поле — свой словарь. Проверяется первым: выключенный запрос
     // тоже в состоянии `pending`.
-    if (query === "") return <MyDictionary />;
+    if (query === "") return renderMine();
     if (isPending) {
       return <LoadingState className="flex-1" message={t("dictionary.loading")} />;
     }
@@ -169,8 +181,41 @@ export default function DictionaryTab() {
     );
   }
 
+  function renderMine() {
+    if (!TODAY_ENABLED) return <MyDictionary />;
+    // Пока карточка — герой, главный акцент экрана она, а не «Новая папка».
+    const heroIsPrimary = today.data?.state === "ready" || (!today.data && !today.isError);
+    const hero = (
+      <TodayHero
+        today={today.data}
+        isError={today.isError}
+        onRetry={() => void today.refetch()}
+        // Экран занятия — #67/#68.
+        onStart={() => {}}
+        onToFolders={() => myDictionaryRef.current?.showFolders()}
+      />
+    );
+    const newFolderVariant = heroIsPrimary ? "secondary" : "primary";
+
+    if (!wide) {
+      return <MyDictionary ref={myDictionaryRef} header={hero} newFolderVariant={newFolderVariant} />;
+    }
+    return (
+      <View className="flex-1 flex-row gap-xl pl-lg">
+        <View className="w-hero-column">{hero}</View>
+        <View className="flex-1">
+          <MyDictionary ref={myDictionaryRef} newFolderVariant={newFolderVariant} />
+        </View>
+      </View>
+    );
+  }
+
   return (
-    <View className="flex-1 bg-background dark:bg-background-dark" style={{ paddingTop: insets.top }}>
+    <View
+      className="flex-1 bg-background dark:bg-background-dark"
+      style={{ paddingTop: insets.top }}
+      onLayout={(event) => setWidth(event.nativeEvent.layout.width)}
+    >
       <View className="gap-md px-lg pb-md pt-xl">
         <Text variant="title" accessibilityRole="header">
           {t("dictionary.title")}

@@ -108,7 +108,7 @@ export default function SignUp() {
           onPress={() => router.back()}
           className="min-h-tap items-center justify-center"
         >
-          <Text variant="body" className="text-primary dark:text-primary-dark">
+          <Text variant="body" tone="brand">
             {t("auth.signUp.toSignIn")}
           </Text>
         </Pressable>

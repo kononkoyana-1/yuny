@@ -6,6 +6,7 @@ import { useReducedMotion } from "@/shared/lib/useReducedMotion";
 import { motion } from "@/shared/config/tokens";
 import { Icon } from "./Icon";
 import { Text } from "./Text";
+import "./animated";
 
 export type SaveStatusState = "idle" | "saving" | "saved" | "error";
 export type SaveStatusLayout = "inline" | "block";
@@ -118,7 +119,7 @@ export function SaveStatus({
               className="min-h-tap min-w-tap items-center justify-center"
               hitSlop={8}
             >
-              <Text variant="caption" className="font-semibold text-primary dark:text-primary-dark">
+              <Text variant="caption" tone="brand" className="font-semibold">
                 {retryLabel}
               </Text>
             </Pressable>

@@ -4,6 +4,7 @@ import Animated, { useAnimatedStyle, useSharedValue, withTiming } from "react-na
 import { gradients, motion } from "@/shared/config/tokens";
 import { linearGradient } from "@/shared/platform/gradient";
 import { useTheme } from "@/shared/lib/useTheme";
+import "./animated";
 
 export interface StudyProgressProps {
   done: number;

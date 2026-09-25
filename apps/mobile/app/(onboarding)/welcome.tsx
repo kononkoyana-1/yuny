@@ -7,7 +7,7 @@ import { REQUIRES_AUTH } from "@/shared/config/dataSource";
  * Экран 00 — первый запуск. Имя, короткое обещание, маскот и одно действие.
  *
  * Дальше по новому ТЗ идёт единственный вопрос — уровень HSK (TZ.md §4), —
- * и его экран появится в фазе 7. Пока кнопка ведёт прямо на Главную: вести
+ * и его экран появится в фазе 7. Пока кнопка ведёт прямо в «Словарь»: вести
  * человека в несуществующий шаг хуже, чем пустить его в приложение.
  *
  * Три точки карусели из референс-макета здесь намеренно не нарисованы: это
@@ -58,7 +58,7 @@ export default function Welcome() {
               onPress={() => router.push("/sign-in")}
               className="min-h-tap justify-center px-xs"
             >
-              <Text variant="caption" className="font-bold text-primary dark:text-primary-dark">
+              <Text variant="caption" tone="brand" className="font-bold">
                 Войти
               </Text>
             </Pressable>

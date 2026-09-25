@@ -5,10 +5,10 @@
  */
 export const queryKeys = {
   profile: ["profile"] as const,
-  modules: ["modules"] as const,
   dictionarySearch: (query: string) => ["dictionary", "search", query] as const,
   userDictionaryFolders: ["userDictionary", "folders"] as const,
   userDictionaryItems: ["userDictionary", "items"] as const,
   learningSettings: ["learningSettings"] as const,
+  today: ["study", "today"] as const,
   accountEmail: ["account", "email"] as const,
 };

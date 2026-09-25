@@ -24,7 +24,9 @@ export type TextTone =
   | "heroInkMuted"
   | "successInk"
   | "attentionInk"
-  | "pairInk";
+  | "pairInk"
+  // `Button variant="hero"`'s label on `heroAction`.
+  | "heroActionInk";
 
 /**
  * Each variant carries its own font FAMILY, not a numeric weight.
@@ -65,6 +67,7 @@ export const TONE_CLASS: Record<TextTone, string> = {
   successInk: "text-success-ink dark:text-success-ink-dark",
   attentionInk: "text-attention-ink dark:text-attention-ink-dark",
   pairInk: "text-pair-ink dark:text-pair-ink-dark",
+  heroActionInk: "text-hero-action-ink dark:text-hero-action-ink-dark",
 };
 
 export interface TextProps extends RNTextProps {

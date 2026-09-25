@@ -1,10 +1,8 @@
-import { Pressable } from "react-native";
 import Animated from "react-native-reanimated";
 import { usePressScale } from "@/shared/lib/usePressScale";
 import { HanziText } from "./HanziText";
 import { FOCUS_RING_CLASS } from "./focusRing";
-
-const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+import { AnimatedPressable } from "./animated";
 
 export interface PhraseTileProps {
   /** A word or short phrase, e.g. "这个" or "买". */

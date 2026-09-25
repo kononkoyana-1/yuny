@@ -9,7 +9,6 @@ export {
   useDeleteAccount,
 } from "./useSettings";
 export type { SaveState } from "./useSettings";
-export { useModules } from "./useModules";
 export { useDictionarySearch } from "./useDictionarySearch";
 export {
   useFolders,
@@ -21,3 +20,4 @@ export {
   useRemoveFromFolder,
   useSaveWords,
 } from "./useUserDictionary";
+export { useToday } from "./useToday";

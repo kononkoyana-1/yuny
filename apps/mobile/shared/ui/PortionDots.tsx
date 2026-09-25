@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { View } from "react-native";
 import Animated, { Easing, useAnimatedStyle, useSharedValue, withRepeat, withSequence, withTiming } from "react-native-reanimated";
 import { useReducedMotion } from "@/shared/lib/useReducedMotion";
+import "./animated";
 
 export interface PortionDotsProps {
   /** 1-based index of the portion in progress. */

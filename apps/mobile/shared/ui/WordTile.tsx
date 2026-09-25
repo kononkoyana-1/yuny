@@ -1,5 +1,4 @@
-import { Pressable, View } from "react-native";
-import Animated from "react-native-reanimated";
+import { View } from "react-native";
 import { useTheme } from "@/shared/lib/useTheme";
 import { usePressScale } from "@/shared/lib/usePressScale";
 import { STAGE_FILL_CLASS, STAGE_IS_DEEP, STAGE_NEEDS_EDGE, type Stage } from "./stage";
@@ -7,8 +6,7 @@ import { HanziText } from "./HanziText";
 import { Icon } from "./Icon";
 import { Chip } from "./Chip";
 import { FOCUS_RING_CLASS } from "./focusRing";
-
-const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+import { AnimatedPressable } from "./animated";
 
 export interface WordTileProps {
   headword: string;
