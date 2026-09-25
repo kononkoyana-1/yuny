@@ -2,7 +2,7 @@ import { Text as RNText, type TextProps as RNTextProps } from "react-native";
 import { pickHanziHeroVariant } from "@/shared/lib/hanziVariant";
 import { TONE_CLASS, type TextTone } from "./Text";
 
-export type HanziTextVariant = "hero" | "option" | "sentence" | "tile" | "inline";
+export type HanziTextVariant = "hero" | "option" | "sentence" | "tile" | "tileLong" | "inline";
 
 /** Reuses `Text`'s tone vocabulary — `HanziText` renders every colour role `Text` does. */
 export type HanziTextTone = TextTone;
@@ -11,6 +11,7 @@ const SIZE_CLASS: Record<Exclude<HanziTextVariant, "hero">, string> = {
   option: "text-hanzi-option",
   sentence: "text-hanzi-sentence",
   tile: "text-hanzi-tile",
+  tileLong: "text-hanzi-tile-long",
   inline: "text-hanzi-inline",
 };
 
@@ -19,6 +20,7 @@ const WEIGHT_CLASS: Record<HanziTextVariant, string> = {
   option: "font-hanzi-medium",
   sentence: "font-hanzi-regular",
   tile: "font-hanzi-medium",
+  tileLong: "font-hanzi-medium",
   inline: "font-hanzi-medium",
 };
 

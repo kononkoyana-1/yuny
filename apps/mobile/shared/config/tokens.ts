@@ -549,6 +549,8 @@ export const typography = {
   hanziSentence: { size: 28, weight: "400", lineHeight: 44, letterSpacing: 0 },
   /** Folder-map word tile. */
   hanziTile: { size: 30, weight: "500", lineHeight: 38, letterSpacing: 0 },
+  /** Same tile, 3 знака — at `hanziTile` the word touches the tile's edges. */
+  hanziTileLong: { size: 24, weight: "500", lineHeight: 32, letterSpacing: 0 },
   /** A character inline inside a Russian sentence. */
   hanziInline: { size: 20, weight: "500", lineHeight: 28, letterSpacing: 0 },
 } as const;

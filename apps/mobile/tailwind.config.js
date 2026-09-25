@@ -227,6 +227,7 @@ module.exports = {
         "hanzi-option": ["40px", { lineHeight: "52px", fontWeight: "500" }],
         "hanzi-sentence": ["28px", { lineHeight: "44px", fontWeight: "400" }],
         "hanzi-tile": ["30px", { lineHeight: "38px", fontWeight: "500" }],
+        "hanzi-tile-long": ["24px", { lineHeight: "32px", fontWeight: "500" }],
         "hanzi-inline": ["20px", { lineHeight: "28px", fontWeight: "500" }],
       },
       // #65 V.7 (exercise.design.md §9): `opacity.dimmed` — an `OptionTile`

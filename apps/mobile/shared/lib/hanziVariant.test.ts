@@ -1,5 +1,5 @@
 import { describe, expect, it } from "@jest/globals";
-import { pickHanziHeroVariant } from "./hanziVariant";
+import { pickHanziHeroVariant, pickHanziTileVariant } from "./hanziVariant";
 
 describe("pickHanziHeroVariant", () => {
   it("stays 'hero' for 1 character", () => {
@@ -26,5 +26,17 @@ describe("pickHanziHeroVariant", () => {
 
   it("treats an empty string as 'hero'", () => {
     expect(pickHanziHeroVariant("")).toBe("hero");
+  });
+});
+
+describe("pickHanziTileVariant", () => {
+  it("keeps the full tile size for 1–2 знака", () => {
+    expect(pickHanziTileVariant("买")).toBe("tile");
+    expect(pickHanziTileVariant("便宜")).toBe("tile");
+  });
+
+  it("steps down for 3 знака and goes inline at 4+", () => {
+    expect(pickHanziTileVariant("打电话")).toBe("tileLong");
+    expect(pickHanziTileVariant("一路平安")).toBe("inline");
   });
 });

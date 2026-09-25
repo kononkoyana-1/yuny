@@ -188,6 +188,8 @@ export default function FolderScreen() {
           />
         }
         renderItem={({ item: word }) => {
+          // Одинаковая обёртка без отступов у каждой ячейки: иначе в неполном ряду
+          // плитка (с `p-sm` и рамкой) выходит шире соседних.
           if (!word) return <View className="flex-1" />;
           const p = progressByKey.get(word.key);
           const stage: Stage = p?.stage ?? "new";
@@ -202,19 +204,21 @@ export default function FolderScreen() {
             .filter(Boolean)
             .join(". ");
           return (
-            <WordTile
-              ref={refFor(word.key)}
-              headword={word.headword}
-              stage={stage}
-              due={p?.due ?? false}
-              pairPartner={p?.pair_partner ?? undefined}
-              accessibilityLabel={label}
-              onPress={() => {
-                setFocusKey(word.key);
-                setOpenWord(word);
-              }}
-              className="flex-1"
-            />
+            <View className="flex-1 flex-row">
+              <WordTile
+                ref={refFor(word.key)}
+                headword={word.headword}
+                stage={stage}
+                due={p?.due ?? false}
+                pairPartner={p?.pair_partner ?? undefined}
+                accessibilityLabel={label}
+                onPress={() => {
+                  setFocusKey(word.key);
+                  setOpenWord(word);
+                }}
+                className="flex-1"
+              />
+            </View>
           );
         }}
       />

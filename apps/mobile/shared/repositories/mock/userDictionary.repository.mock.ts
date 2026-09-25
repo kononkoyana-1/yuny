@@ -49,6 +49,11 @@ let items: UserDictionaryItem[] = [
   item(folders[0].id, "好", "2026-09-21T09:00:00.000Z"),
   item(folders[1].id, "好", "2026-09-21T08:00:00.000Z"),
   item(folders[1].id, "打电话", "2026-09-20T08:00:00.000Z"),
+  item(folders[1].id, "多少钱", "2026-09-20T07:00:00.000Z"),
+  item(folders[1].id, "便宜", "2026-09-20T06:00:00.000Z"),
+  item(folders[1].id, "买", "2026-09-20T05:00:00.000Z"),
+  item(folders[1].id, "一路平安", "2026-09-20T04:00:00.000Z"),
+  item(folders[1].id, "上海", "2026-09-20T03:00:00.000Z"),
 ];
 
 function nameTaken(name: string, exceptId?: string): boolean {

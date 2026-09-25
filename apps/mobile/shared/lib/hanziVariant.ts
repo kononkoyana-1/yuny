@@ -10,3 +10,13 @@
 export function pickHanziHeroVariant(text: string): "hero" | "heroLong" {
   return [...text].length >= 3 ? "heroLong" : "hero";
 }
+
+/**
+ * Folder-map word tile (folder-map.design.md §3.3): `hanziTile` for 1–2
+ * знака, `hanziTileLong` for 3 (at 30 px they touch the tile's edges), and
+ * `hanziInline` in up to two lines for 4+.
+ */
+export function pickHanziTileVariant(text: string): "tile" | "tileLong" | "inline" {
+  const n = [...text].length;
+  return n <= 2 ? "tile" : n === 3 ? "tileLong" : "inline";
+}

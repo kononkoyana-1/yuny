@@ -2,6 +2,7 @@ import type { Ref } from "react";
 import { View } from "react-native";
 import { useTheme } from "@/shared/lib/useTheme";
 import { usePressScale } from "@/shared/lib/usePressScale";
+import { pickHanziTileVariant } from "@/shared/lib/hanziVariant";
 import { STAGE_FILL_CLASS, STAGE_IS_DEEP, STAGE_NEEDS_EDGE, type Stage } from "./stage";
 import { HanziText } from "./HanziText";
 import { Icon } from "./Icon";
@@ -48,6 +49,7 @@ export function WordTile({
   const { colors } = useTheme();
   const { style, onPressIn, onPressOut } = usePressScale();
   const onColor = STAGE_IS_DEEP.has(stage) ? colors.onStageDeep : colors.onStageLight;
+  const variant = pickHanziTileVariant(headword);
 
   return (
     <AnimatedPressable
@@ -62,7 +64,7 @@ export function WordTile({
         STAGE_NEEDS_EDGE.has(stage) ? "border border-stage-edge dark:border-stage-edge-dark" : ""
       } ${due ? "border-due-border border-dashed border-attention dark:border-attention-dark" : ""} ${FOCUS_RING_CLASS} ${className}`}
     >
-      <HanziText variant="tile" style={{ color: onColor }}>
+      <HanziText variant={variant} numberOfLines={variant === "inline" ? 2 : 1} className="text-center" style={{ color: onColor }}>
         {headword}
       </HanziText>
       {stage === "stable" ? (
