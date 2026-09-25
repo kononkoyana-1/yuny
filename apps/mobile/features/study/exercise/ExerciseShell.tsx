@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ScrollView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { Exercise } from "@yuny/shared";
 import { IconButton, StudyProgress, Text } from "@/shared/ui";
 import { breakpoints, spacing } from "@/shared/config/tokens";
 import { useKeyboardShortcuts } from "@/shared/platform/keyboardShortcuts";
+import { speak } from "@/shared/platform/speech";
 import { t } from "@/shared/i18n";
 import type { useStudySession } from "../session/useStudySession";
 import { advancesImmediately } from "../session/queue";
@@ -18,6 +19,7 @@ import { PinyinExercise } from "./PinyinExercise";
 import { RecallExercise } from "./RecallExercise";
 import { RoundCounter } from "./RoundCounter";
 import { TilesExercise } from "./TilesExercise";
+import { voiceText } from "./voice";
 
 const CHOICE_CODES = new Set<Exercise["code"]>(["R1", "P1", "W1", "W2", "C1"]);
 
@@ -47,6 +49,17 @@ export function ExerciseShell({ session, onClose, round = null }: ExerciseShellP
   const task = current;
   const revealed = task !== null && revealedFor === task.task_id;
   const showTray = answered !== null && !advancesImmediately(answered.task, answered.given);
+
+  // После ответа слово (в C1/C2 — предложение) звучит само, один раз на
+  // задание (#86): ответ — нажатие, так что браузер звук разрешит. Нет голоса — тишина.
+  const answeredId = answered?.task.task_id ?? null;
+  useEffect(() => {
+    if (!answered) return;
+    const text = voiceText(answered.task, true);
+    if (text) speak(text);
+    // Только при новом ответе, не при каждом обновлении результата с сервера.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [answeredId]);
 
   useKeyboardShortcuts((event) => {
     if (!task || event.composing) return;
