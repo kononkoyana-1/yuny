@@ -116,7 +116,9 @@ export function pairTasks(): Exercise[] {
   return [r1("mai4"), r1("mai"), w("W1", MAI4, 0)];
 }
 
-export function mockStudySession(): StudySession {
+export function mockStudySession(
+  kind: { mode: "today" | "folder"; folder_mode: "review" | "new" | "practice" | null } = { mode: "today", folder_mode: null },
+): StudySession {
   const exercises = [
     introMai(0),
     r1("mai", 0),
@@ -130,8 +132,8 @@ export function mockStudySession(): StudySession {
   ];
   return StudySessionSchema.parse({
     session_id: "00000000-0000-4000-8000-0000000000aa",
-    mode: "today",
-    folder_mode: null,
+    mode: kind.mode,
+    folder_mode: kind.folder_mode,
     exercises,
     portions: [5, 4],
     stats: { budget: 40, due_now: 26, new_quota: 5, new_taken: 1, reason: null, due_tomorrow: 30 },

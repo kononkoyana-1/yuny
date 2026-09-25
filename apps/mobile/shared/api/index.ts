@@ -20,4 +20,4 @@ export {
   useRemoveFromFolder,
   useSaveWords,
 } from "./useUserDictionary";
-export { useToday, useTodayActions } from "./useToday";
+export { useToday, useTodayActions, useFolderPlan } from "./useToday";

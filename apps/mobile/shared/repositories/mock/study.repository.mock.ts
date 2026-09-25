@@ -1,4 +1,4 @@
-import { AnswerResultSchema, type AnswerResult, type Exercise } from "@yuny/shared";
+import { AnswerResultSchema, FolderStudyPlanSchema, type AnswerResult, type Exercise } from "@yuny/shared";
 import { BackendError } from "@/shared/lib/backendError";
 import { correctAnswerText, localVerdict } from "@/shared/lib/studyVerdict";
 import type { StudyRepository } from "../study.repository";
@@ -64,12 +64,35 @@ export const mockStudyRepository: StudyRepository = {
     return delay(preview, MOCK_TODAY === "slow" ? 3000 : 400);
   },
 
-  async start() {
+  async folderPlan() {
+    // Как в folder-study.design.md §3: новые слова главным, повторить и практика — вторыми.
+    return delay(
+      FolderStudyPlanSchema.parse({
+        primary: { mode: "new", count: 7, total_new: 18, minutes: 7 },
+        alternatives: [
+          { mode: "review", count: 3, total_new: null, minutes: 2 },
+          { mode: "practice", count: null, total_new: null, minutes: 5 },
+        ],
+        practice_note: false,
+        load_warning: null,
+      }),
+      300,
+    );
+  },
+
+  async start(input) {
     if (MOCK_STUDY === "start_error") {
       await delay(null);
       throw new BackendError("network_error");
     }
-    const session = mockStudySession();
+    // Папка: режим как просили (по умолчанию — новые); «Ещё 7 новых» — раунд знакомства.
+    const session = mockStudySession(
+      input.mode === "folder"
+        ? { mode: "folder", folder_mode: input.folder_mode ?? "new" }
+        : input.extra_new
+          ? { mode: "folder", folder_mode: "new" }
+          : { mode: "today", folder_mode: null },
+    );
     remember(session.exercises);
     return delay(session, 600);
   },

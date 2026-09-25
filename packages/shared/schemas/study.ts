@@ -137,6 +137,27 @@ export const SessionPreviewSchema = z.object({
   today: z.iso.date(),
   /** Показать окно «Повторим?»: сегодня его не было, не отвечали и есть что повторить. */
   show_daily_prompt: z.boolean(),
+  /** «Ещё 7 новых слов» в итоге дня: сколько слов и сколько заданий прибавится завтра; `null` — новых нет. */
+  extra_new: z.object({ count: z.number().int(), tomorrow_delta: z.number().int() }).nullable().default(null),
+});
+
+export const FolderModeSchema = z.enum(["review", "new", "practice"]);
+
+const FolderModeOfferSchema = z.object({
+  mode: FolderModeSchema,
+  /** review — пора повторить; new — слов в раунде; practice — `null`. */
+  count: z.number().int().nullable(),
+  /** new — сколько новых слов в папке всего. */
+  total_new: z.number().int().nullable(),
+  minutes: z.number().int(),
+});
+
+/** Что предложить на экране папки (#69, folder-study.design.md §1). */
+export const FolderStudyPlanSchema = z.object({
+  primary: FolderModeOfferSchema.nullable(),
+  alternatives: z.array(FolderModeOfferSchema),
+  practice_note: z.boolean(),
+  load_warning: z.object({ tomorrow_tasks: z.number().int() }).nullable(),
 });
 
 export const StudyAnswerSchema = z.union([
@@ -188,6 +209,8 @@ export type Exercise = z.infer<typeof ExerciseSchema>;
 export type StudySession = z.infer<typeof StudySessionSchema>;
 export type SessionPreview = z.infer<typeof SessionPreviewSchema>;
 export type TodayState = z.infer<typeof TodayStateSchema>;
+export type FolderMode = z.infer<typeof FolderModeSchema>;
+export type FolderStudyPlan = z.infer<typeof FolderStudyPlanSchema>;
 export type StudyAnswer = z.infer<typeof StudyAnswerSchema>;
 export type AnswerResult = z.infer<typeof AnswerResultSchema>;
 export type PlanReason = z.infer<typeof PlanReasonSchema>;

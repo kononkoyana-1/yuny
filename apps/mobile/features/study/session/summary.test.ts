@@ -1,6 +1,6 @@
 import { describe, expect, it } from "@jest/globals";
 import type { AnswerResult, Exercise, StudyAnswer } from "@yuny/shared";
-import { daySummary, pauseAfter, portionCount, portionSummary, stageUps, type Logged } from "./summary";
+import { daySummary, pauseAfter, portionCount, portionSummary, roundSummary, stageUps, type Logged } from "./summary";
 
 const ex = (task_id: string, portion: number, headword = "买"): Exercise => ({
   task_id,
@@ -75,5 +75,21 @@ describe("стадии и пары", () => {
       logged(ex("b", 0), 1, { option_id: "o0" }, result({ pair_resolved: pair })),
     ];
     expect(daySummary(log).pairsResolved).toEqual([pair]);
+  });
+});
+
+describe("итог раунда", () => {
+  it("знакомства без подтверждённых «уже знаю», без повторов", () => {
+    const intro = (id: string, headword: string): Exercise => ({ ...ex(id, 0, headword), code: "intro" });
+    const log = [
+      logged(intro("i1", "火锅"), 1, { choice: "remember" }, result({ outcome: "seen" })),
+      logged(intro("i2", "米饭"), 1, { choice: "know" }, result({ outcome: "seen" })),
+      logged(ex("c1", 0, "米饭"), 1, { option_id: "o0" }, result({ known: true })),
+      logged(intro("i3", "火锅"), 1, { choice: "remember" }, null),
+    ];
+    expect(roundSummary(log)).toEqual({
+      learned: [{ headword: "火锅", reading: null }],
+      known: [{ headword: "米饭", reading: null }],
+    });
   });
 });

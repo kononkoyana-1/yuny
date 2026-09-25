@@ -101,3 +101,29 @@ export function daySummary(log: readonly Answered[]): DaySummary {
   }
   return { advanced: stageUps(log), pairsResolved };
 }
+
+export interface RoundSummary {
+  /** Слова, с которыми познакомились в раунде (без тех, что «уже знали»). */
+  learned: { headword: string; reading: string | null }[];
+  /** «Уже знаю» с пройденной проверкой. */
+  known: { headword: string; reading: string | null }[];
+}
+
+/** Итог раунда знакомства (folder-study.design.md §5): знакомства минус подтверждённые «уже знаю». */
+export function roundSummary(log: readonly Answered[]): RoundSummary {
+  const key = (l: { headword: string; reading: string | null }) => `${l.headword}|${l.reading ?? ""}`;
+  const known = new Map<string, { headword: string; reading: string | null }>();
+  for (const a of log) {
+    if (a.result?.known && a.task.lexeme) known.set(key(a.task.lexeme), a.task.lexeme);
+  }
+  const learned = new Map<string, { headword: string; reading: string | null }>();
+  for (const a of log) {
+    const l = a.task.lexeme;
+    if (a.task.code !== "intro" || !l || known.has(key(l))) continue;
+    learned.set(key(l), { headword: l.headword, reading: l.reading });
+  }
+  return {
+    learned: [...learned.values()],
+    known: [...known.values()].map((l) => ({ headword: l.headword, reading: l.reading })),
+  };
+}

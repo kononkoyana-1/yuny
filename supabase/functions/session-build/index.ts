@@ -4,6 +4,8 @@
  * Тело:
  *   { action: "preview" }                         — три плана для окна «Повторим?» и карточка
  *                                                   «Сегодня» над словарём (#66), без записи
+ *   { action: "folder_preview", folder_id }       — что предложить на экране папки (#69)
+ *   { action: "start", mode: "today", extra_new: true } — «Ещё 7 новых слов» после «Сегодня»
  *   { action: "start", mode: "today", minutes? }  — задания «Сегодня»
  *   { action: "start", mode: "folder", folder_id, folder_mode? }
  *   tz_offset_min? — смещение часов пользователя от UTC (граница дня)
@@ -21,7 +23,10 @@ import {
   type Candidate,
   DAY_MS,
   estimateMinutes,
+  extraNewOffer,
   type FolderMode,
+  type FolderModeOffer,
+  folderPlan,
   MODEL,
   type PlanInput,
   type PlanTask,
@@ -156,8 +161,25 @@ async function preview(
     state,
     recall_now: recallNow(input, input.now),
     today: day.today,
+    extra_new: extraNew(input, budget),
     // Раз в день, пока сегодня не отвечали и есть что повторить (daily-and-folder-study §2.1).
     show_daily_prompt: state === "ready" && input.reviewedToday.size === 0 && day.lastPromptOn !== day.today,
+  });
+}
+
+function extraNew(input: Omit<PlanInput, "mode" | "minutes">, minutes: number) {
+  const offer = extraNewOffer(input, minutes);
+  return offer ? { count: offer.count, tomorrow_delta: offer.tomorrowDelta } : null;
+}
+
+function folderPreview(input: Omit<PlanInput, "mode" | "minutes">, folderId: string, minutes: number) {
+  const plan = folderPlan(input, folderId, minutes);
+  const offer = (o: FolderModeOffer) => ({ mode: o.mode, count: o.count, total_new: o.totalNew, minutes: o.minutes });
+  return json({
+    primary: plan.primary ? offer(plan.primary) : null,
+    alternatives: plan.alternatives.map(offer),
+    practice_note: plan.practiceNote,
+    load_warning: plan.loadWarning ? { tomorrow_tasks: plan.loadWarning.tomorrowTasks } : null,
   });
 }
 
@@ -169,10 +191,14 @@ async function start(
   lexemes: StudyLexeme[],
   defaultMinutes: number,
 ) {
-  const mode = body.mode === "folder" ? "folder" : "today";
-  const folderId = mode === "folder" ? requireUuid(body, "folder_id") : undefined;
   const minutes = MINUTES.includes(body.minutes as 5) ? (body.minutes as number) : defaultMinutes;
-  const folderMode = ["review", "new", "practice"].includes(body.folder_mode as string)
+  // «Ещё 7 новых слов» после «Сегодня» — раунд знакомства в папке, где новые слова есть.
+  const extra = body.mode !== "folder" && body.extra_new === true ? extraNewOffer(input, minutes) : null;
+  const mode = body.mode === "folder" || extra ? "folder" : "today";
+  const folderId = extra ? extra.folderId : mode === "folder" ? requireUuid(body, "folder_id") : undefined;
+  const folderMode = extra
+    ? "new"
+    : ["review", "new", "practice"].includes(body.folder_mode as string)
     ? (body.folder_mode as FolderMode)
     : undefined;
   const plan = buildSession({ ...input, mode, minutes, folderId, folderMode });
@@ -270,6 +296,9 @@ function rebalance(portions: number[], n: number): number[] {
 Deno.serve(
   handler(async ({ userId, admin, body }) => {
     const { input, lexemes, defaultMinutes, today, lastPromptOn } = await loadInput(admin, userId, body);
+    if (body.action === "folder_preview") {
+      return folderPreview(input, requireUuid(body, "folder_id"), defaultMinutes);
+    }
     if (body.action === "preview") {
       return await preview(admin, userId, input, defaultMinutes, { today, lastPromptOn });
     }

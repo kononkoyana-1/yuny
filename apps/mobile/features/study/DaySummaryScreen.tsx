@@ -17,6 +17,10 @@ export interface DaySummaryScreenProps {
   /** Прогноз на завтра из пересчитанной карточки «Сегодня»; `null` — ещё считается. */
   tomorrow: number | null;
   onDone: () => void;
+  /** Заголовок вместо «Готово на сегодня» — итог повторения или практики папки. */
+  title?: string;
+  /** «Ещё N новых слов» с ценой на завтра; `null` — кнопки нет. */
+  extraNew?: { count: number; tomorrowDelta: number; onPress: () => void } | null;
 }
 
 /**
@@ -24,7 +28,7 @@ export interface DaySummaryScreenProps {
  * теперь различаете, прогноз на завтра. Праздник — только за настоящий
  * результат: блёстки и радостный маскот, если что-то продвинулось или пара решена.
  */
-export function DaySummaryScreen({ summary, tomorrow, onDone }: DaySummaryScreenProps) {
+export function DaySummaryScreen({ summary, tomorrow, onDone, title, extraNew = null }: DaySummaryScreenProps) {
   const insets = useSafeAreaInsets();
   const { colors } = useTheme();
   const headerRef = useRef<View>(null);
@@ -60,7 +64,7 @@ export function DaySummaryScreen({ summary, tomorrow, onDone }: DaySummaryScreen
         {...({ tabIndex: -1 } as object)}
       >
         <Text variant="display" className="text-center">
-          {t("learn.day.title")}
+          {title ?? t("learn.day.title")}
         </Text>
       </View>
 
@@ -96,7 +100,22 @@ export function DaySummaryScreen({ summary, tomorrow, onDone }: DaySummaryScreen
         </Text>
       ) : null}
 
-      <Button label={t("learn.day.done")} onPress={onDone} />
+      <View className="gap-sm">
+        <Button label={t("learn.day.done")} onPress={onDone} />
+        {extraNew && extraNew.count > 0 ? (
+          <>
+            <Button
+              label={t("learn.day.extraNew", { count: extraNew.count })}
+              variant="secondary"
+              accessibilityHint={t("learn.day.extraNewCost", { count: extraNew.tomorrowDelta })}
+              onPress={extraNew.onPress}
+            />
+            <Text variant="caption" tone="muted" className="text-center" aria-hidden>
+              {t("learn.day.extraNewCost", { count: extraNew.tomorrowDelta })}
+            </Text>
+          </>
+        ) : null}
+      </View>
     </ScrollView>
   );
 }

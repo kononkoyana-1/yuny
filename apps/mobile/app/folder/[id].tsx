@@ -19,6 +19,7 @@ import { EntryRow } from "@/features/dictionary/EntryRow";
 import { FolderNameSheet } from "@/features/dictionary/FolderNameSheet";
 import { groupSavedWords } from "@/features/dictionary/saved";
 import { useRowRefs } from "@/features/dictionary/useRowRefs";
+import { FolderStudyBlock } from "@/features/study/FolderStudyBlock";
 
 /**
  * Папка своего словаря (#38): слова в ней, новые первыми, переименование и
@@ -122,6 +123,12 @@ export default function FolderScreen() {
                 }}
               />
             </View>
+            {words.length > 0 ? (
+              <FolderStudyBlock
+                folderId={folder.id}
+                onStart={(mode) => router.push({ pathname: "/study", params: { folder: folder.id, mode } })}
+              />
+            ) : null}
           </View>
         }
         ListEmptyComponent={

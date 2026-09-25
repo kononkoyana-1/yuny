@@ -170,7 +170,7 @@ export function forecastDue(input: Pick<PlanInput, "lexemes" | "states" | "pairs
 }
 
 /** Сколько заданий стоит новое слово завтра: оба стартовых навыка (≈ 1,7 на слово в первые дни). */
-function newWordTomorrow(retention: number): number {
+export function newWordTomorrow(retention: number): number {
   // Первое верное вспоминание даёт S ≈ 2.5 × 0.5 = 1.25 дня — к завтра навык
   // уже просится. Считаем чтение и пиньинь, если завтра их срок.
   const s = 2.5 * 0.5;
@@ -260,7 +260,7 @@ interface Due {
   priority: number;
 }
 
-function dueSkills(input: PlanInput, onlyFolder: string | null): Due[] {
+export function dueSkills(input: PlanInput, onlyFolder: string | null): Due[] {
   const out: Due[] = [];
   const activeFor = (id: string) => input.pairs.some((p) => p.status === "active" && involves(p, id));
   for (const l of input.lexemes) {
@@ -282,7 +282,7 @@ function dueSkills(input: PlanInput, onlyFolder: string | null): Due[] {
 }
 
 /** Новые слова по очереди: недавно добавленные раньше, при равенстве — меньший HSK. */
-function newQueue(input: PlanInput, onlyFolder: string | null): PlanLexeme[] {
+export function newQueue(input: PlanInput, onlyFolder: string | null): PlanLexeme[] {
   return input.lexemes
     .filter((l) => !input.states[l.id]?.read && (!onlyFolder || l.folderIds.includes(onlyFolder)))
     .sort((a, b) => b.addedAt.getTime() - a.addedAt.getTime() || (a.hskLevel ?? 9) - (b.hskLevel ?? 9));

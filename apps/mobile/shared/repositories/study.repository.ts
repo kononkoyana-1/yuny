@@ -1,8 +1,17 @@
-import type { AnswerResult, SessionMinutes, SessionPreview, StudyAnswer, StudySession } from "@yuny/shared";
+import type {
+  AnswerResult,
+  FolderMode,
+  FolderStudyPlan,
+  SessionMinutes,
+  SessionPreview,
+  StudyAnswer,
+  StudySession,
+} from "@yuny/shared";
 
 export type StartStudyInput =
-  | { mode: "today"; minutes?: SessionMinutes }
-  | { mode: "folder"; folder_id: string; folder_mode?: "review" | "new" | "practice" };
+  /** `extra_new` — «Ещё 7 новых слов» после «Сегодня»: раунд знакомства в папке, где есть новые. */
+  | { mode: "today"; minutes?: SessionMinutes; extra_new?: boolean }
+  | { mode: "folder"; folder_id: string; folder_mode?: FolderMode };
 
 export interface SubmitAnswerInput {
   task_id: string;
@@ -20,6 +29,8 @@ export interface SubmitAnswerInput {
 export interface StudyRepository {
   /** Карточка «Сегодня» и три плана окна «Повторим?» — без записи. */
   preview(): Promise<SessionPreview>;
+  /** Что предложить на экране папки: главный режим, остальные, нагрузка (#69). */
+  folderPlan(folderId: string): Promise<FolderStudyPlan>;
   /** Задания сессии «Сегодня» или папки. */
   start(input: StartStudyInput): Promise<StudySession>;
   /** Ответ → память; итог, разбор и вставленные задания. */

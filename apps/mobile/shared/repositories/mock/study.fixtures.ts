@@ -46,6 +46,7 @@ export const TODAY_FIXTURES = {
     recall_now: { recalled: 212, total: 347 },
     today: MOCK_TODAY_DATE,
     show_daily_prompt: true,
+    extra_new: { count: 7, tomorrow_delta: 12 },
   },
   debt: {
     plans: READY_PLANS.map((p) => ({ ...p, new: 0, new_sources: [], due: p.total, pairs: [] })),
@@ -56,6 +57,7 @@ export const TODAY_FIXTURES = {
     recall_now: { recalled: 180, total: 347 },
     today: MOCK_TODAY_DATE,
     show_daily_prompt: true,
+    extra_new: null,
   },
   done: {
     plans: EMPTY_PLANS,
@@ -66,6 +68,7 @@ export const TODAY_FIXTURES = {
     recall_now: { recalled: 301, total: 347 },
     today: MOCK_TODAY_DATE,
     show_daily_prompt: false,
+    extra_new: null,
   },
   nothing_due: {
     plans: EMPTY_PLANS,
@@ -76,6 +79,7 @@ export const TODAY_FIXTURES = {
     recall_now: { recalled: 330, total: 347 },
     today: MOCK_TODAY_DATE,
     show_daily_prompt: false,
+    extra_new: null,
   },
   no_words: {
     plans: EMPTY_PLANS.map((p) => ({ ...p, due_tomorrow: 0 })),
@@ -86,6 +90,7 @@ export const TODAY_FIXTURES = {
     recall_now: { recalled: 0, total: 0 },
     today: MOCK_TODAY_DATE,
     show_daily_prompt: false,
+    extra_new: null,
   },
 } satisfies Record<string, SessionPreview>;
 

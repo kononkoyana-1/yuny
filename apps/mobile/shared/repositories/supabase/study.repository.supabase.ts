@@ -1,4 +1,4 @@
-import { AnswerResultSchema, SessionPreviewSchema, StudySessionSchema } from "@yuny/shared";
+import { AnswerResultSchema, FolderStudyPlanSchema, SessionPreviewSchema, StudySessionSchema } from "@yuny/shared";
 import { invokeEdge } from "@/shared/lib/edge";
 import type { StudyRepository } from "../study.repository";
 
@@ -9,6 +9,15 @@ export const supabaseStudyRepository: StudyRepository = {
   async preview() {
     const data = await invokeEdge<unknown>("session-build", { action: "preview", tz_offset_min: tzOffsetMin() });
     return SessionPreviewSchema.parse(data);
+  },
+
+  async folderPlan(folderId) {
+    const data = await invokeEdge<unknown>("session-build", {
+      action: "folder_preview",
+      folder_id: folderId,
+      tz_offset_min: tzOffsetMin(),
+    });
+    return FolderStudyPlanSchema.parse(data);
   },
 
   async start(input) {

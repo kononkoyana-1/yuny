@@ -54,3 +54,12 @@ export function useTodayActions() {
 
   return { markPromptShown, saveBudget };
 }
+
+/** Что предложить на экране папки (#69): главный режим, остальные, нагрузка на завтра. */
+export function useFolderPlan(folderId: string | undefined) {
+  return useQuery({
+    queryKey: queryKeys.folderPlan(folderId ?? ""),
+    queryFn: () => studyRepository.folderPlan(folderId!),
+    enabled: Boolean(folderId),
+  });
+}
