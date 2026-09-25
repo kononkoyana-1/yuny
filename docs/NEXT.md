@@ -4,8 +4,8 @@
 
 ## Как работаем
 - Ветка `feature/vocab-learning-engine`, выкладка — fast-forward в `master` (CI деплоит Pages + все Edge Functions в `ixtfifglohppaimvyvui`).
-- Тесты модели: `cd supabase/functions && DENO_NO_PACKAGE_JSON=1 deno test _shared/learning/` (95; deno ставится `curl -fsSL https://deno.land/install.sh | sh`).
-- Клиент: `cd apps/mobile && pnpm typecheck && pnpm lint && pnpm test` (137). Проверка глазами — `npx expo export --clear --platform web` + Playwright
+- Тесты модели: `cd supabase/functions && DENO_NO_PACKAGE_JSON=1 deno test _shared/learning/` (105; deno ставится `curl -fsSL https://deno.land/install.sh | sh`).
+- Клиент: `cd apps/mobile && pnpm typecheck && pnpm lint && pnpm test` (154). Проверка глазами — `npx expo export --clear --platform web` + Playwright
   (`/opt/pw-browsers/chromium`); mock-режим по умолчанию. `--clear` обязателен при смене `EXPO_PUBLIC_*`.
 - Одна задача — одна сессия; коммиты с двумя строками атрибуции (Co-Authored-By, Claude-Session).
 
@@ -20,16 +20,16 @@
 - #70 карта папки: `learning-overview` (`folders` / `folder` / `word`, расчёт — `_shared/learning/overview.ts`, тесты),
   полоска стадий, мозаика `WordTile`, «⋯» (переименовать/удалить), прогресс слова в статье + «Убрать из «…»», мини-полоска
   на карточке папки. Вход планировщика — `_shared/studyInput.ts` (общий с `session-build`).
-- #85 очередь новых: `_shared/learning/queue.ts` (темп приёма за 7 дней, тесты) → `learning-overview` (`queued`,
-  `eta_days`, `per_day`) и `preview.queued_total`; строка очереди (`features/study/queueText.ts`), `QueueHint` после загрузки.
+- #85 изучено/осталось: `_shared/learning/queue.ts` (срок — по `max_new`) → `learning-overview` (`learned`, `queued`,
+  `total`); сводка `WordStats` в «Моём словаре», строки `features/study/queueText.ts`, `QueueHint` после загрузки.
+- #70 доделки: порядок по `position`, 2 колонки на широком, стрелки в сетке, скелет, «наливание» плитки.
+- #74 знаки: `hanzi_chars` (Make Me a Hanzi, Actions → «Hanzi import», 9536 знаков), «卖 = 十 + 买» в карточке пары.
+- #88 чтение и значение знаков в знакомстве; #69 «3 из 7 слов», «Проверка», «Тогда запомним».
 - #71 пары: кэш `contrast_cards` (`_shared/contrastCards.ts`, проверка — `learning/contrast.ts`), коллокации в карточке,
   блок из 4 заданий A/B (`pairBlockSides`), не больше 2 интервенций за занятие (`MODEL.pair.maxInterventions`).
 ## Дальше по порядку
-1. Проверить на проде коллокации пар (логи `contrast_`). Не сделано: #71 «卖 = 十 + 买» (ждёт #74); #69 «3 из 7 слов»,
-   «Проверка», «Тогда запомним»; #85 «Уже знаю» отдельным действием; #70 стрелки в сетке, 2 колонки, «наливание», скелет, `position`.
-2. Позже: #64 контексты (откроет C1/C2 на сервере и «Использую»), #73 learning-overview, #74 знаки, словарь 2.0 #75–#84,
-   #86 озвучка (CC-CEDICT + Make Me a Hanzi + HSK Sentences Audio + локальный CosyVoice2; сперва решения владельца),
-   #87 плитка светлеет без повторений (сроки не решены), #88 значение и пиньинь знаков в знакомстве.
+1. Проверить на проде коллокации и «卖 = 十 + 买» (логи `contrast_`, `hanzi_`). Не сделано: #85 «Уже знаю» отдельным действием.
+2. Дальше: #64 контексты (C1/C2 и «Использую»), #73, словарь 2.0 #75–#84, #86 озвучка (решения владельца), #87 (сроки).
 
 ## Известные ограничения
 - Занятие: нет анимаций смены задания, раскрытия R2, перелёта в пропуск C1, въезда пары (спека §3.1, §4); иероглифы внутри
@@ -37,4 +37,4 @@
 - Карточка «Сегодня»: нет `in_progress` (сервер не хранит начатую сессию), шиммера загрузки, затухания ready → done.
 - Таб-бар белый в тёмной теме web (цвета из `useTheme` на первой отрисовке, старое #56).
 - `assets/fonts/PlusJakartaSans-*.ttf` не используются — удалить (в сессии #65 удаление не разрешили).
-- Разбор ошибки — шаблонные строки; различие в карточке пары — `null` до #71/#74.
+- Разбор ошибки — шаблонные строки. Разбор знаков — один уровень (读 против 买 через 卖 не находит).
