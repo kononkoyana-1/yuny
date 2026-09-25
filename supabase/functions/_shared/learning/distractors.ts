@@ -5,6 +5,7 @@
  * (SQL), здесь — выбор, порядок и фильтры. Чистая функция: одинаковый `seed`
  * — одинаковые варианты.
  */
+import { usableGloss } from "./gloss.ts";
 import type { OptionMeta, WordKey } from "./classify.ts";
 import { formatPinyin, parsePinyin, sameSyllables, toneVariants } from "./pinyin.ts";
 
@@ -79,9 +80,11 @@ export function synonym(a: string, b: string): boolean {
 
 const firstGloss = (g: string | null) => (g ? g.split(";")[0].trim() : "");
 
-function display(kind: OptionKind, w: WordKey & { gloss: string | null }): string | null {
+function display(kind: OptionKind, w: WordKey & { gloss: string | null }, candidate = false): string | null {
   if (kind === "hanzi") return w.headword;
-  if (kind === "meaning") return firstGloss(w.gloss) || null;
+  // Правильное значение — перевод ученика как есть; у чужих слов — только годное
+  // значение словаря (без «гл.», «вм. …», фамилий и т. п.).
+  if (kind === "meaning") return candidate ? usableGloss(w.gloss) : firstGloss(w.gloss) || null;
   const syl = w.reading ? parsePinyin(w.reading) : null;
   return syl ? formatPinyin(syl) : null;
 }
@@ -125,14 +128,17 @@ export function pickOptions(input: PickInput): OptionMeta[] | null {
 
   const ok = (c: Candidate) => {
     if (c.headword === target.headword || exclude.has(c.headword)) return false;
-    if (kind === "meaning" && (!c.gloss || !target.gloss || synonym(firstGloss(c.gloss), target.gloss))) return false;
+    if (kind === "meaning") {
+      const g = usableGloss(c.gloss);
+      if (!g || !target.gloss || synonym(g, target.gloss)) return false;
+    }
     return true;
   };
 
   for (const source of ORDER[kind]) {
     const group = shuffle(input.candidates.filter((c) => c.source === source && ok(c)), rand);
     for (const c of group) {
-      const value = display(kind, c);
+      const value = display(kind, c, true);
       if (value) take({ value, headword: c.headword, reading: c.reading, similarity: similarity(target, c) });
     }
     if (picked.length >= count) break;

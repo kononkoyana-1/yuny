@@ -76,3 +76,24 @@ Deno.test("одинаковый seed — одинаковые варианты",
   const b = pickOptions({ kind: "hanzi", target: MAI3, candidates: POOL, count: 5, seed: 42 });
   assertEquals(a, b);
 });
+
+Deno.test("значение: пометки, отсылки и имена из словаря — не варианты", () => {
+  const JIU = { headword: "旧", reading: "jiù", gloss: "старый" };
+  const pool: Candidate[] = [
+    { headword: "臼", reading: "jiù", gloss: "гл.", source: "homophone" },
+    { headword: "舅", reading: "jiù", gloss: "употребляется вместо какого-то иероглифа", source: "homophone" },
+    { headword: "柩", reading: "jiù", gloss: "вм. 救 спасать", source: "homophone" },
+    { headword: "鹫", reading: "jiù", gloss: "Цзю (фамилия)", source: "homophone" },
+    { headword: "酒", reading: "jiǔ", gloss: "вино; спиртное", source: "same_sound" },
+    { headword: "新", reading: "xīn", gloss: "новый", source: "level" },
+    { headword: "书", reading: "shū", gloss: "книга", source: "level" },
+    { headword: "水", reading: "shuǐ", gloss: "* вода", source: "level" },
+  ];
+  for (let seed = 1; seed < 20; seed++) {
+    const values = pickOptions({ kind: "meaning", target: JIU, candidates: pool, count: 3, seed })!.map((o) => o.value);
+    assert(values.includes("старый"));
+    for (const bad of ["гл.", "употребляется вместо какого-то иероглифа", "вм. 救 спасать", "Цзю (фамилия)"]) {
+      assert(!values.includes(bad), `«${bad}» в вариантах`);
+    }
+  }
+});

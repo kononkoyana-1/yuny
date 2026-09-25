@@ -3,6 +3,7 @@
  * схема — `packages/shared/schemas/study.ts`. Чистые функции: варианты уже
  * выбраны (`pickOptions`), здесь — тексты, ключ, подписи тона и разбор.
  */
+import { LABEL_ONLY, NARROW } from "./gloss.ts";
 import type { ExerciseCode } from "./config.ts";
 import type { Collocation, ContrastBody } from "./contrast.ts";
 import { type ContextSentence, sentenceTiles } from "./context.ts";
@@ -156,14 +157,6 @@ export function matchEntry(entries: CharEntry[], s: Syllable | null): { entry: C
   }
   return null;
 }
-
-/**
- * Пометка вместо значения: «гл. А», «сущ.», «собств.» — у БКРС такие строки
- * бывают и без признака заголовка.
- */
-const LABEL_ONLY = /^(гл|сущ|прил|нареч|наречие|числ|мест|служ|словообр|собств|счётн|сч\. ?сл|межд|союз|предлог|частица|глагол)\.?(\s+[А-ЯA-Z]\.?)?$/i;
-/** Узкое или книжное значение — в конец списка: история, география, диалект, «*», имена. */
-const NARROW = /^(\*|ист\.|геогр\.|уст\.|диал\.|книжн\.|собств\.|см\.|вм\.|Примечание)|\(фамилия\)|фамилия\)?$/i;
 
 /**
  * Чтения в начале строки значения: «fú платье», «fú, fù доза», «* fú колчан».
