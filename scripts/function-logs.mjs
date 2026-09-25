@@ -2,7 +2,7 @@
 /**
  * Логи Edge Functions за последние часы — для разбора сбоев без доступа к
  * панели Supabase (Actions → «Function logs (read-only)»). Только чтение:
- * Management API `analytics/endpoints/logs.all`.
+ * Management API `analytics/endpoints/logs`.
  *
  *   SUPABASE_ACCESS_TOKEN=… node scripts/function-logs.mjs [подстрока] [часов]
  *
@@ -26,7 +26,7 @@ const safe = filter.replace(/[^\w\-.: ]/g, "");
 const where = safe ? `where event_message like '%${safe}%'` : "";
 const sql = `select datetime(timestamp) as time, event_message from function_logs ${where} order by timestamp desc limit 200`;
 
-const url = new URL(`https://api.supabase.com/v1/projects/${PROJECT_REF}/analytics/endpoints/logs.all`);
+const url = new URL(`https://api.supabase.com/v1/projects/${PROJECT_REF}/analytics/endpoints/logs`);
 url.searchParams.set("sql", sql);
 url.searchParams.set("iso_timestamp_start", start.toISOString());
 url.searchParams.set("iso_timestamp_end", end.toISOString());
