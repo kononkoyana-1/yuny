@@ -23,6 +23,8 @@ export const CompositionCharSchema = z.object({
   meaning: z.string().nullable(),
   /** Чтение статьи знака как в словаре («hǎo, hào») — по нему она откроется; `null` — статьи нет. */
   entry_reading: z.string().nullable(),
+  /** Все русские значения знака для этого чтения — карточка знака в составе. */
+  meanings: z.array(z.string()).default([]),
 });
 
 /** Слово со знаком — луч графа (#84). */

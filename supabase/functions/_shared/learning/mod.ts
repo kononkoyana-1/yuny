@@ -91,6 +91,7 @@ export {
   type IntroActions,
   matchEntry,
   meaningFor,
+  meaningsFor,
   pinyinA11y,
   type RenderCode,
   resultOutcome,

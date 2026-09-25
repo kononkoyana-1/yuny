@@ -1,7 +1,9 @@
+import { useEffect } from "react";
 import { View } from "react-native";
 import type { CharNote } from "@yuny/shared";
 import { AudioButton, Button, Card, Chip, HanziText, StrokeOrder, Text } from "@/shared/ui";
 import { t } from "@/shared/i18n";
+import { speak } from "@/shared/platform/speech";
 import { charNoteView } from "./charNote";
 import type { ExerciseProps } from "./types";
 import { Scene } from "./Scene";
@@ -15,6 +17,13 @@ export function IntroExercise({ task, onAnswer, progressLabel }: ExerciseProps) 
   const lexeme = task.lexeme;
   const intro = task.intro;
   const example = intro?.example ?? null;
+  const headword = lexeme?.headword ?? "";
+
+  // Новое слово звучит само, как только появилось (решение владельца): до
+  // карточки было нажатие, так что браузер звук разрешит. Нет голоса — тишина.
+  useEffect(() => {
+    if (headword) speak(headword);
+  }, [task.task_id, headword]);
 
   return (
     <View className="gap-xl">

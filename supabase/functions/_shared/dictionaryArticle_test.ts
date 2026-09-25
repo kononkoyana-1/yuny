@@ -25,16 +25,23 @@ const YI: CharEntry = { headword: "衣", reading: "yī", compact: ["одежда
 
 Deno.test("состав: 电脑 → 电 diàn «электричество» · 脑 nǎo «мозг»", () => {
   assertEquals(composition("电脑", "diànnǎo", [DIAN, NAO]), [
-    { char: "电", reading: "diàn", meaning: "электричество", entry_reading: "diàn" },
-    { char: "脑", reading: "nǎo", meaning: "мозг", entry_reading: "nǎo" },
+    { char: "电", reading: "diàn", meaning: "электричество", entry_reading: "diàn", meanings: DIAN.compact },
+    { char: "脑", reading: "nǎo", meaning: "мозг", entry_reading: "nǎo", meanings: NAO.compact },
   ]);
 });
 
 Deno.test("состав: чтение знака в этом слове, значение — для этого чтения", () => {
   const out = composition("爱好", "àihào", [HAO]);
-  assertEquals(out[1], { char: "好", reading: "hào", meaning: "любить, увлекаться", entry_reading: "hǎo, hào" });
+  // Все значения — только гнезда hào, не hǎo.
+  assertEquals(out[1], {
+    char: "好",
+    reading: "hào",
+    meaning: "любить, увлекаться",
+    entry_reading: "hǎo, hào",
+    meanings: ["любить, увлекаться (чем-л.)"],
+  });
   // Статьи 爱 нет — чтение из слова, значения нет.
-  assertEquals(out[0], { char: "爱", reading: "ài", meaning: null, entry_reading: null });
+  assertEquals(out[0], { char: "爱", reading: "ài", meaning: null, entry_reading: null, meanings: [] });
 });
 
 Deno.test("состав: лёгкий тон в слове — статья знака находится без тона", () => {

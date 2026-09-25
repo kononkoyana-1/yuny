@@ -9,6 +9,7 @@ import {
   formatPinyin,
   matchEntry,
   meaningFor,
+  meaningsFor,
   parsePinyin,
   type Stage,
   syllableAt,
@@ -29,6 +30,8 @@ export interface CompositionChar {
    * клиент открывает именно эту статью. `null` — статьи знака нет.
    */
   entry_reading: string | null;
+  /** Все русские значения знака для этого чтения (`meaningsFor`). */
+  meanings: string[];
 }
 
 /**
@@ -66,6 +69,8 @@ export function composition(headword: string, reading: string | null, entries: C
       char,
       reading: s ? formatPinyin([s]) : hit ? formatPinyin([hit.syllable]) : null,
       meaning: hit ? shortGloss(meaningFor(hit.entry, hit.syllable)) : null,
+      // Все значения — карточка знака в составе показывает их, как выдача поиска.
+      meanings: hit ? meaningsFor(hit.entry, hit.syllable) : [],
       entry_reading: hit ? hit.entry.reading : own[0]?.reading ?? null,
     }];
   });

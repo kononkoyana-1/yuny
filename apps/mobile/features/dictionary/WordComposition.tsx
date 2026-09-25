@@ -6,9 +6,10 @@ import { FOCUS_RING_CLASS } from "@/shared/ui/focusRing";
 import { t } from "@/shared/i18n";
 
 /**
- * Состав слова (#79): каждый знак — плитка с чтением в этом слове и коротким
- * значением по-русски; нажатие открывает статью знака поверх статьи слова.
- * Чтение и значение считает сервер (`_shared/dictionaryArticle.ts`).
+ * Состав слова (#79): каждый знак — карточка, как строка выдачи поиска, но
+ * со всеми значениями знака для его чтения в этом слове (решение владельца).
+ * Нажатие открывает статью знака поверх статьи слова. Чтение и значения
+ * считает сервер (`_shared/dictionaryArticle.ts`).
  */
 export function WordComposition({
   chars,
@@ -22,42 +23,59 @@ export function WordComposition({
       <Text variant="eyebrow" tone="muted" className="uppercase" accessibilityRole="header">
         {t("dictionary.article.composition.title")}
       </Text>
-      <View className="flex-row flex-wrap gap-sm">
+      <View className="gap-sm">
         {chars.map((c, index) => (
-          <CharChip key={`${c.char}-${index}`} char={c} onPress={() => onOpen(c)} />
+          <CharCard key={`${c.char}-${index}`} char={c} onPress={() => onOpen(c)} />
         ))}
       </View>
     </View>
   );
 }
 
-function CharChip({ char, onPress }: { char: CompositionChar; onPress: () => void }) {
+function CharCard({ char, onPress }: { char: CompositionChar; onPress: () => void }) {
   const [pressed, setPressed] = useState(false);
-  const meaning = char.meaning ?? t("dictionary.article.composition.noMeaning");
-  const label = t("dictionary.article.composition.a11y", { char: char.char, reading: char.reading ?? "", meaning });
+  const meanings = char.meanings.length ? char.meanings : char.meaning ? [char.meaning] : [];
+  const label = t("dictionary.article.composition.a11y", {
+    char: char.char,
+    reading: char.reading ?? "",
+    meaning: meanings.join("; ") || t("dictionary.article.composition.noMeaning"),
+  });
   const content = (
     <>
-      <HanziText variant="inline">{char.char}</HanziText>
-      <View className="shrink">
+      <View className="flex-row flex-wrap items-baseline gap-x-sm">
+        <HanziText variant="sentence">{char.char}</HanziText>
         {char.reading ? (
-          <Text variant="caption" tone="muted">
+          <Text variant="body" tone="muted">
             {char.reading}
           </Text>
         ) : null}
-        <Text variant="caption" tone={char.meaning ? "default" : "muted"} numberOfLines={2}>
-          {meaning}
-        </Text>
       </View>
+      {meanings.length > 1 ? (
+        <View className="gap-xs">
+          {meanings.map((m, i) => (
+            <View key={i} className="flex-row gap-sm">
+              <Text variant="body" tone="muted" className="tabular-nums">
+                {`${i + 1})`}
+              </Text>
+              <Text variant="body" className="flex-1">
+                {m}
+              </Text>
+            </View>
+          ))}
+        </View>
+      ) : meanings.length === 1 ? (
+        <Text variant="body">{meanings[0]}</Text>
+      ) : (
+        <Text variant="caption" tone="muted">
+          {t("dictionary.article.composition.noMeaning")}
+        </Text>
+      )}
     </>
   );
-  // Статьи знака в словаре нет — открывать нечего: плитка без нажатия, а не переход в пустоту.
+  // Статьи знака в словаре нет — открывать нечего: карточка без нажатия, а не переход в пустоту.
   if (char.entry_reading === null) {
     return (
-      <View
-        accessible
-        accessibilityLabel={label}
-        className="min-h-tap max-w-full flex-row items-center gap-sm rounded-md bg-surface-alt px-md py-xs dark:bg-surface-alt-dark"
-      >
+      <View accessible accessibilityLabel={label} className="gap-xs rounded-md bg-surface-alt px-md py-sm dark:bg-surface-alt-dark">
         {content}
       </View>
     );
@@ -70,7 +88,7 @@ function CharChip({ char, onPress }: { char: CompositionChar; onPress: () => voi
       onPressIn={() => setPressed(true)}
       onPressOut={() => setPressed(false)}
       onPress={onPress}
-      className={`min-h-tap max-w-full flex-row items-center gap-sm rounded-md border border-border px-md py-xs dark:border-border-dark ${
+      className={`min-h-tap gap-xs rounded-md border border-border px-md py-sm dark:border-border-dark ${
         pressed ? "bg-surface-alt dark:bg-surface-alt-dark" : "bg-surface dark:bg-surface-dark"
       } ${FOCUS_RING_CLASS}`}
     >

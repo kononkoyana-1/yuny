@@ -184,6 +184,30 @@ export function meaningFor(entry: CharEntry, syllable: Syllable): string | null 
 }
 
 /**
+ * Все значения знака для этого чтения — для карточки знака в составе слова:
+ * у статьи с несколькими чтениями — все русские пункты нужного гнезда, иначе
+ * весь короткий список (`compact`), без пересказа. Русских нет — пусто.
+ */
+export function meaningsFor(entry: CharEntry, syllable: Syllable): string[] {
+  const readings = entrySyllables(entry.reading);
+  const same = (x: Syllable) => x.base === syllable.base && x.tone === syllable.tone;
+  const senses = entry.senses ?? [];
+  if (readings.length > 1) {
+    const nests = new Set(
+      senses.filter((h) => isHeader(h) && h.gloss.split(/[\s,;]+/).some((w) => {
+        const p = parsePinyin(w);
+        return p?.length === 1 && same(p[0]);
+      })).map((h) => h.nest),
+    );
+    if (nests.size > 0) {
+      return senses.filter((x) => !isHeader(x) && nests.has(x.nest) && RUSSIAN.test(x.gloss)).map((x) => x.gloss);
+    }
+  }
+  const compact = entry.compact.filter((c) => RUSSIAN.test(c));
+  return compact.length ? compact : senses.filter((x) => !isHeader(x) && RUSSIAN.test(x.gloss)).map((x) => x.gloss);
+}
+
+/**
  * Знаки слова (#88): чтение знака в этом слове, значение из статьи этого
  * знака и другие слова пользователя с ним («服 fú — одежда · уже есть в ваших
  * словах: 衣服 yīfu»). Статьи нет — чтение из самого слова, значения нет.

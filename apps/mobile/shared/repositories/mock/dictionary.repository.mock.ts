@@ -109,6 +109,7 @@ export const mockDictionaryRepository: DictionaryRepository = {
               reading: own ?? charEntry?.reading?.split(",")[0]?.trim() ?? null,
               meaning: shortGloss(charEntry?.compact[0]),
               entry_reading: charEntry?.reading ?? null,
+              meanings: (charEntry?.compact ?? []).filter((c) => /[А-Яа-яЁё]/.test(c)),
             };
           });
 
