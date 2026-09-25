@@ -23,32 +23,30 @@ const start = new Date(end.getTime() - hours * 3_600_000);
 
 // Строка фильтра идёт в SQL логов — только безопасные символы.
 const safe = filter.replace(/[^\w\-.: ]/g, "");
-const where = safe ? `where event_message like '%${safe}%'` : "";
 
-// Имя источника логов у Supabase менялось вместе с эндпоинтом — пробуем по очереди.
-const SOURCES = ["function_logs", "edge_function_logs", "function_console_logs", "function_edge_logs"];
+// С 2026-09 все логи — в одной таблице `logs` (ClickHouse SQL), источник —
+// колонка `source_name`; логи функций — источники с `function` в имени.
+const sql = `select toString(timestamp) as time, source_name, event_message from logs
+  where source_name like '%function%' ${safe ? `and event_message like '%${safe}%'` : ""}
+  order by timestamp desc limit 200`;
 
-async function run(source) {
-  const sql = `select datetime(timestamp) as time, event_message from ${source} ${where} order by timestamp desc limit 200`;
-  const url = new URL(`https://api.supabase.com/v1/projects/${PROJECT_REF}/analytics/endpoints/logs`);
-  url.searchParams.set("sql", sql);
-  url.searchParams.set("iso_timestamp_start", start.toISOString());
-  url.searchParams.set("iso_timestamp_end", end.toISOString());
-  const response = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
-  const text = await response.text();
-  if (!response.ok) return { error: `HTTP ${response.status}: ${text.slice(0, 500)}` };
-  const body = JSON.parse(text);
-  return body.error ? { error: JSON.stringify(body.error).slice(0, 500) } : { rows: body.result ?? [] };
+const url = new URL(`https://api.supabase.com/v1/projects/${PROJECT_REF}/analytics/endpoints/logs`);
+url.searchParams.set("sql", sql);
+url.searchParams.set("iso_timestamp_start", start.toISOString());
+url.searchParams.set("iso_timestamp_end", end.toISOString());
+const response = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+const text = await response.text();
+if (!response.ok) {
+  console.error(`HTTP ${response.status}: ${text.slice(0, 1000)}`);
+  process.exit(1);
 }
-
-for (const source of SOURCES) {
-  const { rows, error } = await run(source);
-  if (error) {
-    console.error(`${source}: ${error}`);
-    continue;
-  }
-  for (const row of [...rows].reverse()) console.log(`${row.time}  ${String(row.event_message).trim()}`);
-  console.log(`— ${source}: ${rows.length} строк за ${hours} ч${safe ? `, фильтр «${safe}»` : ""}`);
-  process.exit(0);
+const body = JSON.parse(text);
+if (body.error) {
+  console.error(JSON.stringify(body.error, null, 2));
+  process.exit(1);
 }
-process.exit(1);
+const rows = body.result ?? [];
+for (const row of [...rows].reverse()) {
+  console.log(`${row.time}  [${row.source_name}]  ${String(row.event_message).trim()}`);
+}
+console.log(`— ${rows.length} строк за ${hours} ч${safe ? `, фильтр «${safe}»` : ""}`);
