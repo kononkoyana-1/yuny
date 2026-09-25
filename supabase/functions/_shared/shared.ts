@@ -142,6 +142,10 @@ export async function createJob(
  * Runs `work` after the response has already been returned, then writes the
  * outcome onto the job row — that UPDATE is what the client's Realtime
  * subscription is waiting for (TZ.md §6).
+ *
+ * Each write only moves the job forward from the state it expects
+ * (`queued → running → done/failed`): a job cancelled or declared stale
+ * meanwhile (`words-extract`) stays as it is, even if the work finishes later.
  */
 export function runJobInBackground(
   admin: SupabaseClient,
@@ -149,14 +153,15 @@ export function runJobInBackground(
   work: () => Promise<unknown>,
 ): void {
   const task = (async () => {
-    await admin.from("jobs").update({ status: "running" }).eq("id", jobId);
+    await admin.from("jobs").update({ status: "running" }).eq("id", jobId).eq("status", "queued");
     try {
       const result = await work();
-      await admin.from("jobs").update({ status: "done", result }).eq("id", jobId);
+      await admin.from("jobs").update({ status: "done", result }).eq("id", jobId).eq("status", "running");
     } catch (error) {
       const code = error instanceof HandlerError ? error.code : "internal_error";
       console.error("job_failed", jobId, error);
-      await admin.from("jobs").update({ status: "failed", error_code: code }).eq("id", jobId);
+      await admin.from("jobs").update({ status: "failed", error_code: code }).eq("id", jobId)
+        .eq("status", "running");
     }
   })();
 
@@ -408,7 +413,17 @@ export async function aiJson<T>(options: {
  * than a second, and a lesson generation that gives up after 1.2s hands the
  * learner an error over a wait they would gladly have sat through — the call
  * already runs in the background against a job.
+ *
+ * Every attempt has its own time limit, and all attempts together fit in
+ * `AI_DEADLINE_MS`. Without it a hung request outlived the platform's
+ * wall-clock limit for background work: the worker was killed before the
+ * `catch` could run, and the job stayed `running` forever (2026-09-25, a
+ * 125 KB photo). Failing inside the limit leaves a `failed` job the client
+ * can retry.
  */
+const AI_ATTEMPT_TIMEOUT_MS = 50_000;
+const AI_DEADLINE_MS = 110_000;
+
 async function callGemini(
   body: unknown,
   apiKey: string,
@@ -417,18 +432,37 @@ async function callGemini(
   const url = `${AI_ENDPOINT}/${AI_MODEL}:generateContent`;
 
   const RETRY_WAITS_MS = [2000, 6000, 15000];
+  const startedAt = Date.now();
+  const left = () => AI_DEADLINE_MS - (Date.now() - startedAt);
+
   for (let attempt = 0; attempt <= RETRY_WAITS_MS.length; attempt += 1) {
-    const response = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
-      body: JSON.stringify(body),
-    });
+    const wait = RETRY_WAITS_MS[attempt];
+    const canRetry = () => wait !== undefined && left() > wait + 5_000;
+
+    let response: Response;
+    try {
+      response = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
+        body: JSON.stringify(body),
+        signal: AbortSignal.timeout(Math.max(1_000, Math.min(AI_ATTEMPT_TIMEOUT_MS, left()))),
+      });
+    } catch (error) {
+      // Timeout or a dropped connection: the same as a 503 for retrying.
+      console.error("ai_fetch_error", purpose, attempt, String(error));
+      if (canRetry()) {
+        await new Promise((resolve) => setTimeout(resolve, wait));
+        continue;
+      }
+      throw new HandlerError("ai_unavailable", 503);
+    }
 
     if (!response.ok) {
       const detail = (await response.text()).slice(0, 500);
       const retryable = response.status === 429 || response.status >= 500;
-      if (retryable && attempt < RETRY_WAITS_MS.length) {
-        await new Promise((resolve) => setTimeout(resolve, RETRY_WAITS_MS[attempt]));
+      if (retryable && canRetry()) {
+        console.error("ai_http_retry", purpose, attempt, response.status, detail.slice(0, 200));
+        await new Promise((resolve) => setTimeout(resolve, wait));
         continue;
       }
       console.error("ai_http_error", purpose, response.status, detail);

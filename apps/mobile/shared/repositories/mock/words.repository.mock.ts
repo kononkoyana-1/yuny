@@ -11,7 +11,8 @@ import { mockExtractedWords } from "./words.fixtures";
 
 /**
  * Переключатель отказа, по образцу `EXPO_PUBLIC_MOCK_DICTIONARY_ERROR`:
- * `rejected` — в файле нет китайских слов, `failed` — упал сам разбор.
+ * `rejected` — в файле нет китайских слов, `failed` — упал сам разбор,
+ * `slow` — разбор идёт минуту (проверить «Отмена»).
  */
 const MOCK_WORDS = process.env.EXPO_PUBLIC_MOCK_WORDS;
 
@@ -24,8 +25,11 @@ export const mockWordsRepository: WordsRepository = {
     );
   },
 
+  async cancel() {},
+
   async awaitWords() {
-    await delay(undefined, 1500);
+    // `slow` — разбор идёт минуту: видно «Отмена».
+    await delay(undefined, MOCK_WORDS === "slow" ? 60_000 : 1500);
     if (MOCK_WORDS === "rejected") throw new BackendError("not_language_material");
     if (MOCK_WORDS === "failed") throw new BackendError("ai_unavailable");
     return WordsExtractResultSchema.parse(mockExtractedWords);

@@ -14,6 +14,10 @@ export const supabaseWordsRepository: WordsRepository = {
     return WordsExtractResponseSchema.parse(data);
   },
 
+  async cancel(materialId) {
+    await invokeEdge<unknown>("words-extract", { action: "cancel", material_id: materialId });
+  },
+
   async awaitWords(jobId, timeoutMs = 120_000) {
     const result = await awaitJob<unknown>(jobId, timeoutMs);
     return WordsExtractResultSchema.parse(result);

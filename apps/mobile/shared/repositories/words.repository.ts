@@ -13,4 +13,6 @@ export interface WordsRepository {
   extract(req: WordsExtractRequest): Promise<WordsExtractResponse>;
   /** Ждёт задачу; отклоняется `BackendError` с кодом задачи. */
   awaitWords(jobId: string, timeoutMs?: number): Promise<WordsExtractResult>;
+  /** «Отмена»: идущий разбор больше не ждём, загруженные файлы удаляются. */
+  cancel(materialId: string): Promise<void>;
 }

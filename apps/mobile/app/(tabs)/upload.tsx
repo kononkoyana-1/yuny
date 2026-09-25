@@ -171,6 +171,7 @@ const SLOW_THRESHOLD_MS = 30_000;
 
 function WaitingScreen() {
   const phase = useUploadFlowStore((s) => s.phase);
+  const cancel = useUploadFlowStore((s) => s.cancel);
   const current = useUploadFlowStore((s) => s.current);
   const total = useUploadFlowStore((s) => s.total);
   const startedAt = useUploadFlowStore((s) => s.startedAt);
@@ -182,23 +183,42 @@ function WaitingScreen() {
     return () => clearInterval(id);
   }, [phase]);
 
+  // «Отмена» — в обеих фазах: файл отправляется или читается, человек
+  // может передумать, не дожидаясь ни конца, ни ошибки.
+  const cancelButton = (
+    <View className="items-center pb-xl">
+      <Button
+        label={t("upload.wait.cancel")}
+        variant="ghost"
+        accessibilityLabel={t("upload.wait.cancelA11y")}
+        onPress={cancel}
+      />
+    </View>
+  );
+
   if (phase === "sending") {
     return (
-      <LoadingState
-        className="flex-1"
-        message={t("upload.wait.sending.title")}
-        detail={t("upload.wait.sending.detail", { current, total })}
-      />
+      <View className="flex-1">
+        <LoadingState
+          className="flex-1"
+          message={t("upload.wait.sending.title")}
+          detail={t("upload.wait.sending.detail", { current, total })}
+        />
+        {cancelButton}
+      </View>
     );
   }
 
   const slow = startedAt !== null && now - startedAt >= SLOW_THRESHOLD_MS;
   return (
-    <LoadingState
-      className="flex-1"
-      message={t("upload.wait.reading.title")}
-      detail={slow ? t("upload.wait.reading.slow") : t("upload.wait.reading.detail")}
-    />
+    <View className="flex-1">
+      <LoadingState
+        className="flex-1"
+        message={t("upload.wait.reading.title")}
+        detail={slow ? t("upload.wait.reading.slow") : t("upload.wait.reading.detail")}
+      />
+      {cancelButton}
+    </View>
   );
 }
 

@@ -1,0 +1,35 @@
+# Edge Function logs for diagnostics: Actions → «Function logs (read-only)» →
+# Run workflow, optionally with a substring (e.g. `ai_`) and a window in hours.
+# Reads the Management API logs endpoint only; nothing is changed. Uses the
+# same SUPABASE_ACCESS_TOKEN secret as the Pages deploy.
+name: Function logs (read-only)
+
+on:
+  workflow_dispatch:
+    inputs:
+      filter:
+        description: Substring to keep (empty — everything)
+        required: false
+        default: ""
+      hours:
+        description: How many hours back
+        required: false
+        default: "3"
+
+permissions:
+  contents: read
+
+jobs:
+  logs:
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_PROJECT_REF: ixtfifglohppaimvyvui
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      FILTER: ${{ inputs.filter }}
+      HOURS: ${{ inputs.hours }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node scripts/function-logs.mjs "$FILTER" "$HOURS"

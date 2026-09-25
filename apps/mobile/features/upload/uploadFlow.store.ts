@@ -48,8 +48,14 @@ export interface UploadFlowActions {
   submit(): Promise<void>;
   /** `failed` + `parse_failed`: re-runs the job without re-uploading. */
   retryParse(): Promise<void>;
-  /** `failed` + `parse_slow`: re-subscribes to the SAME job id. */
+  /**
+   * `failed` + `parse_slow`: asks `words-extract` again with the same
+   * `material_id` — it hands back the same job while that one is alive and
+   * restarts it once it is stale, so waiting never ends on a dead job.
+   */
   checkAgain(): Promise<void>;
+  /** `sending` / `reading`: «Отмена» — back to `selecting` with the files kept; the server drops the job and the upload. */
+  cancel(): void;
   /** `failed` + `send_failed`: redoes the whole send with the same `material_id`. */
   retrySend(): Promise<void>;
   /** Returns to `selecting` with the current file list kept — every other recoverable failure. */
@@ -118,6 +124,12 @@ function failInto(
     bannerKey: undefined,
     bannerParams: undefined,
   });
+}
+
+/** «Отмена» was pressed (or a newer send started) since this step began. */
+function cancelled(get: GetFn, materialId: string | null): boolean {
+  const state = get();
+  return !(state.phase === "sending" || state.phase === "reading") || state.materialId !== materialId;
 }
 
 /**
@@ -248,9 +260,11 @@ export const useUploadFlowStore = create<UploadFlowStore>((set, get) => ({
         });
         paths[i] = uploaded.path;
       } catch {
+        if (cancelled(get, materialId)) return;
         failInto(set, "upload", "upload_failed", files, { materialId });
         return;
       }
+      if (cancelled(get, materialId)) return;
     }
 
     const request: WordsExtractRequest = {
@@ -267,6 +281,7 @@ export const useUploadFlowStore = create<UploadFlowStore>((set, get) => ({
     try {
       created = await wordsRepository.extract(request);
     } catch (err) {
+      if (cancelled(get, materialId)) return;
       const code = codeOf(err);
       const kind = errorRoute("create", code);
       if (kind === "limits") {
@@ -284,6 +299,7 @@ export const useUploadFlowStore = create<UploadFlowStore>((set, get) => ({
       failInto(set, "create", code, files, { materialId });
       return;
     }
+    if (cancelled(get, materialId)) return;
 
     set({
       phase: "reading",
@@ -324,10 +340,41 @@ export const useUploadFlowStore = create<UploadFlowStore>((set, get) => ({
     if (state.phase !== "failed" || state.failureKind !== "parse_slow" || !state.jobId || !state.request) {
       return;
     }
-    const { files, materialId, jobId, request } = state;
+    const { files, materialId, request } = state;
 
-    set({ phase: "reading", files, materialId, request, jobId, startedAt: Date.now(), failureKind: null });
-    await runAwaitWords(set, get, jobId, files, materialId, request);
+    set({ phase: "reading", files, materialId, request, jobId: null, startedAt: Date.now(), failureKind: null });
+    try {
+      const ref = await wordsRepository.extract(request);
+      if (cancelled(get, materialId)) return;
+      set({ jobId: ref.job_id });
+      await runAwaitWords(set, get, ref.job_id, files, materialId, request);
+    } catch (err) {
+      if (cancelled(get, materialId)) return;
+      failInto(set, "retry", codeOf(err), files, { materialId, request });
+    }
+  },
+
+  cancel() {
+    const state = get();
+    if (state.phase !== "sending" && state.phase !== "reading") return;
+    const oldMaterialId = state.materialId;
+    // A fresh `material_id` on the next send: the old one is being dropped
+    // server-side. `jobId: null` makes any in-flight wait ignore its result.
+    set({
+      phase: "selecting",
+      files: state.files,
+      materialId: null,
+      jobId: null,
+      request: null,
+      startedAt: null,
+      current: 0,
+      total: 0,
+      submitting: false,
+      failureKind: null,
+      bannerKey: undefined,
+      bannerParams: undefined,
+    });
+    if (oldMaterialId) void wordsRepository.cancel(oldMaterialId).catch(() => undefined);
   },
 
   async retrySend() {

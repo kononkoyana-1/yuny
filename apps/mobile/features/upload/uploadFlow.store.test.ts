@@ -26,6 +26,7 @@ const mockWords = {
   words: [{ word: "买", reading: "mǎi", translation: "покупать", source: "file" as const, entry_id: 1 }],
 };
 const mockAwaitWords = jest.fn<() => Promise<typeof mockWords>>(async () => mockWords);
+const mockCancel = jest.fn(async () => undefined);
 
 jest.mock("@/shared/repositories", () => ({
   moduleRepository: {
@@ -34,6 +35,7 @@ jest.mock("@/shared/repositories", () => ({
   wordsRepository: {
     extract: (...args: unknown[]) => mockExtract(...(args as [])),
     awaitWords: (...args: unknown[]) => mockAwaitWords(...(args as [])),
+    cancel: (...args: unknown[]) => mockCancel(...(args as [])),
   },
 }));
 
@@ -54,7 +56,41 @@ describe("uploadFlow.store — words from a file", () => {
     mockExtract.mockClear();
     mockAwaitWords.mockReset();
     mockAwaitWords.mockImplementation(async () => mockWords);
+    mockCancel.mockClear();
     useUploadFlowStore.getState().reset();
+  });
+
+  it("«Отмена» while reading: back to the file list, server told, a late result ignored", async () => {
+    let finish!: (words: typeof mockWords) => void;
+    mockAwaitWords.mockImplementationOnce(() => new Promise((resolve) => (finish = resolve)));
+    useUploadFlowStore.setState({ files: [file] });
+    const running = useUploadFlowStore.getState().submit();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(useUploadFlowStore.getState().phase).toBe("reading");
+
+    useUploadFlowStore.getState().cancel();
+    expect(mockCancel).toHaveBeenCalledWith("00000000-0000-4000-8000-000000000000");
+    finish(mockWords);
+    await running;
+
+    const state = useUploadFlowStore.getState();
+    expect(state.phase).toBe("selecting");
+    expect(state.files).toEqual([file]);
+    expect(state.materialId).toBeNull();
+    expect(state.result).toBeNull();
+  });
+
+  it("«Подождать ещё» asks words-extract again instead of re-waiting a dead job", async () => {
+    mockAwaitWords.mockImplementationOnce(async () => {
+      throw new BackendError("timeout");
+    });
+    useUploadFlowStore.setState({ files: [file] });
+    await useUploadFlowStore.getState().submit();
+    expect(useUploadFlowStore.getState().failureKind).toBe("parse_slow");
+
+    await useUploadFlowStore.getState().checkAgain();
+    expect(mockExtract).toHaveBeenCalledTimes(2);
+    expect(useUploadFlowStore.getState().phase).toBe("success");
   });
 
   it("uploads, asks words-extract with the uploaded paths, and lands on the word list", async () => {
