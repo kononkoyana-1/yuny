@@ -39,12 +39,30 @@ export const StudySentenceSchema = z.object({
   pinyin: z.string().optional(),
 });
 
+const WordRefSchema = z.object({ headword: z.string(), reading: z.string().nullable() });
+
+/**
+ * Заметка о знаке (#88): чтение знака в этом слове и его значение — из
+ * статьи словаря на этот знак (нет статьи — `null`, не выдумываем); слова
+ * пользователя с этим знаком — с чтением. Старая форма (`known_in` строками,
+ * без чтения и значения) тоже читается.
+ */
+export const CharNoteSchema = z.object({
+  char: z.string(),
+  reading: z.string().nullable().default(null),
+  meaning: z.string().nullable().default(null),
+  known_in: z.array(
+    z.union([WordRefSchema, z.string().transform((headword) => ({ headword, reading: null }))]),
+  ),
+});
+
 export const IntroSchema = z.object({
   /** Пример появится с контекстами (#64); до тех пор — `null`. */
   example: z.object({ zh: z.string(), pinyin: z.string(), ru: z.string() }).nullable(),
   /** Знаки слова и где они уже встречаются в словах пользователя; пусто — «знак новый». */
-  char_notes: z.array(z.object({ char: z.string(), known_in: z.array(z.string()) })),
-  actions: z.enum(["ok", "know_or_remember"]),
+  char_notes: z.array(CharNoteSchema),
+  /** «Понятно»; «Запомню» / «Уже знаю»; одна «Запомню» — после проваленной проверки «Уже знаю». */
+  actions: z.enum(["ok", "know_or_remember", "remember"]),
 });
 
 const CollocationSchema = z.object({ zh: z.string(), pinyin: z.string(), ru: z.string() });
@@ -88,6 +106,8 @@ export const ExerciseSchema = z.object({
   pair: PairCardSchema.optional(),
   key: AnswerKeySchema.optional(),
   is_retry: z.boolean(),
+  /** Трудная проверка после «Уже знаю» — чип «Проверка» (folder-study.design.md §4). */
+  is_check: z.boolean().default(false),
   /** Номер порции, в которую входит задание (для пауз). */
   portion: z.number().int().nonnegative(),
 });
@@ -284,6 +304,7 @@ export const AnswerResultSchema = z.object({
 });
 
 export type ExerciseCode = z.infer<typeof ExerciseCodeSchema>;
+export type CharNote = z.infer<typeof CharNoteSchema>;
 export type StudyLexeme = z.infer<typeof StudyLexemeSchema>;
 export type StudyOption = z.infer<typeof StudyOptionSchema>;
 export type Exercise = z.infer<typeof ExerciseSchema>;

@@ -1,12 +1,15 @@
 import { View } from "react-native";
+import type { CharNote } from "@yuny/shared";
 import { Button, Card, Chip, HanziText, Text } from "@/shared/ui";
 import { t } from "@/shared/i18n";
+import { charNoteView } from "./charNote";
 import type { ExerciseProps } from "./types";
 import { Scene } from "./Scene";
 
 /**
  * Знакомство со словом (exercise.design.md §4.1): не оценивается. В
- * «Сегодня» — «Понятно», в раунде папки — «Запомню» / «Уже знаю».
+ * «Сегодня» — «Понятно», в раунде папки — «Запомню» / «Уже знаю»; после
+ * проваленной проверки «Уже знаю» — одна «Запомню».
  */
 export function IntroExercise({ task, onAnswer, progressLabel }: ExerciseProps) {
   const lexeme = task.lexeme;
@@ -50,19 +53,10 @@ export function IntroExercise({ task, onAnswer, progressLabel }: ExerciseProps) 
       ) : null}
 
       {intro?.char_notes.length ? (
-        <View className="gap-xs">
-          {intro.char_notes.map((note) =>
-            note.known_in.length > 0 ? (
-              <Text key={note.char} variant="body">
-                {t("learn.ex.intro.charKnown", { char: note.char, words: note.known_in.join(" · ") })}
-              </Text>
-            ) : (
-              <View key={note.char} className="flex-row flex-wrap items-center gap-sm">
-                <Chip size="micro" label={t("learn.ex.intro.charNewChip")} />
-                <Text variant="body">{t("learn.ex.intro.charNew", { char: note.char })}</Text>
-              </View>
-            ),
-          )}
+        <View className="gap-md">
+          {intro.char_notes.map((note) => (
+            <CharNoteRow key={note.char} note={note} />
+          ))}
         </View>
       ) : null}
 
@@ -72,8 +66,59 @@ export function IntroExercise({ task, onAnswer, progressLabel }: ExerciseProps) 
             <Button label={t("learn.ex.intro.remember")} onPress={() => onAnswer({ choice: "remember" })} />
             <Button label={t("learn.ex.intro.know")} variant="secondary" onPress={() => onAnswer({ choice: "know" })} />
           </>
+        ) : intro?.actions === "remember" ? (
+          // Проверка «Уже знаю» не пройдена — «Тогда запомним», вторая кнопка не нужна.
+          <Button label={t("learn.ex.intro.remember")} onPress={() => onAnswer({ choice: "remember" })} />
         ) : (
           <Button label={t("learn.ex.intro.ok")} onPress={() => onAnswer({ choice: "ok" })} />
+        )}
+      </View>
+    </View>
+  );
+}
+
+/**
+ * Строка знака (#88): знак, чтение в этом слове, значение из статьи знака;
+ * ниже — «новый знак» или слова пользователя с этим знаком и их пиньинь.
+ * Для диктора — одна фраза, части строки ему не видны.
+ */
+function CharNoteRow({ note }: { note: CharNote }) {
+  const v = charNoteView(note);
+  return (
+    <View accessible accessibilityLabel={v.a11y} className="flex-row gap-md">
+      <HanziText variant="sentence">{v.char}</HanziText>
+      <View className="flex-1 gap-xs pt-xs">
+        <View className="flex-row flex-wrap items-baseline gap-x-sm">
+          {v.reading ? (
+            <Text variant="body" tone="brand" className="font-bold">
+              {v.reading}
+            </Text>
+          ) : null}
+          {v.meaning ? <Text variant="body">{`— ${v.meaning}`}</Text> : null}
+        </View>
+        {v.known.length > 0 ? (
+          <View className="gap-xs">
+            <Text variant="caption" tone="muted">
+              {t("learn.ex.intro.charKnownIn")}
+            </Text>
+            <View className="flex-row flex-wrap items-baseline gap-x-sm">
+              {v.known.map((w, i) => (
+                <View key={w.headword} className="flex-row items-baseline gap-xs">
+                  <HanziText variant="inline">{w.headword}</HanziText>
+                  {w.reading ? <Text variant="body">{w.reading}</Text> : null}
+                  {i < v.known.length - 1 ? (
+                    <Text variant="body" tone="muted">
+                      ·
+                    </Text>
+                  ) : null}
+                </View>
+              ))}
+            </View>
+          </View>
+        ) : (
+          <View className="flex-row">
+            <Chip size="micro" label={t("learn.ex.intro.charNewChip")} />
+          </View>
         )}
       </View>
     </View>

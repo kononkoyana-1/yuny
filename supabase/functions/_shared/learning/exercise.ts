@@ -24,8 +24,8 @@ export interface ExerciseBody {
   options?: { id: string; text: string; kind: "ru" | "pinyin" | "hanzi"; a11y: string }[];
   intro?: {
     example: null;
-    char_notes: { char: string; known_in: string[] }[];
-    actions: "ok" | "know_or_remember";
+    char_notes: CharNote[];
+    actions: IntroActions;
   };
   pair?: {
     a: PairSide;
@@ -37,7 +37,12 @@ export interface ExerciseBody {
   };
   key?: { option_id?: string; pinyin?: string };
   is_retry: boolean;
+  /** Трудная проверка «Уже знаю» — у клиента чип «Проверка». */
+  is_check: boolean;
 }
+
+/** «Понятно»; «Запомню» / «Уже знаю»; одна «Запомню» — после проваленной проверки. */
+export type IntroActions = "ok" | "know_or_remember" | "remember";
 
 interface PairSide {
   headword: string;
@@ -93,12 +98,106 @@ function choiceOptions(kind: OptionKind, opts: OptionMeta[]) {
   }));
 }
 
-/** Знаки слова и другие слова пользователя с ними («Знак 买 уже есть в ваших словах: 买东西»). */
-export function charNotes(headword: string, own: string[]): { char: string; known_in: string[] }[] {
-  return [...new Set(headword)].map((char) => ({
-    char,
-    known_in: own.filter((w) => w !== headword && w.includes(char)).slice(0, 3),
-  }));
+/** Статья словаря с заголовком из одного знака (`dictionary_entries`). */
+export interface CharEntry {
+  headword: string;
+  /** Как в словаре: «hǎo, hào» — несколько чтений в одной статье. */
+  reading: string | null;
+  compact: string[];
+  senses?: { nest: string | null; gloss: string; header?: boolean | string }[];
+}
+
+/** Заметка о знаке в знакомстве (#88): чтение в этом слове, значение, слова пользователя с этим знаком. */
+export interface CharNote {
+  char: string;
+  reading: string | null;
+  meaning: string | null;
+  known_in: WordKey[];
+}
+
+const HAN = /\p{Script=Han}/u;
+const RUSSIAN = /[А-Яа-яЁё]/;
+const isHeader = (s: { header?: boolean | string }) => s.header === true || s.header === "true";
+
+/** Одно чтение → слог; «hǎo, hào» → два слога. Многосложное и не-пиньинь пропускаются. */
+function entrySyllables(reading: string | null): Syllable[] {
+  return (reading ?? "").split(/[,;]/).map((r) => parsePinyin(r)).filter((s) => s?.length === 1).map((s) => s![0]);
+}
+
+/** Слог знака в этом слове; `null`, если чтение не делится по знакам (нет чтения, латиница, эр). */
+function syllableAt(headword: string, reading: string | null, index: number): Syllable | null {
+  const chars = [...headword];
+  const syl = reading ? parsePinyin(reading) : null;
+  if (!syl || syl.length !== chars.length || !chars.every((c) => HAN.test(c))) return null;
+  return syl[index] ?? null;
+}
+
+/**
+ * Статья и чтение знака в этом слове. Слог слова ищется среди чтений статей:
+ * сперва с тем же тоном, потом без тона (服 в 衣服 yīfu — лёгкий тон, в
+ * словаре fú). Слога нет — годится только однозначная статья с одним чтением.
+ */
+function matchEntry(entries: CharEntry[], s: Syllable | null): { entry: CharEntry; syllable: Syllable } | null {
+  if (!s) {
+    const only = entries.length === 1 ? entrySyllables(entries[0].reading) : [];
+    return only.length === 1 ? { entry: entries[0], syllable: only[0] } : null;
+  }
+  for (const exact of [true, false]) {
+    for (const entry of entries) {
+      const hit = entrySyllables(entry.reading).find((x) => x.base === s.base && (!exact || x.tone === s.tone));
+      if (hit) return { entry, syllable: hit };
+    }
+  }
+  return null;
+}
+
+/**
+ * Значение знака для этого чтения. У статьи с несколькими чтениями гнёзда
+ * подписаны слогом («гл. hào») — берём первое русское значение нужного
+ * гнезда; без подписей — `compact`, только если чтение первое в статье
+ * (короткий список начинается с него). Нет русского — `null`: не выдумываем.
+ */
+function meaningFor(entry: CharEntry, syllable: Syllable): string | null {
+  const readings = entrySyllables(entry.reading);
+  const same = (x: Syllable) => x.base === syllable.base && x.tone === syllable.tone;
+  if (readings.length > 1) {
+    const senses = entry.senses ?? [];
+    const nests = new Set(
+      senses.filter((h) => isHeader(h) && h.gloss.split(/[\s,;]+/).some((w) => {
+        const p = parsePinyin(w);
+        return p?.length === 1 && same(p[0]);
+      })).map((h) => h.nest),
+    );
+    if (nests.size > 0) {
+      return senses.find((x) => !isHeader(x) && nests.has(x.nest) && RUSSIAN.test(x.gloss))?.gloss ?? null;
+    }
+    if (!same(readings[0])) return null;
+  }
+  return entry.compact.find((c) => RUSSIAN.test(c)) ??
+    entry.senses?.find((x) => !isHeader(x) && RUSSIAN.test(x.gloss))?.gloss ?? null;
+}
+
+/**
+ * Знаки слова (#88): чтение знака в этом слове, значение из статьи этого
+ * знака и другие слова пользователя с ним («服 fú — одежда · уже есть в ваших
+ * словах: 衣服 yīfu»). Статьи нет — чтение из самого слова, значения нет.
+ */
+export function charNotes(word: WordKey, own: WordKey[], entries: CharEntry[] = []): CharNote[] {
+  const chars = [...word.headword];
+  return [...new Set(chars.filter((c) => HAN.test(c)))].map((char) => {
+    const s = syllableAt(word.headword, word.reading, chars.indexOf(char));
+    const hit = matchEntry(entries.filter((e) => e.headword === char), s);
+    const known = new Map<string, WordKey>();
+    for (const w of own) {
+      if (w.headword !== word.headword && w.headword.includes(char) && !known.has(w.headword)) known.set(w.headword, w);
+    }
+    return {
+      char,
+      reading: hit ? formatPinyin([hit.syllable]) : s ? formatPinyin([s]) : null,
+      meaning: hit ? meaningFor(hit.entry, hit.syllable) : null,
+      known_in: [...known.values()].slice(0, 3).map((w) => ({ headword: w.headword, reading: w.reading })),
+    };
+  });
 }
 
 export interface BuildInput {
@@ -112,8 +211,11 @@ export interface BuildInput {
   retry?: boolean;
   check?: "known";
   pairId?: string | null;
-  /** Для знакомства: заголовки слов пользователя. */
-  ownHeadwords?: string[];
+  /** Для знакомства: слова пользователя и статьи знаков слова. */
+  ownWords?: WordKey[];
+  charEntries?: CharEntry[];
+  /** Кнопки знакомства; по умолчанию «Запомню» / «Уже знаю». */
+  introActions?: IntroActions;
   /** Задание на пару: рендерер обычный, в память — как X*. */
   render?: RenderCode;
 }
@@ -121,7 +223,7 @@ export interface BuildInput {
 /** Задание по коду; `null` — вариантов не хватило, нужен другой формат. */
 export function buildExercise(input: BuildInput): Built | null {
   const { word, code } = input;
-  const base = { is_retry: !!input.retry };
+  const base = { is_retry: !!input.retry, is_check: input.check === "known" };
   const ticket = (exercise: TicketExercise, expected: string, options?: OptionMeta[]): TicketBody => ({
     exercise,
     lexeme_id: word.lexemeId,
@@ -156,7 +258,11 @@ export function buildExercise(input: BuildInput): Built | null {
           ...base,
           code: "intro",
           lexeme: lexemeOf(word),
-          intro: { example: null, char_notes: charNotes(word.headword, input.ownHeadwords ?? []), actions: "know_or_remember" },
+          intro: {
+            example: null,
+            char_notes: charNotes(word, input.ownWords ?? [], input.charEntries),
+            actions: input.introActions ?? "know_or_remember",
+          },
         },
         ticket: ticket("intro", firstGloss(word.translation) ?? word.headword),
       };
@@ -236,6 +342,7 @@ export function buildPairCard(
         collocation_notes: contrast ? contrast.collocations : null,
       },
       is_retry: false,
+      is_check: false,
     },
     ticket: {
       exercise: "intro",

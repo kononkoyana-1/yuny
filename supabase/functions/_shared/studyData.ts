@@ -7,6 +7,7 @@ import type { SupabaseClient } from "npm:@supabase/supabase-js@2.112.4";
 import {
   type Built,
   type Candidate,
+  type CharEntry,
   type ExerciseBody,
   type PlanLexeme,
   type PlanPair,
@@ -138,6 +139,31 @@ export async function loadPool(
     }),
   ) as Row[];
   return rows.map((r) => ({ headword: r.headword, reading: r.reading, gloss: r.gloss, source: r.source }));
+}
+
+/** Статьи словаря на отдельные знаки — для заметок о знаках в знакомстве (#88). */
+export async function loadCharEntries(admin: SupabaseClient, headwords: string[]): Promise<CharEntry[]> {
+  const chars = [...new Set(headwords.flatMap((h) => [...h]))].filter((c) => /\p{Script=Han}/u.test(c));
+  if (!chars.length) return [];
+  const rows = must(
+    await admin.from("dictionary_entries").select("headword, reading, compact, senses").in("headword", chars),
+  ) as Row[];
+  return rows.map((r) => ({ headword: r.headword, reading: r.reading, compact: r.compact ?? [], senses: r.senses ?? [] }));
+}
+
+/** Слова пользователя (в папках), где есть знаки этого слова: «уже есть в ваших словах». */
+export async function loadWordsWithChars(
+  admin: SupabaseClient,
+  userId: string,
+  headword: string,
+): Promise<{ headword: string; reading: string | null }[]> {
+  const chars = [...new Set(headword)].filter((c) => /\p{Script=Han}/u.test(c));
+  if (!chars.length) return [];
+  const rows = must(
+    await admin.from("learning_lexemes").select("headword, reading, user_dictionary_items!inner(id)")
+      .eq("user_id", userId).or(chars.map((c) => `headword.like.*${c}*`).join(",")).limit(200),
+  ) as Row[];
+  return rows.map((r) => ({ headword: r.headword, reading: r.reading }));
 }
 
 /** Слово для задания. */

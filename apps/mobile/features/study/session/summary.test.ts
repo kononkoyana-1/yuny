@@ -1,12 +1,22 @@
 import { describe, expect, it } from "@jest/globals";
 import type { AnswerResult, Exercise, StudyAnswer } from "@yuny/shared";
-import { daySummary, pauseAfter, portionCount, portionSummary, roundSummary, stageUps, type Logged } from "./summary";
+import {
+  daySummary,
+  pauseAfter,
+  portionCount,
+  portionSummary,
+  roundProgress,
+  roundSummary,
+  stageUps,
+  type Logged,
+} from "./summary";
 
 const ex = (task_id: string, portion: number, headword = "买"): Exercise => ({
   task_id,
   code: "R1",
   lexeme: { headword, reading: null, tone_label: null, translation: null },
   is_retry: false,
+  is_check: false,
   portion,
   options: [{ id: "o0", text: "a", kind: "ru", a11y: "" }],
   key: { option_id: "o0" },
@@ -91,5 +101,35 @@ describe("итог раунда", () => {
       learned: [{ headword: "火锅", reading: null }],
       known: [{ headword: "米饭", reading: null }],
     });
+  });
+});
+
+describe("счётчик раунда «3 из 7 слов»", () => {
+  const intro = (id: string, headword: string): Exercise => ({ ...ex(id, 0, headword), code: "intro" });
+  const words = [intro("i1", "火锅"), intro("i2", "米饭"), intro("i3", "豆腐"), ex("r", 0, "火锅")];
+
+  it("слово запомнено после двух верных вспоминаний; проверка и знакомство не в счёт", () => {
+    const log = [
+      logged(intro("i1", "火锅"), 1, { choice: "remember" }, null),
+      logged(ex("a", 0, "火锅"), 1, { option_id: "o0" }, null),
+      logged({ ...ex("k", 0, "豆腐"), is_check: true }, 1, { option_id: "o0" }, result({})),
+      logged(ex("b", 0, "豆腐"), 1, { option_id: "o1" }, result({ outcome: "wrong" })),
+    ];
+    expect(roundProgress(words, log)).toEqual({ learned: 0, total: 3 });
+    log.push(logged(ex("c", 0, "火锅"), 1, { option_id: "o1" }, result({ outcome: "partial" })));
+    expect(roundProgress(words, log)).toEqual({ learned: 1, total: 3 });
+  });
+
+  it("подтверждённое «Уже знаю» тоже закрывает слово", () => {
+    const log = [logged({ ...ex("k", 0, "米饭"), is_check: true }, 1, { option_id: "o0" }, result({ known: true }))];
+    expect(roundProgress(words, log)).toEqual({ learned: 1, total: 3 });
+  });
+
+  it("слова не из раунда не считаются", () => {
+    const log = [
+      logged(ex("a", 0, "贵"), 1, { option_id: "o0" }, null),
+      logged(ex("b", 0, "贵"), 1, { option_id: "o0" }, null),
+    ];
+    expect(roundProgress(words, log).learned).toBe(0);
   });
 });

@@ -2,7 +2,17 @@ import { describe, expect, it } from "@jest/globals";
 import type { AnswerResult, Exercise } from "@yuny/shared";
 import { BackendError } from "@/shared/lib/backendError";
 import { correctAnswerText, localVerdict, trayOutcome } from "@/shared/lib/studyVerdict";
-import { anchorOf, dropWord, insertNext, pairBlockLength, RETRY_GAP, wordKey } from "./queue";
+import {
+  advancesImmediately,
+  anchorOf,
+  checkFailed,
+  dropChecks,
+  dropWord,
+  insertNext,
+  pairBlockLength,
+  RETRY_GAP,
+  wordKey,
+} from "./queue";
 import { createOutbox } from "./outbox";
 
 const ex = (task_id: string, over: Partial<Exercise> = {}): Exercise => ({
@@ -10,6 +20,7 @@ const ex = (task_id: string, over: Partial<Exercise> = {}): Exercise => ({
   code: "R1",
   lexeme: { headword: "买", reading: "mǎi", tone_label: null, translation: "покупать" },
   is_retry: false,
+  is_check: false,
   portion: 0,
   ...over,
 });
@@ -36,6 +47,11 @@ describe("очередь", () => {
   it("«Уже знаю»: остальные задания слова убираются, прошлые и чужие остаются", () => {
     const list = [ex("a"), other("b"), ex("c"), ex("d", { code: "pair_card", lexeme: null })];
     expect(ids(dropWord(list, 0, wordKey(list[0]!)!))).toEqual(["a", "b", "d"]);
+  });
+
+  it("проверка «Уже знаю» не пройдена: её оставшиеся задания убираются, обычные — нет", () => {
+    const list = [ex("k1", { is_check: true }), ex("k2", { code: "P2", is_check: true }), ex("r"), other("b")];
+    expect(ids(dropChecks(list, 0, wordKey(list[0]!)!))).toEqual(["k1", "r", "b"]);
   });
 
   it("вставка цепляется к текущему, если человек уже ушёл дальше", () => {
@@ -132,5 +148,27 @@ describe("очередь отправки", () => {
     release();
     await Promise.all([a, b]);
     expect(sent).toEqual(["a", "b"]);
+  });
+});
+
+describe("проверка «Уже знаю»", () => {
+  const check = ex("k", { code: "R2", is_check: true });
+  const base = { result: null, local: null };
+
+  it("«Не вспомнил» в проверке — лоток «Тогда запомним», в обычном R2 — сразу дальше", () => {
+    expect(advancesImmediately(check, { self: "forgot" })).toBe(false);
+    expect(advancesImmediately(check, { self: "recalled" })).toBe(true);
+    expect(advancesImmediately(ex("r2", { code: "R2" }), { self: "forgot" })).toBe(true);
+  });
+
+  it("провал: не вспомнил, ошибся или почти; сервер важнее ключа", () => {
+    expect(checkFailed({ ...base, task: check, given: { self: "forgot" } })).toBe(true);
+    expect(checkFailed({ ...base, task: check, given: { self: "recalled" } })).toBe(false);
+    const p2 = ex("p", { code: "P2", is_check: true });
+    expect(checkFailed({ ...base, task: p2, given: { text: "mai4" }, local: "partial" })).toBe(true);
+    expect(checkFailed({ ...base, task: p2, given: { text: "mai3" }, local: "correct" })).toBe(false);
+    const wrong = { outcome: "wrong" } as AnswerResult;
+    expect(checkFailed({ task: p2, given: { text: "mai3" }, local: "correct", result: wrong })).toBe(true);
+    expect(checkFailed({ ...base, task: ex("x"), given: { option_id: "o1" }, local: "wrong" })).toBe(false);
   });
 });

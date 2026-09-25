@@ -6,7 +6,9 @@ import { IconButton, StudyProgress, Text } from "@/shared/ui";
 import { breakpoints, spacing } from "@/shared/config/tokens";
 import { useKeyboardShortcuts } from "@/shared/platform/keyboardShortcuts";
 import { t } from "@/shared/i18n";
-import { advancesImmediately, type useStudySession } from "../session/useStudySession";
+import type { useStudySession } from "../session/useStudySession";
+import { advancesImmediately } from "../session/queue";
+import type { RoundProgress } from "../session/summary";
 import type { ExerciseProps } from "./types";
 import { ChoiceExercise } from "./ChoiceExercise";
 import { Feedback } from "./Feedback";
@@ -14,6 +16,7 @@ import { IntroExercise } from "./IntroExercise";
 import { PairCardExercise } from "./PairCardExercise";
 import { PinyinExercise } from "./PinyinExercise";
 import { RecallExercise } from "./RecallExercise";
+import { RoundCounter } from "./RoundCounter";
 import { TilesExercise } from "./TilesExercise";
 
 const CHOICE_CODES = new Set<Exercise["code"]>(["R1", "P1", "W1", "W2", "C1"]);
@@ -21,6 +24,8 @@ const CHOICE_CODES = new Set<Exercise["code"]>(["R1", "P1", "W1", "W2", "C1"]);
 export interface ExerciseShellProps {
   session: ReturnType<typeof useStudySession>;
   onClose: () => void;
+  /** Раунд знакомства: в шапке «3 из 7 слов» вместо «7 / 10». */
+  round?: RoundProgress | null;
 }
 
 /**
@@ -29,7 +34,7 @@ export interface ExerciseShellProps {
  * лоток ответа снизу. Выход в любой момент без потерь: каждый ответ уже в
  * очереди отправки (§3.4). Клавиши — §7.
  */
-export function ExerciseShell({ session, onClose }: ExerciseShellProps) {
+export function ExerciseShell({ session, onClose, round = null }: ExerciseShellProps) {
   const insets = useSafeAreaInsets();
   const [width, setWidth] = useState(0);
   const [trayHeight, setTrayHeight] = useState(0);
@@ -55,7 +60,7 @@ export function ExerciseShell({ session, onClose }: ExerciseShellProps) {
       event.preventDefault();
       if (showTray) next();
       else if (answered) return;
-      else if (task.code === "intro") answer({ choice: task.intro?.actions === "know_or_remember" ? "remember" : "ok" });
+      else if (task.code === "intro") answer({ choice: task.intro?.actions === "ok" ? "ok" : "remember" });
       else if (task.code === "pair_card") answer({ choice: "ok" });
       else if (task.code === "R2" && !revealed) setRevealedFor(task.task_id);
       return;
@@ -87,9 +92,13 @@ export function ExerciseShell({ session, onClose }: ExerciseShellProps) {
       <View className="w-full max-w-exercise-column flex-row items-center gap-md self-center px-lg py-md">
         <IconButton icon="close" accessibilityLabel={t("learn.ex.close")} onPress={onClose} />
         <StudyProgress done={done} total={total} accessibilityLabel={progressLabel} className="flex-1" />
-        <Text variant="caption" tone="muted" className="tabular-nums" aria-hidden>
-          {t("learn.ex.progress", { done: Math.min(done + 1, total), total })}
-        </Text>
+        {round ? (
+          <RoundCounter learned={round.learned} total={round.total} />
+        ) : (
+          <Text variant="caption" tone="muted" className="tabular-nums" aria-hidden>
+            {t("learn.ex.progress", { done: Math.min(done + 1, total), total })}
+          </Text>
+        )}
       </View>
 
       <ScrollView
