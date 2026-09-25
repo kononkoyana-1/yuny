@@ -1,11 +1,12 @@
 import { useImperativeHandle, useRef, useState, type ReactNode, type Ref } from "react";
-import { Pressable, ScrollView, View } from "react-native";
+import { Pressable, ScrollView, View, type StyleProp, type ViewStyle } from "react-native";
 import { useRouter } from "expo-router";
 import type { FolderProgress, UserDictionaryFolder } from "@yuny/shared";
 import { Button, Chip, EmptyState, ErrorState, LoadingState, StageBar, Text } from "@/shared/ui";
 import { useCreateFolder, useFolderProgress, useFolders, useSavedItems } from "@/shared/api";
 import { learnedText } from "@/features/study/queueText";
 import { focusRef } from "@/shared/platform/focusRef";
+import { sizing, spacing } from "@/shared/config/tokens";
 import { t } from "@/shared/i18n";
 import { FolderNameSheet } from "./FolderNameSheet";
 import { WordStats } from "./WordStats";
@@ -43,6 +44,10 @@ export function MyDictionary({ header, newFolderVariant = "primary", ref }: MyDi
   const scrollRef = useRef<ScrollView>(null);
   const titleRef = useRef<View>(null);
   const titleY = useRef(0);
+  // Карточки папок — сеткой в 2 колонки, когда обе влезают не уже
+  // `sizing.folderCardMin` (folder-map.design.md §3.7), иначе списком.
+  const [listWidth, setListWidth] = useState(0);
+  const twoColumns = listWidth >= 2 * sizing.folderCardMin + spacing.sm;
 
   useImperativeHandle(ref, () => ({
     showFolders() {
@@ -110,7 +115,10 @@ export function MyDictionary({ header, newFolderVariant = "primary", ref }: MyDi
         // вернуть фокус туда, откуда его открыли.
         <EmptyState className="py-lg" message={t("dictionary.mine.empty")} />
       ) : (
-        <View className="gap-sm">
+        <View
+          className="flex-row flex-wrap gap-sm"
+          onLayout={(event) => setListWidth(event.nativeEvent.layout.width)}
+        >
           {folders.data.map((folder) => (
             <FolderRow
               key={folder.id}
@@ -118,6 +126,9 @@ export function MyDictionary({ header, newFolderVariant = "primary", ref }: MyDi
               count={counts.get(folder.id) ?? 0}
               progress={progress.data?.folders.find((p) => p.folder_id === folder.id) ?? null}
               onPress={() => router.push({ pathname: "/folder/[id]", params: { id: folder.id } })}
+              // Половина ряда минус половина зазора: две карточки и `gap-sm` между ними.
+              style={twoColumns ? { width: (listWidth - spacing.sm) / 2 } : undefined}
+              className={twoColumns ? "" : "w-full"}
             />
           ))}
         </View>
@@ -153,11 +164,15 @@ function FolderRow({
   count,
   progress,
   onPress,
+  style,
+  className = "",
 }: {
   folder: UserDictionaryFolder;
   count: number;
   progress: FolderProgress | null;
   onPress: () => void;
+  style?: StyleProp<ViewStyle>;
+  className?: string;
 }) {
   const [pressed, setPressed] = useState(false);
   const words = t("dictionary.mine.words", { count });
@@ -172,9 +187,10 @@ function FolderRow({
       onPressIn={() => setPressed(true)}
       onPressOut={() => setPressed(false)}
       onPress={onPress}
+      style={style}
       className={`min-h-tap gap-sm rounded-tile px-md py-md ${
         pressed ? "bg-surface-alt dark:bg-surface-alt-dark" : "bg-surface dark:bg-surface-dark"
-      }`}
+      } ${className}`}
     >
       <View className="flex-row items-center gap-md">
         <Text variant="body" className="flex-1 font-semibold" numberOfLines={1}>

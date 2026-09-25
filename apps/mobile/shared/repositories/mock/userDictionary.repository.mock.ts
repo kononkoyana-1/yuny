@@ -29,7 +29,14 @@ function entryFor(headword: string) {
   return { id, headword, reading, senses, compact };
 }
 
-function item(folderId: string, headword: string, createdAt: string): UserDictionaryItem {
+/**
+ * Как последовательность `user_dictionary_items.position`: общий счётчик,
+ * порядок добавления внутри папки. Стартовые слова пронумерованы по
+ * `created_at`, как при переносе старых строк.
+ */
+let nextPosition = 1;
+
+function item(folderId: string, headword: string, createdAt: string, position: number): UserDictionaryItem {
   const entry = entryFor(headword);
   return {
     id: uuid(),
@@ -39,22 +46,29 @@ function item(folderId: string, headword: string, createdAt: string): UserDictio
     // Как `shortMeaning` в features/dictionary/article.ts — копия значения (#36).
     translation: entry ? entry.compact.slice(0, 3).join("; ") : null,
     translation_source: entry ? "dictionary" : null,
+    position,
     created_at: createdAt,
     entry,
   };
 }
 
-let items: UserDictionaryItem[] = [
-  item(folders[0].id, "好吃", "2026-09-22T09:00:00.000Z"),
-  item(folders[0].id, "好", "2026-09-21T09:00:00.000Z"),
-  item(folders[1].id, "好", "2026-09-21T08:00:00.000Z"),
-  item(folders[1].id, "打电话", "2026-09-20T08:00:00.000Z"),
-  item(folders[1].id, "多少钱", "2026-09-20T07:00:00.000Z"),
-  item(folders[1].id, "便宜", "2026-09-20T06:00:00.000Z"),
-  item(folders[1].id, "买", "2026-09-20T05:00:00.000Z"),
-  item(folders[1].id, "一路平安", "2026-09-20T04:00:00.000Z"),
-  item(folders[1].id, "上海", "2026-09-20T03:00:00.000Z"),
+const seed: [folder: number, headword: string, createdAt: string][] = [
+  [0, "好吃", "2026-09-22T09:00:00.000Z"],
+  [0, "好", "2026-09-21T09:00:00.000Z"],
+  [1, "好", "2026-09-21T08:00:00.000Z"],
+  [1, "打电话", "2026-09-20T08:00:00.000Z"],
+  [1, "多少钱", "2026-09-20T07:00:00.000Z"],
+  [1, "便宜", "2026-09-20T06:00:00.000Z"],
+  [1, "买", "2026-09-20T05:00:00.000Z"],
+  [1, "一路平安", "2026-09-20T04:00:00.000Z"],
+  [1, "上海", "2026-09-20T03:00:00.000Z"],
 ];
+
+// Списком — новые первыми, как отдаёт `listItems` на сервере.
+let items: UserDictionaryItem[] = [...seed]
+  .sort((a, b) => a[2].localeCompare(b[2]))
+  .map(([folder, headword, createdAt]) => item(folders[folder]!.id, headword, createdAt, nextPosition++))
+  .reverse();
 
 function nameTaken(name: string, exceptId?: string): boolean {
   const key = name.trim().toLocaleLowerCase("ru");
@@ -117,6 +131,8 @@ export const mockUserDictionaryRepository: UserDictionaryRepository = {
           reading: word.reading,
           translation: word.translation ?? null,
           translation_source: word.translation ? (word.translationSource ?? null) : null,
+          // В конец папки; пачка из файла — в порядке списка.
+          position: nextPosition++,
           created_at: new Date().toISOString(),
           entry: word.entryId === null ? null : entryFor(word.headword),
         },

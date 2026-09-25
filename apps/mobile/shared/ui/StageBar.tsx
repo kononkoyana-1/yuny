@@ -6,6 +6,13 @@ export type StageBarSize = "default" | "mini";
 /** folder-map.design.md §3.2: самое прочное слева — папка «заполняется» слева направо. */
 const BAR_ORDER: readonly Stage[] = [...STAGE_ORDER].reverse();
 
+/**
+ * «Новое» в полоске: заливка стадии `new` — цвет карточки, и на карточке папки
+ * эта часть сливалась с фоном — полоска казалась короче соседних. В полоске
+ * «новое» — цвет рамок: виден и на карточке, и на фоне экрана.
+ */
+const NEW_SEGMENT_CLASS = "bg-border dark:bg-border-dark";
+
 export interface StageBarProps {
   /** Word count per stage. Segments render from the most solid (`stable`) to `new`, per §3.2. */
   counts: Record<Stage, number>;
@@ -37,7 +44,7 @@ export function StageBar({ counts, size = "default", className = "" }: StageBarP
           <View
             key={stage}
             style={{ width: `${(count / total) * 100}%` }}
-            className={`${STAGE_FILL_CLASS[stage]} ${size === "mini" ? "" : "border-r border-r-background dark:border-r-background-dark"}`}
+            className={`${stage === "new" ? NEW_SEGMENT_CLASS : STAGE_FILL_CLASS[stage]} ${size === "mini" ? "" : "border-r border-r-background dark:border-r-background-dark"}`}
           />
         );
       })}

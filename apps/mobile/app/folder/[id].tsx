@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from "react";
-import { FlatList, View } from "react-native";
+import { FlatList, ScrollView, View } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
@@ -10,7 +10,6 @@ import {
   ErrorState,
   FeedbackBanner,
   IconButton,
-  LoadingState,
   Sheet,
   StageBar,
   StageLegend,
@@ -20,11 +19,14 @@ import {
   type Stage,
 } from "@/shared/ui";
 import { useDeleteFolder, useFolderMap, useFolders, useRenameFolder, useSavedItems } from "@/shared/api";
-import { sizing, spacing } from "@/shared/config/tokens";
+import { breakpoints, sizing, spacing } from "@/shared/config/tokens";
+import { focusRef } from "@/shared/platform/focusRef";
 import { t } from "@/shared/i18n";
 import { ArticleSheet, type SheetWord } from "@/features/dictionary/ArticleSheet";
 import { FolderNameSheet } from "@/features/dictionary/FolderNameSheet";
-import { groupSavedWords, wordKey, type SavedWord } from "@/features/dictionary/saved";
+import { FolderMapSkeleton } from "@/features/dictionary/FolderMapSkeleton";
+import { nextGridIndex } from "@/features/dictionary/gridNav";
+import { folderWords, wordKey, type SavedWord } from "@/features/dictionary/saved";
 import { useRowRefs } from "@/features/dictionary/useRowRefs";
 import { queueText } from "@/features/study/queueText";
 import { FolderStudyBlock } from "@/features/study/FolderStudyBlock";
@@ -38,6 +40,10 @@ const LEGEND_ORDER: readonly Stage[] = [...STAGE_ORDER].reverse();
  * метка — пара путаницы (folder-map.design.md). Стадии и сроки — с сервера
  * (`learning-overview`). Переименовать и удалить — в листе «⋯». Плитка
  * открывает ту же статью, что и поиск, с прогрессом слова.
+ *
+ * Слова — в порядке добавления (`position`). На широком экране шапка папки
+ * стоит слева колонкой `heroColumn`, мозаика — справа (§3.1). По сетке на web
+ * ходят стрелками: одна плитка — остановка Tab (roving tabindex, §7).
  */
 export default function FolderScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -49,7 +55,12 @@ export default function FolderScreen() {
   const remove = useDeleteFolder();
 
   const map = useFolderMap(id);
-  const [gridWidth, setGridWidth] = useState(0);
+  const [screenWidth, setScreenWidth] = useState(0);
+  const [listWidth, setListWidth] = useState(0);
+  const wide = screenWidth >= breakpoints.wide;
+  const listRef = useRef<FlatList<SavedWord | null>>(null);
+  // Плитка — остановка Tab в сетке; стрелки двигают её вместе с фокусом.
+  const [tabIndexAt, setTabIndexAt] = useState(0);
   const [actionsOpen, setActionsOpen] = useState(false);
   const moreRef = useRef<View>(null);
   const [renaming, setRenaming] = useState(false);
@@ -61,10 +72,8 @@ export default function FolderScreen() {
   const refFor = useRowRefs();
 
   const folder = folders.data?.find((f) => f.id === id) ?? null;
-  const words = useMemo(
-    () => groupSavedWords((items.data ?? []).filter((i) => i.folder_id === id)),
-    [items.data, id],
-  );
+  const words = useMemo(() => folderWords(items.data ?? [], id), [items.data, id]);
+  const rovingIndex = Math.min(tabIndexAt, Math.max(words.length - 1, 0));
 
   function goBack() {
     if (router.canGoBack()) router.back();
@@ -92,17 +101,36 @@ export default function FolderScreen() {
     () => new Map((map.data?.words ?? []).map((w) => [wordKey(w.headword, w.reading), w])),
     [map.data],
   );
-  const columns = Math.max(
-    3,
-    Math.floor((gridWidth - 2 * spacing.lg + spacing.sm) / (sizing.wordTile + spacing.sm)),
-  );
+  // §3.4: ширина — из `onLayout` самого списка, за вычетом его полей
+  // (на узком `px-lg`, на широком `pl-sm pr-lg` — см. `renderBody`).
+  const gridInner = listWidth - (wide ? spacing.sm + spacing.lg : 2 * spacing.lg);
+  const columns = Math.max(3, Math.floor((gridInner + spacing.sm) / (sizing.wordTile + spacing.sm)));
   // Последний ряд дополняется пустыми ячейками, чтобы плитки не растягивались.
   const cells: (SavedWord | null)[] = [...words];
   while (cells.length % columns !== 0) cells.push(null);
 
+  /** Стрелки и Home / End на плитке (web): фокус — на соседнюю по сетке. */
+  function onTileKey(index: number, event: { key: string; preventDefault(): void }) {
+    const next = nextGridIndex(index, words.length, columns, event.key);
+    if (next === null) return;
+    event.preventDefault();
+    if (next === index) return;
+    setTabIndexAt(next);
+    const target = refFor(words[next]!.key);
+    if (target.current) {
+      focusRef(target);
+      return;
+    }
+    // Ряд ещё не отрисован (длинная папка): сначала прокрутка, потом фокус.
+    listRef.current?.scrollToIndex({ index: Math.floor(next / columns), viewPosition: 0.5, animated: false });
+    requestAnimationFrame(() => focusRef(target));
+  }
+
   function renderBody() {
-    if (folders.isPending || items.isPending) {
-      return <LoadingState className="flex-1" message={t("dictionary.folder.loading")} />;
+    // Пока нет карты, плитки были бы «новыми» и на её приходе все разом
+    // «налились» бы — поэтому скелет ждёт и её (кроме ошибки карты).
+    if (folders.isPending || items.isPending || (map.isPending && !map.isError)) {
+      return <FolderMapSkeleton message={t("dictionary.folder.loading")} />;
     }
     if ((folders.isError && !folders.data) || (items.isError && !items.data)) {
       return (
@@ -130,61 +158,77 @@ export default function FolderScreen() {
       }))
       : [];
 
-    return (
+    // Шапка папки: на узком — над мозаикой в том же списке, на широком — левой колонкой.
+    const summary = (
+      <View className="gap-md">
+        <View className="gap-xs">
+          <Text variant="display" accessibilityRole="header">
+            {folder.name}
+          </Text>
+          <View className="flex-row flex-wrap items-center gap-sm">
+            <Text variant="caption" tone="muted">
+              {t("dictionary.mine.words", { count: words.length })}
+            </Text>
+            {map.data && map.data.due_count > 0 ? (
+              <Chip size="micro" variant="attention" label={t("learn.map.due", { count: map.data.due_count })} />
+            ) : null}
+          </View>
+        </View>
+        {counts && words.length > 0 ? (
+          <View
+            accessible
+            accessibilityRole="image"
+            accessibilityLabel={t("learn.map.stageBarA11y", { list: legend.map((l) => l.label).join(", ") })}
+            className="gap-sm"
+          >
+            <StageBar counts={counts} />
+            <View aria-hidden>
+              <StageLegend items={legend} />
+            </View>
+          </View>
+        ) : null}
+        {queue ? (
+          <Text variant="caption" tone="muted">
+            {queue}
+          </Text>
+        ) : null}
+        {words.length > 0 ? (
+          <View className="pt-sm">
+            <FolderStudyBlock
+              folderId={folder.id}
+              onStart={(mode) => router.push({ pathname: "/study", params: { folder: folder.id, mode } })}
+            />
+          </View>
+        ) : null}
+      </View>
+    );
+    const wordsTitle =
+      words.length > 0 ? (
+        <Text variant="eyebrow" tone="muted" className={`uppercase ${wide ? "" : "pt-xl"}`}>
+          {t("learn.map.words")}
+        </Text>
+      ) : null;
+
+    const grid = (
       <FlatList
+        ref={listRef}
         key={columns}
         data={cells}
         numColumns={columns}
         keyExtractor={(word, i) => word?.key ?? `empty-${i}`}
-        contentContainerClassName="px-lg pb-xl"
+        onLayout={(event) => setListWidth(event.nativeEvent.layout.width)}
+        contentContainerClassName={wide ? "pb-xl pl-sm pr-lg" : "px-lg pb-xl"}
         columnWrapperClassName="gap-sm"
         ItemSeparatorComponent={() => <View style={{ height: spacing.sm }} />}
+        // Длинная папка: ряд с фокусом ещё не измерен — прокручиваем по оценке и пробуем снова.
+        onScrollToIndexFailed={(info) => {
+          listRef.current?.scrollToOffset({ offset: info.averageItemLength * info.index, animated: false });
+          requestAnimationFrame(() => focusRef(refFor(words[rovingIndex]?.key ?? "")));
+        }}
         ListHeaderComponent={
-          <View className="gap-md pb-sm">
-            <View className="gap-xs">
-              <Text variant="display" accessibilityRole="header">
-                {folder.name}
-              </Text>
-              <View className="flex-row flex-wrap items-center gap-sm">
-                <Text variant="caption" tone="muted">
-                  {t("dictionary.mine.words", { count: words.length })}
-                </Text>
-                {map.data && map.data.due_count > 0 ? (
-                  <Chip size="micro" variant="attention" label={t("learn.map.due", { count: map.data.due_count })} />
-                ) : null}
-              </View>
-            </View>
-            {counts && words.length > 0 ? (
-              <View
-                accessible
-                accessibilityRole="image"
-                accessibilityLabel={t("learn.map.stageBarA11y", { list: legend.map((l) => l.label).join(", ") })}
-                className="gap-sm"
-              >
-                <StageBar counts={counts} />
-                <View aria-hidden>
-                  <StageLegend items={legend} />
-                </View>
-              </View>
-            ) : null}
-            {queue ? (
-              <Text variant="caption" tone="muted">
-                {queue}
-              </Text>
-            ) : null}
-            {words.length > 0 ? (
-              <View className="pt-sm">
-                <FolderStudyBlock
-                  folderId={folder.id}
-                  onStart={(mode) => router.push({ pathname: "/study", params: { folder: folder.id, mode } })}
-                />
-              </View>
-            ) : null}
-            {words.length > 0 ? (
-              <Text variant="eyebrow" tone="muted" className="pt-lg uppercase">
-                {t("learn.map.words")}
-              </Text>
-            ) : null}
+          <View className="gap-sm pb-sm">
+            {wide ? null : summary}
+            {wordsTitle}
           </View>
         }
         ListEmptyComponent={
@@ -194,7 +238,7 @@ export default function FolderScreen() {
             onAction={() => router.navigate("/dictionary")}
           />
         }
-        renderItem={({ item: word }) => {
+        renderItem={({ item: word, index }) => {
           // Одинаковая обёртка без отступов у каждой ячейки: иначе в неполном ряду
           // плитка (с `p-sm` и рамкой) выходит шире соседних.
           if (!word) return <View className="flex-1" />;
@@ -219,7 +263,11 @@ export default function FolderScreen() {
                 due={p?.due ?? false}
                 pairPartner={p?.pair_partner ?? undefined}
                 accessibilityLabel={label}
+                tabStop={index === rovingIndex}
+                onFocus={() => setTabIndexAt(index)}
+                onKeyDown={(event) => onTileKey(index, event)}
                 onPress={() => {
+                  setTabIndexAt(index);
                   setFocusKey(word.key);
                   setOpenWord(word);
                 }}
@@ -230,13 +278,32 @@ export default function FolderScreen() {
         }}
       />
     );
+
+    if (!wide) return grid;
+    // §3.1, широкий: шапка — колонка `heroColumn` слева, прилипает к верху
+    // (прокручивается сама, если выше экрана); справа «СЛОВА» и мозаика.
+    // Поля колонок — внутри прокрутки, а не снаружи: иначе она обрезает свечение
+    // кнопки учёбы и кольцо фокуса у крайних плиток. Между колонками
+    // `pr-lg` шапки + `pl-sm` мозаики = `spacing.xl`.
+    return (
+      <View className="flex-1 flex-row">
+        <ScrollView
+          className="grow-0"
+          style={{ width: sizing.heroColumn + 2 * spacing.lg }}
+          contentContainerClassName="px-lg pb-xl"
+        >
+          {summary}
+        </ScrollView>
+        <View className="flex-1">{grid}</View>
+      </View>
+    );
   }
 
   return (
     <View
       className="flex-1 bg-background dark:bg-background-dark"
       style={{ paddingTop: insets.top }}
-      onLayout={(event) => setGridWidth(event.nativeEvent.layout.width)}
+      onLayout={(event) => setScreenWidth(event.nativeEvent.layout.width)}
     >
       {header}
       {renderBody()}
