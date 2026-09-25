@@ -190,6 +190,23 @@ export function runJobInBackground(
  * subtly different content that nothing here would flag.
  */
 const AI_MODEL = Deno.env.get("GEMINI_MODEL") ?? "gemini-3.5-flash";
+
+/**
+ * Where a retry goes when the main model is busy. Google answers
+ * `503 "This model is currently experiencing high demand"` per model, for
+ * minutes at a time (2026-09-25: every upload failed on `gemini-3.5-flash`),
+ * so retrying the same model mostly waits out the same spike. Retries rotate
+ * through these instead.
+ *
+ * Aliases on purpose, unlike `AI_MODEL`: they never 404, and a fallback only
+ * serves while the pinned model is down — the drift the note above warns
+ * about is acceptable for that window, a hard failure is not. Override with
+ * the `GEMINI_FALLBACK_MODELS` secret (comma-separated; empty — no fallback).
+ */
+const AI_FALLBACK_MODELS = (Deno.env.get("GEMINI_FALLBACK_MODELS") ?? "gemini-flash-lite-latest,gemini-flash-latest")
+  .split(",")
+  .map((m) => m.trim())
+  .filter((m) => m && m !== AI_MODEL);
 const AI_ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/models";
 
 /**
@@ -429,7 +446,8 @@ async function callGemini(
   apiKey: string,
   purpose: string,
 ): Promise<string> {
-  const url = `${AI_ENDPOINT}/${AI_MODEL}:generateContent`;
+  // Attempt 0 — the main model; each retry — the next fallback, then the main again.
+  const models = [AI_MODEL, ...AI_FALLBACK_MODELS];
 
   const RETRY_WAITS_MS = [2000, 6000, 15000];
   const startedAt = Date.now();
@@ -437,6 +455,8 @@ async function callGemini(
 
   for (let attempt = 0; attempt <= RETRY_WAITS_MS.length; attempt += 1) {
     const wait = RETRY_WAITS_MS[attempt];
+    const model = models[attempt % models.length]!;
+    const url = `${AI_ENDPOINT}/${model}:generateContent`;
     const canRetry = () => wait !== undefined && left() > wait + 5_000;
 
     let response: Response;
@@ -449,7 +469,7 @@ async function callGemini(
       });
     } catch (error) {
       // Timeout or a dropped connection: the same as a 503 for retrying.
-      console.error("ai_fetch_error", purpose, attempt, String(error));
+      console.error("ai_fetch_error", purpose, model, attempt, String(error));
       if (canRetry()) {
         await new Promise((resolve) => setTimeout(resolve, wait));
         continue;
@@ -459,13 +479,16 @@ async function callGemini(
 
     if (!response.ok) {
       const detail = (await response.text()).slice(0, 500);
-      const retryable = response.status === 429 || response.status >= 500;
+      // 404/400 on a fallback: the alias is unknown to this key or rejects
+      // the schema — move on to the next model rather than fail the job.
+      const retryable = response.status === 429 || response.status >= 500 ||
+        (model !== AI_MODEL && (response.status === 404 || response.status === 400));
       if (retryable && canRetry()) {
-        console.error("ai_http_retry", purpose, attempt, response.status, detail.slice(0, 200));
+        console.error("ai_http_retry", purpose, model, attempt, response.status, detail.slice(0, 200));
         await new Promise((resolve) => setTimeout(resolve, wait));
         continue;
       }
-      console.error("ai_http_error", purpose, response.status, detail);
+      console.error("ai_http_error", purpose, model, response.status, detail);
       throw new HandlerError(
         response.status === 400 ? "ai_invalid_response" : "ai_unavailable",
         response.status === 400 ? 502 : 503,
@@ -502,6 +525,7 @@ async function callGemini(
       .join("")
       .trim();
     if (!text) throw new HandlerError("ai_invalid_response", 502);
+    if (model !== AI_MODEL) console.log("ai_fallback_served", purpose, model, attempt);
     return text;
   }
 

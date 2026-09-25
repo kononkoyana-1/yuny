@@ -138,7 +138,9 @@ GEMINI_API_KEY=<ваш ключ> node scripts/gemini-check.mjs gemini-3.5-flash
 
 ## 4. Положить секреты в Supabase
 
-Два секрета: `GEMINI_API_KEY` и `GEMINI_MODEL`.
+Два секрета: `GEMINI_API_KEY` и `GEMINI_MODEL`. Необязательный третий — `GEMINI_FALLBACK_MODELS`
+(через запятую): куда уходит повтор, когда основная модель отвечает 503 «high demand». По умолчанию
+`gemini-flash-lite-latest,gemini-flash-latest`; пустая строка — без запасных.
 
 Прямая ссылка на ваш проект:
 

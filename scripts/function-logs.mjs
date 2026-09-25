@@ -27,7 +27,7 @@ const safe = filter.replace(/[^\w\-.: ]/g, "");
 // С 2026-09 все логи — в одной таблице `logs` (ClickHouse SQL); отбираем по
 // тексту сообщения (наши `console.error` начинаются с узнаваемых меток).
 const sql = `select toString(timestamp) as time, event_message from logs
-  ${safe ? `where event_message like '%${safe}%'` : ""}
+  ${safe ? `where position(event_message, '${safe}') > 0` : ""}
   order by timestamp desc limit 200`;
 
 const url = new URL(`https://api.supabase.com/v1/projects/${PROJECT_REF}/analytics/endpoints/logs`);
