@@ -4,11 +4,14 @@
  * раздел 3). Чистая функция: что спросить и в каком порядке. Варианты
  * ответа и билеты собирает `session-build`.
  *
- * Пока нет предложений (#64), навык «Использую» и форматы C* не выдаются —
- * навык откроется, а спрашивать его начнём, когда появятся контексты.
+ * Навык «Использую» (C1, C2) спрашивается только у слов, для которых есть
+ * предложение, покрытое словами пользователя (#64, `contextReady`): иначе
+ * задание не собрать. Навыки открываются по таблице разблокировки
+ * (`unlockedSkills`): первое задание «Пишу» или «Использую» — после
+ * повторений, не больше `MODEL.unlock.perSession` за занятие.
  */
 import { DAY_MS, type ExerciseCode, MODEL, type Skill } from "./config.ts";
-import { intervalDays, retrievabilityAt } from "./memory.ts";
+import { intervalDays, retrievabilityAt, unlockedSkills } from "./memory.ts";
 import type { StoredPair, StoredSkill } from "./submit.ts";
 
 export interface PlanLexeme {
@@ -49,6 +52,11 @@ export interface PlanInput {
   /** `${lexemeId}:${skill}` и id пар, которые уже спрашивали сегодня. */
   reviewedToday: Set<string>;
   seed: number;
+  /**
+   * Слова, для которых есть предложение, покрытое словами пользователя (#64):
+   * только их спрашиваем в контексте. Не задано — «Использую» не спрашивается.
+   */
+  contextReady?: ReadonlySet<string>;
 }
 
 export type PlanTask =
@@ -109,8 +117,8 @@ export function pairBlockSides(seed: number): ("a" | "b")[] {
   return seed % 2 ? ["a", "b", "b", "a"] : ["b", "a", "a", "b"];
 }
 
-const EASY: Record<Exclude<Skill, "use">, ExerciseCode> = { read: "R1", pinyin: "P1", write: "W1" };
-const HARD: Record<Exclude<Skill, "use">, ExerciseCode> = { read: "R2", pinyin: "P2", write: "W2" };
+const EASY: Record<Skill, ExerciseCode> = { read: "R1", pinyin: "P1", write: "W1", use: "C1" };
+const HARD: Record<Skill, ExerciseCode> = { read: "R2", pinyin: "P2", write: "W2", use: "C2" };
 /** Во сколько раз трудный формат снижает шанс успеха против лёгкого. */
 const HARD_EASE = 0.85;
 
@@ -147,7 +155,7 @@ export function intakeQuota(o: { budget: number; dueTomorrow: number; maxNew: nu
  * Формат по «желательной трудности»: свежий навык — лёгкий; S ≥ 7 — трудный;
  * между ними трудный, если ожидаемый успех в нём не ниже 0.8.
  */
-export function chooseFormat(skill: Exclude<Skill, "use">, state: StoredSkill | null, now: Date): ExerciseCode {
+export function chooseFormat(skill: Skill, state: StoredSkill | null, now: Date): ExerciseCode {
   if (!state || state.reps < 2) return EASY[skill];
   if (state.stability >= 7) return HARD[skill];
   return retrievabilityAt(state, now) * HARD_EASE >= 0.8 ? HARD[skill] : EASY[skill];
@@ -166,8 +174,11 @@ function pairDue(p: PlanPair, now: Date, retention: number): boolean {
   return retrievabilityAt(p.memory, now) < retention;
 }
 
-function skillsOf(l: PlanLexeme): Exclude<Skill, "use">[] {
-  return l.goal === "read_only" ? ["read", "pinyin"] : ["read", "pinyin", "write"];
+/** Навыки, которые можно спросить: «Использую» — только при готовом предложении. */
+function skillsOf(l: PlanLexeme, input: Pick<PlanInput, "contextReady">): Skill[] {
+  const out: Skill[] = l.goal === "read_only" ? ["read", "pinyin"] : ["read", "pinyin", "write"];
+  if (input.contextReady?.has(l.id)) out.push("use");
+  return out;
 }
 
 /** Сколько заданий будет завтра: навыки и пары, у которых к концу завтра R упадёт ниже цели. */
@@ -175,7 +186,7 @@ export function forecastDue(input: Pick<PlanInput, "lexemes" | "states" | "pairs
   let n = 0;
   for (const l of input.lexemes) {
     for (const [skill, st] of Object.entries(input.states[l.id] ?? {})) {
-      if (skill === "use" || !st) continue;
+      if (!st) continue;
       if (retrievabilityAt(st, at) < input.retention) n++;
     }
   }
@@ -270,7 +281,7 @@ export function portions(n: number): number[] {
 
 interface Due {
   lexemeId: string;
-  skill: Exclude<Skill, "use">;
+  skill: Skill;
   priority: number;
 }
 
@@ -279,7 +290,7 @@ export function dueSkills(input: PlanInput, onlyFolder: string | null): Due[] {
   const activeFor = (id: string) => input.pairs.some((p) => p.status === "active" && involves(p, id));
   for (const l of input.lexemes) {
     if (onlyFolder && !l.folderIds.includes(onlyFolder)) continue;
-    for (const skill of skillsOf(l)) {
+    for (const skill of skillsOf(l, input)) {
       const st = input.states[l.id]?.[skill];
       if (!st || input.reviewedToday.has(`${l.id}:${skill}`)) continue;
       const r = retrievabilityAt(st, input.now);
@@ -293,6 +304,26 @@ export function dueSkills(input: PlanInput, onlyFolder: string | null): Due[] {
     }
   }
   return out.sort((a, b) => b.priority - a.priority);
+}
+
+/**
+ * Навыки, которые пора открыть: по таблице разблокировки открыты, а строки
+ * памяти ещё нет (первое задание «Пишу» или «Использую»). Сначала слова,
+ * которые узнаются увереннее, — им проще.
+ */
+export function openingSkills(input: PlanInput, onlyFolder: string | null): Due[] {
+  const out: (Due & { read: number })[] = [];
+  for (const l of input.lexemes) {
+    if (onlyFolder && !l.folderIds.includes(onlyFolder)) continue;
+    const states = input.states[l.id];
+    if (!states?.read) continue;
+    const can = new Set(skillsOf(l, input));
+    for (const skill of unlockedSkills(states, l.goal)) {
+      if (states[skill] || !can.has(skill) || input.reviewedToday.has(`${l.id}:${skill}`)) continue;
+      out.push({ lexemeId: l.id, skill, priority: 0, read: states.read.stability });
+    }
+  }
+  return out.sort((a, b) => b.read - a.read).map(({ read: _, ...d }) => d);
 }
 
 /** Новые слова по очереди: недавно добавленные раньше, при равенстве — меньший HSK. */
@@ -447,7 +478,11 @@ export function buildSession(input: PlanInput): SessionPlan {
     const due = dueSkills(input, null);
     const room = budget - pairs.cost;
     const reviews = due.slice(0, Math.max(0, room)).map((d, i) => reviewSlot(d, i));
-    const left = room - reviews.length;
+    // Открыть навыки — после повторений, из оставшегося места.
+    const opening = openingSkills(input, null)
+      .slice(0, Math.max(0, Math.min(MODEL.unlock.perSession, room - reviews.length)))
+      .map((d, i) => reviewSlot(d, reviews.length + i));
+    const left = room - reviews.length - opening.length;
     const dueNow = due.length + pairs.due;
 
     let reason: PlanReason = null;
@@ -463,7 +498,7 @@ export function buildSession(input: PlanInput): SessionPlan {
 
     // Новые — вразбивку по первой половине: повторения важнее, а
     // вспоминанию нужны другие задания вокруг.
-    const slots: Slot[] = [...pairs.slots, ...reviews];
+    const slots: Slot[] = [...pairs.slots, ...reviews, ...opening];
     const span = Math.max(reviews.length, fresh.length * 3);
     fresh.forEach((l, i) => {
       slots.push(...newWordSlots(l, 1 + Math.floor((i * span) / (2 * Math.max(1, fresh.length))), false, 5));
@@ -479,7 +514,10 @@ export function buildSession(input: PlanInput): SessionPlan {
 
   if (folderMode === "review") {
     const slots = due.slice(0, budget).map((d, i) => reviewSlot(d, i));
-    return finish(slots, folderMode, due.length, [], null, quota);
+    const opening = openingSkills(input, folder)
+      .slice(0, Math.max(0, Math.min(MODEL.unlock.perSession, budget - slots.length)))
+      .map((d, i) => reviewSlot(d, slots.length + i));
+    return finish([...slots, ...opening], folderMode, due.length, [], null, quota);
   }
 
   if (folderMode === "new") {
@@ -505,14 +543,23 @@ export function buildSession(input: PlanInput): SessionPlan {
 
   // Практика: всё свежее. Досрочный верный ответ интервал почти не растит
   // (прирост ∝ e^(1−R) − 1), поэтому трудные форматы по словам папки безвредны.
+  // Сначала — предложения (daily-and-folder-study.md §3.3: «другая работа»,
+  // запас по «Использую» есть почти всегда); открытый, но ещё не начатый
+  // «Использую» — с пропуска (C1).
   const practice = input.lexemes
     .filter((l) => l.folderIds.includes(folder) && input.states[l.id]?.read)
-    .flatMap((l) => skillsOf(l).filter((s) => input.states[l.id]?.[s]).map((skill) => ({ l, skill })))
-    .sort(() => rand() - 0.5)
+    .flatMap((l) => {
+      const states = input.states[l.id]!;
+      const open = new Set(unlockedSkills(states, l.goal));
+      return skillsOf(l, input)
+        .filter((s) => states[s] || (s === "use" && open.has("use")))
+        .map((skill) => ({ l, skill, first: !states[skill], order: (skill === "use" ? 0 : 1) + rand() }));
+    })
+    .sort((a, b) => a.order - b.order)
     .slice(0, budget)
-    .map(({ l, skill }, i): Slot => ({
+    .map(({ l, skill, first }, i): Slot => ({
       key: `${l.id}:${skill}`,
-      task: { kind: "review", lexemeId: l.id, skill, code: HARD[skill] },
+      task: { kind: "review", lexemeId: l.id, skill, code: first ? EASY[skill] : HARD[skill] },
       lexemeId: l.id,
       rank: i,
     }));

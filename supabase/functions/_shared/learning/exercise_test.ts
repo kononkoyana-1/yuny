@@ -9,9 +9,12 @@ import {
   type CharEntry,
   charNotes,
   classify,
+  type ContextSentence,
+  easierCode,
   explanation,
   pinyinA11y,
   resultOutcome,
+  shuffleTiles,
   toneLabel,
 } from "./mod.ts";
 
@@ -153,4 +156,68 @@ Deno.test("исход для клиента и разбор", () => {
   const tone = classify({ target: MAI3, answer: { kind: "pinyin", text: "mai4" } });
   assertEquals(resultOutcome(tone), "partial");
   assertEquals(explanation(tone, MAI3, null), ["Слог верный, тон другой: mǎi — 3-й тон."]);
+});
+
+// ------------------------------------------------------------ контекст (#64)
+
+const SENTENCE: ContextSentence = {
+  id: "ctx1",
+  tier: "T2",
+  zh: "我想买咖啡。",
+  pinyin: "wǒ xiǎng mǎi kāfēi.",
+  ru: "Я хочу купить кофе.",
+  tokens: ["我", "想", "买", "咖啡", "。"],
+  tokenLevels: [1, 1, null, 2, null],
+  targetIndex: 2,
+  altOrders: [],
+  hskMax: 2,
+};
+
+Deno.test("знакомство: пример из кэша; нет предложения — null", () => {
+  const b = buildExercise({ code: "intro", word: MAI3, candidates: [], seed: 1, sentence: SENTENCE })!;
+  assertEquals(b.body.intro!.example, { zh: "我想买咖啡。", pinyin: "wǒ xiǎng mǎi kāfēi.", ru: "Я хочу купить кофе." });
+  assertEquals(buildExercise({ code: "intro", word: MAI3, candidates: [], seed: 1 })!.body.intro!.example, null);
+});
+
+Deno.test("C1: пропуск на месте слова, варианты — знаки, без слов самой фразы и синонимов", () => {
+  const pool: Candidate[] = [
+    ...POOL,
+    { headword: "想", reading: "xiǎng", gloss: "хотеть", source: "user" },
+    { headword: "购买", reading: "gòumǎi", gloss: "покупать", source: "shared_char" },
+  ];
+  const b = buildExercise({ code: "C1", word: MAI3, candidates: pool, seed: 3, sentence: SENTENCE })!;
+  assertEquals(b.body.code, "C1");
+  assertEquals(b.body.sentence, { tokens: ["我", "想", "买", "咖啡", "。"], blank_index: 2, ru: "Я хочу купить кофе." });
+  const texts = b.body.options!.map((o) => o.text);
+  assertEquals(texts.length, 4);
+  assert(texts.includes("买") && !texts.includes("想") && !texts.includes("购买"));
+  assertEquals(b.body.options!.find((o) => o.id === b.body.key!.option_id)!.text, "买");
+  assertEquals(b.ticket.exercise, "C1");
+  assertEquals(b.ticket.context_id, "ctx1");
+  assertEquals(buildExercise({ code: "C1", word: MAI3, candidates: POOL, seed: 3 }), null);
+});
+
+Deno.test("C2: плитки без пунктуации вперемешку, допустимые порядки в ключе и билете", () => {
+  const s = { ...SENTENCE, altOrders: [["想", "我", "买", "咖啡"]] };
+  const b = buildExercise({ code: "C2", word: MAI3, candidates: [], seed: 7, sentence: s })!;
+  const shown = b.body.tiles!.map((t) => t.text);
+  assertEquals([...shown].sort(), ["买", "咖啡", "我", "想"].sort());
+  assert(shown.join("") !== "我想买咖啡" && shown.join("") !== "想我买咖啡");
+  assertEquals(b.body.key, { tokens: ["我", "想", "买", "咖啡"], orders: [["我", "想", "买", "咖啡"], ["想", "我", "买", "咖啡"]] });
+  assertEquals(b.body.sentence!.ru, "Я хочу купить кофе.");
+  assertEquals(b.ticket.tiles, shown);
+  assertEquals(b.ticket.expected_orders, b.body.key!.orders);
+  // Ответ плитками → классификатор: порядок из допустимых — верно, те же слова иначе — порядок.
+  const order = (tokens: string[]) =>
+    classify({ target: MAI3, answer: { kind: "order", tokens }, expectedOrders: b.ticket.expected_orders });
+  assertEquals(order(["想", "我", "买", "咖啡"]).outcome, "ok");
+  assertEquals(order(["咖啡", "我", "想", "买"]).outcome, "order");
+});
+
+Deno.test("C2: коллокация и фраза из двух плиток не годятся; все перестановки верны — плиток не собрать", () => {
+  assertEquals(buildExercise({ code: "C2", word: MAI3, candidates: [], seed: 1, sentence: { ...SENTENCE, tier: "T1" } }), null);
+  const two = { ...SENTENCE, tokens: ["买", "咖啡"], tokenLevels: [null, 2], targetIndex: 0 };
+  assertEquals(buildExercise({ code: "C2", word: MAI3, candidates: [], seed: 1, sentence: two }), null);
+  assertEquals(shuffleTiles(["a", "b"], [["a", "b"], ["b", "a"]], 1), null);
+  assertEquals(easierCode("C2"), "C1");
 });

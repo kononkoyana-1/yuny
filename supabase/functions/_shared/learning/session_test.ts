@@ -257,6 +257,55 @@ Deno.test("папка: всё свежее — практика трудными
   assertEquals(plan.tasks.map((t) => t.code).sort(), ["P2", "R2", "R2"]);
 });
 
+// ------------------------------------------------ «Пишу» и «Использую» (#64)
+
+/** Слово узнаётся уверенно: «Пишу» и «Использую» открыты по таблице разблокировки. */
+const firm = () => ({ read: st(20, 1), pinyin: st(20, 1) });
+
+Deno.test("открытие навыков: «Пишу» — после повторений; «Использую» — только с готовым предложением", () => {
+  const l = [lex("a"), lex("b", "f1", 10, { goal: "read_only" })];
+  const states = { a: firm(), b: firm() };
+  const without = buildSession(base({ lexemes: l, states }));
+  assertEquals(without.tasks.map((t) => `${lexOf(t)}:${t.code}`), ["a:W1"]);
+  const withCtx = buildSession(base({ lexemes: l, states, contextReady: new Set(["a", "b"]) }));
+  // «Только читать» — без «Пишу», но «Использую» открывается и у него. Первое задание — пропуск (C1).
+  assertEquals(withCtx.tasks.map((t) => `${lexOf(t)}:${t.code}`).sort(), ["a:C1", "a:W1", "b:C1"]);
+  assert(withCtx.tasks.every((t) => t.kind !== "review" || !t.round));
+});
+
+Deno.test("открытие навыков: не больше четырёх за занятие, сперва повторения", () => {
+  const l = Array.from({ length: 6 }, (_, i) => lex(`w${i}`));
+  const states = Object.fromEntries(l.map((x) => [x.id, firm()]));
+  const due = dueWords(3);
+  const plan = buildSession(base({ lexemes: [...l, ...due.lexemes], states: { ...states, ...due.states } }));
+  assertEquals(plan.tasks.filter((t) => t.code === "W1").length, 4);
+  assertEquals(plan.tasks.filter((t) => t.code === "R1" || t.code === "R2").length, 3);
+  // Открытие не долг: в «пора повторить» не входит.
+  assertEquals(plan.stats.dueNow, 3);
+});
+
+Deno.test("«Использую» пора: свежий — пропуск, окрепший — сборка фразы; без предложения не спрашиваем", () => {
+  const l = [lex("a"), lex("b")];
+  const states = {
+    a: { ...firm(), write: st(20, 1), use: st(1, 3, 1) },
+    b: { ...firm(), write: st(20, 1), use: st(8, 20) },
+  };
+  const plan = buildSession(base({ lexemes: l, states, contextReady: new Set(["a", "b"]) }));
+  assertEquals(plan.tasks.map((t) => `${lexOf(t)}:${t.code}`).sort(), ["a:C1", "b:C2"]);
+  assertEquals(plan.stats.dueNow, 2);
+  const none = buildSession(base({ lexemes: l, states }));
+  assertEquals(none.tasks.length, 0);
+  assertEquals(none.stats.dueNow, 0);
+});
+
+Deno.test("папка, практика: сперва предложения, открытый «Использую» — с пропуска", () => {
+  const l = [lex("x"), lex("y")];
+  const states = { x: { ...firm(), use: st(10, 1) }, y: firm() };
+  const plan = buildSession(base({ mode: "folder", folderId: "f1", folderMode: "practice", lexemes: l, states, contextReady: new Set(["x", "y"]) }));
+  const codes = plan.tasks.map((t) => `${lexOf(t)}:${t.code}`);
+  assertEquals(codes.sort(), ["x:C2", "x:P2", "x:R2", "y:C1", "y:P2", "y:R2"]);
+});
+
 Deno.test("interleave: блок идёт целиком, зависимость держит задержку", () => {
   const tasks = interleave([
     { key: "i", task: { kind: "intro", lexemeId: "a", code: "intro" }, lexemeId: "a", rank: 0 },

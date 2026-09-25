@@ -139,7 +139,7 @@ Deno.test("знакомство со словом не трогает памят
 });
 
 Deno.test("успех в предложении — «Использую» +1 контекст и слабое повторение «Читаю» и «Пиньинь»", () => {
-  const t = ticket({ exercise: "C1" });
+  const t = ticket({ exercise: "C2" });
   const plan = planSubmit(input({
     ticket: t,
     skills: { read: skill(5, day(-3)), pinyin: skill(4, day(-3)), use: skill(1.5, day(-2)) },
@@ -149,6 +149,16 @@ Deno.test("успех в предложении — «Использую» +1 к
   assertEquals(bySkill.use.contextsPassed, 1);
   assert(bySkill.read.stability > 5);
   assert(bySkill.pinyin.stability > 4);
+});
+
+Deno.test("пропуск с выбором (C1) — память «Использую» растёт, но контекст не засчитан: это узнавание", () => {
+  const plan = planSubmit(input({
+    ticket: ticket({ exercise: "C1" }),
+    skills: { read: skill(5, day(-3)), pinyin: skill(4, day(-3)), use: skill(1.5, day(-2)) },
+  }));
+  const use = plan.skillWrites.find((w) => w.skill === "use")!.state;
+  assert(use.stability > 1.5);
+  assertEquals(use.contextsPassed, 0);
 });
 
 Deno.test("перенос не чаще раза в сутки на навык", () => {

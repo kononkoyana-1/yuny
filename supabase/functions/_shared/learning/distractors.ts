@@ -72,7 +72,7 @@ function terms(gloss: string): string[] {
 }
 
 /** Синоним правильного значения — нечестный вариант: оба ответа верны. */
-function synonym(a: string, b: string): boolean {
+export function synonym(a: string, b: string): boolean {
   const ta = terms(a);
   return terms(b).some((t) => ta.includes(t));
 }

@@ -183,9 +183,12 @@ export function planSubmit(input: SubmitInput): SubmitPlan {
       }),
     });
     const usedInContext = skill === "use" && grade.kind === "success";
+    // «Использую» засчитывает только производство (C2+): пропуск с выбором
+    // (C1) — узнавание в контексте, не употребление (vocabulary-engine.md §3).
+    const produced = usedInContext && code !== "C1";
     put(skill, {
       ...next,
-      contextsPassed: (prev?.contextsPassed ?? 0) + (usedInContext ? 1 : 0),
+      contextsPassed: (prev?.contextsPassed ?? 0) + (produced ? 1 : 0),
       unlockedAt: prev?.unlockedAt ?? now,
     });
     before = prev ? { r: retrievabilityAt(prev, now), s: prev.stability, d: prev.difficulty } : null;

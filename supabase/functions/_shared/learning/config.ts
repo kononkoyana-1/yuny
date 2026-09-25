@@ -108,8 +108,12 @@ export const MODEL = {
   fastShare: 0.6,
   slowShare: 2.5,
 
-  /** Когда открываются навыки. */
-  unlock: { writeAfterRead: 3, useAfterRead: 3, useAfterPinyin: 2 },
+  /**
+   * Когда открываются навыки. `perSession` — сколько навыков открыть за одно
+   * занятие (первое задание «Пишу» или «Использую»): открытие — тоже
+   * нагрузка, повторения и новые слова важнее.
+   */
+  unlock: { writeAfterRead: 3, useAfterRead: 3, useAfterPinyin: 2, perSession: 4 },
 
   /** Навык считается «держащимся» для стадии, пока R не ниже этого. */
   stageMinRetrievability: 0.8,

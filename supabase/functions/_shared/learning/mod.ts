@@ -62,6 +62,7 @@ export {
   intakeQuota,
   interleave,
   NEW_WORD_COST,
+  openingSkills,
   pairBlockSides,
   type PlanInput,
   type PlanLexeme,
@@ -91,6 +92,7 @@ export {
   type RenderCode,
   resultOutcome,
   type ResultOutcome,
+  shuffleTiles,
   type StudyWord,
   type TicketBody,
   toneLabel,
@@ -101,6 +103,27 @@ export { estimateMinutes, type PlanDigest, planDigest, recallNow, todayState, ty
 export { extraNewOffer, type FolderModeOffer, type FolderPlan, folderPlan } from "./folder.ts";
 export { type ConfusionView, folderOverview, type FolderOverview, type SkillLevel, skillLevel, stageOf, type WordOnMap, wordProgress, type WordProgress } from "./overview.ts";
 export { queueView, type QueueView } from "./queue.ts";
+export {
+  BATCH_COUNT,
+  checkBatch,
+  checkSentence,
+  type ContextSentence,
+  type ContextTier,
+  type ContextUse,
+  covered,
+  fitsUse,
+  FUNCTION_WORDS,
+  type KnownWords,
+  type Lexicon,
+  maxMatch,
+  pickSentence,
+  readSentence,
+  senseKey,
+  sentenceTiles,
+  TIER_LENGTH,
+  unknownWords,
+  userLevel,
+} from "./context.ts";
 export { checkCollocation, checkContrast, type Collocation, type ContrastBody, readContrast } from "./contrast.ts";
 export {
   type HanziChar,
