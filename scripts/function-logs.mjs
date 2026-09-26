@@ -26,7 +26,10 @@ const safe = filter.replace(/[^\w\-.: ]/g, "");
 
 // С 2026-09 все логи — в одной таблице `logs` (ClickHouse SQL); отбираем по
 // тексту сообщения (наши `console.error` начинаются с узнаваемых меток).
-const sql = `select toString(timestamp) as time, event_message from logs
+// LOGS_SQL — свой запрос к таблице логов (например, со столбцами времени
+// ответа); строки печатаются как JSON. Только чтение: endpoint логов другого не умеет.
+const custom = process.env.LOGS_SQL?.trim() ?? "";
+const sql = custom || `select toString(timestamp) as time, event_message from logs
   ${safe ? `where position(event_message, '${safe}') > 0` : ""}
   order by timestamp desc limit 200`;
 
@@ -46,6 +49,11 @@ if (body.error) {
   process.exit(1);
 }
 const rows = body.result ?? [];
+if (custom) {
+  for (const row of rows) console.log(JSON.stringify(row));
+  console.log(`— ${rows.length} строк за ${hours} ч`);
+  process.exit(0);
+}
 for (const row of [...rows].reverse()) {
   console.log(`${row.time}  ${String(row.event_message).trim()}`);
 }
